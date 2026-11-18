@@ -169,7 +169,6 @@
         .custom-dropdown-menu.open {
             display: flex;
         }
-        /* 1ª Linha: Busca com Lupa */
         .dropdown-search-box {
             display: flex;
             align-items: center;
@@ -194,7 +193,6 @@
         .dropdown-search-box input::placeholder {
             color: var(--text-secondary);
         }
-        /* 2ª Linha Fixa: [+ Adicionar Exercício] */
         .dropdown-add-fixed {
             padding: 12px 16px;
             background: var(--surface-highlight);
@@ -211,7 +209,6 @@
             background: var(--accent-color);
             color: #000000;
         }
-        /* Restante da Lista */
         .dropdown-options-list {
             list-style: none;
             max-height: 240px;
@@ -333,7 +330,7 @@
         .exec-set-label { font-weight: bold; font-size: 1.05rem; color: var(--text-primary); }
         .exec-set-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
 
-        /* Botão Acionador de Número (Substitui o <select> nativo) */
+        /* Botão Acionador de Número */
         .num-picker-btn {
             background: var(--surface-highlight);
             border: 1px solid var(--border-color);
@@ -410,7 +407,7 @@
         .bottom-sheet {
             width: 100%;
             max-width: 600px;
-            max-height: 50vh; /* Máximo de 50% da altura da tela */
+            max-height: 50vh;
             background: var(--surface-color);
             border-top: 2px solid var(--accent-color);
             border-radius: 16px 16px 0 0;
@@ -461,7 +458,7 @@
             padding: 16px;
             overflow-y: auto;
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* Exatamente 4 colunas */
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
         }
         .number-grid-container::-webkit-scrollbar {
@@ -499,9 +496,7 @@
 
         /* ---- ESTILOS ADICIONAIS TELA 2 & FEEDBACK ---- */
         #exercise-container { display: flex; flex-direction: column; margin-bottom: 24px; }
-        .exercise-card {
-            border-color: var(--accent-color);
-        }
+        .exercise-card { border-color: var(--accent-color); }
         .exercise-card-title {
             text-align: center; font-size: 1.15rem; color: var(--accent-color);
             padding-bottom: 8px; border-bottom: 1px solid var(--border-color);
@@ -539,10 +534,9 @@
 </head>
 <body>
 
-    <!-- Notificação Toast -->
     <div id="toast">Salvo com sucesso!</div>
 
-    <!-- Bottom Sheet Modal: Seletor de Números (Carga / Reps) -->
+    <!-- Bottom Sheet Modal: Seletor de Números -->
     <div id="number-picker-overlay" class="bottom-sheet-overlay">
         <div class="bottom-sheet">
             <div class="bottom-sheet-header">
@@ -584,7 +578,7 @@
         </div>
     </div>
 
-    <!-- TELA 0: Acesso / Login de Usuário -->
+    <!-- TELA 0: Login -->
     <div id="screen-0" class="screen active">
         <h2 class="screen-title">Acesso ao Tracker</h2>
         <div class="login-card">
@@ -600,7 +594,7 @@
         </div>
     </div>
 
-    <!-- TELA 1: Página Inicial -->
+    <!-- TELA 1: Home -->
     <div id="screen-1" class="screen">
         <div class="user-badge">Perfil ativo: <strong id="display-username">---</strong></div>
         <button id="btn-nova-rotina" class="btn-main">+ NOVA ROTINA</button>
@@ -635,26 +629,21 @@
             </div>
         </header>
 
-        <!-- Dropdown Customizado (Div/Ul/Li) -->
         <div class="exercise-selector" id="custom-exercise-dropdown">
             <div class="custom-dropdown-trigger" id="dropdown-trigger">
                 <span>+ Escolher Exercício...</span>
                 <span class="arrow">▼</span>
             </div>
             <div class="custom-dropdown-menu" id="dropdown-menu">
-                <!-- 1ª Linha: Input de Busca com Lupa -->
                 <div class="dropdown-search-box">
                     <span class="search-icon">🔍</span>
                     <input type="text" id="dropdown-search-input" placeholder="Pesquisar exercício..." autocomplete="off">
                 </div>
-                <!-- 2ª Linha (Fixa): Botão Adicionar Exercício -->
                 <div class="dropdown-add-fixed" id="btn-open-add-ex-modal">[+ Adicionar Exercício]</div>
-                <!-- Restante da Lista -->
                 <ul class="dropdown-options-list" id="dropdown-exercise-list"></ul>
             </div>
         </div>
 
-        <!-- Container onde os grupos musculares e carrosséis serão inseridos -->
         <div id="exercise-container"></div>
 
         <div class="form-actions">
@@ -663,14 +652,14 @@
         </div>
     </div>
 
-    <!-- TELA 3: Menu do Cronograma -->
+    <!-- TELA 3: Cronograma -->
     <div id="screen-3" class="screen">
         <div class="nav-back" id="back-to-home">← Voltar</div>
         <h2 class="screen-title">Suas Rotinas</h2>
         <div id="routines-list" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
     </div>
 
-    <!-- TELA 4: Execução do Treino -->
+    <!-- TELA 4: Execução -->
     <div id="screen-4" class="screen">
         <div class="nav-back" id="back-to-menu">← Voltar às Rotinas</div>
 
@@ -684,18 +673,13 @@
                 <label for="exec-date">Data de Execução:</label>
                 <input type="date" id="exec-date" class="date-input">
             </div>
-            
-            <select id="exec-session-select" class="session-select">
-                <!-- Preenchido via JS -->
-            </select>
+            <select id="exec-session-select" class="session-select"></select>
         </div>
 
         <div id="exec-container"></div>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- INTEGRAÇÃO COM FIREBASE FIRESTORE (SDK Modular via CDN)           -->
-    <!-- ================================================================= -->
+    <!-- INTEGRAÇÃO COM FIREBASE -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, updateDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -712,7 +696,6 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
         let usuarioAtivo = "";
 
         function showToast(msg) {
@@ -722,47 +705,63 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // --- DICIONÁRIO DE MÚSCULOS E REPOSITÓRIO DE EXERCÍCIOS ---
-        const muscleDictionary = {
-            "Remada Articulada Fechada": "COSTAS",
-            "Remada Aberta Polia": "COSTAS",
-            "Puxada Alta Triângulo": "COSTAS",
-            "Remada Baixa": "COSTAS",
-            "Pulley Frente": "COSTAS",
-            "Peck Deck": "PEITO",
-            "Supino Inclinado com Halteres": "PEITO",
-            "Supino Reto Halteres": "PEITO",
-            "Crossover Superior": "PEITO",
-            "Crossover Inferior": "PEITO",
-            "Agachamento Búlgaro": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-            "Agachamento Livre": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-            "Cadeira Extensora Quadríceps Femoral": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-            "Cadeira Extensora Unilateral": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-            "Leg Press": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-            "Hack Machine": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-            "Mesa Flexora": "POSTERIOR DE COXA",
-            "Stiff": "POSTERIOR DE COXA",
-            "Gêmeos em Pé": "PANTURRILHA",
-            "Gêmeos Sentado": "PANTURRILHA",
-            "Tríceps Polia Bilateral com Corda": "TRÍCEPS",
-            "Tríceps Testa": "TRÍCEPS",
-            "Tríceps Francês": "TRÍCEPS",
-            "Rosca Martelo": "BÍCEPS",
-            "Rosca Inversa": "BÍCEPS",
-            "Rosca Direta": "BÍCEPS",
-            "Rosca 45º": "BÍCEPS",
-            "Elevação Lateral Halteres": "OMBRO",
-            "Elevação Lateral Polia": "OMBRO",
-            "Flexão de Punho": "ANTEBRAÇO",
-            "Cadeira Adutora": "ADUTORES/ABDUTORES",
-            "Cadeira Abdutora": "ADUTORES/ABDUTORES"
-        };
+        // Helper para Contingência
+        function criarEstruturaMmeFallback(musculoEscolhido) {
+            return {
+                mme: {
+                    protagonista: musculoEscolhido,
+                    pctProtagonista: 100,
+                    secundario: null,
+                    pctSecundario: null,
+                    terciario: null,
+                    pctTerciario: null
+                }
+            };
+        }
 
-        const exercisesRepository = Object.entries(muscleDictionary).map(([nome, musculo]) => ({
-            nome,
-            musculo,
-            criadoPor: "sistema"
-        }));
+        // --- NOVO REPOSITÓRIO ROBUSTO (PLANILHA MME TRANSCRITA) ---
+        const exercisesRepository = [
+            { nome: "Remada Articulada Fechada", musculo: "COSTAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Dorsal", pctProtagonista: 70, secundario: "Bíceps", pctSecundario: 30, terciario: null, pctTerciario: null } },
+            { nome: "Remada Aberta Polia", musculo: "COSTAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Dorsal", pctProtagonista: 60, secundario: "Deltoide Posterior", pctSecundario: 25, terciario: "Bíceps", pctTerciario: 15 } },
+            { nome: "Puxada Alta Triângulo", musculo: "COSTAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Dorsal", pctProtagonista: 75, secundario: "Bíceps", pctSecundario: 25, terciario: null, pctTerciario: null } },
+            { nome: "Pulley Frente", musculo: "COSTAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Dorsal", pctProtagonista: 70, secundario: "Bíceps", pctSecundario: 30, terciario: null, pctTerciario: null } },
+            { nome: "Remada Baixa", musculo: "COSTAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Dorsal", pctProtagonista: 65, secundario: "Bíceps", pctSecundario: 20, terciario: "Romboides", pctTerciario: 15 } },
+            { nome: "Peck Deck", musculo: "PEITO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Peitoral", pctProtagonista: 90, secundario: "Deltoide Anterior", pctSecundario: 10, terciario: null, pctTerciario: null } },
+            { nome: "Supino Inclinado com Halteres", musculo: "PEITO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Peitoral Superior", pctProtagonista: 65, secundario: "Deltoide Anterior", pctSecundario: 25, terciario: "Tríceps", pctTerciario: 10 } },
+            { nome: "Supino Reto Halteres", musculo: "PEITO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Peitoral", pctProtagonista: 75, secundario: "Deltoide Anterior", pctSecundario: 15, terciario: "Tríceps", pctTerciario: 10 } },
+            { nome: "Crossover Superior", musculo: "PEITO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Peitoral Superior", pctProtagonista: 80, secundario: "Deltoide Anterior", pctSecundario: 20, terciario: null, pctTerciario: null } },
+            { nome: "Crossover Inferior", musculo: "PEITO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Peitoral Inferior", pctProtagonista: 85, secundario: "Deltoide Anterior", pctSecundario: 15, terciario: null, pctTerciario: null } },
+            { nome: "Agachamento Búlgaro", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 60, secundario: "Glúteos", pctSecundario: 35, terciario: "Isquiotibiais", pctTerciario: 5 } },
+            { nome: "Agachamento Livre", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 60, secundario: "Glúteos", pctSecundario: 30, terciario: "Lombar", pctTerciario: 10 } },
+            { nome: "Cadeira Extensora Quadríceps Femoral", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Cadeira Extensora Unilateral", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Leg Press", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 75, secundario: "Glúteos", pctSecundario: 20, terciario: "Isquiotibiais", pctTerciario: 5 } },
+            { nome: "Hack Machine", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 80, secundario: "Glúteos", pctSecundario: 20, terciario: null, pctTerciario: null } },
+            { nome: "Mesa Flexora", musculo: "POSTERIOR DE COXA", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Isquiotibiais", pctProtagonista: 90, secundario: "Panturrilha", pctSecundario: 10, terciario: null, pctTerciario: null } },
+            { nome: "Stiff", musculo: "POSTERIOR DE COXA", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Isquiotibiais", pctProtagonista: 60, secundario: "Glúteos", pctSecundario: 30, terciario: "Lombar", pctTerciario: 10 } },
+            { nome: "Gêmeos em Pé", musculo: "PANTURRILHA", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Panturrilha Gastrocnêmio", pctProtagonista: 80, secundario: "Panturrilha Sóleo", pctSecundario: 20, terciario: null, pctTerciario: null } },
+            { nome: "Gêmeos Sentado", musculo: "PANTURRILHA", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Panturrilha Sóleo", pctProtagonista: 85, secundario: "Panturrilha Gastrocnêmio", pctSecundario: 15, terciario: null, pctTerciario: null } },
+            { nome: "Tríceps Polia Bilateral com Corda", musculo: "TRÍCEPS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Tríceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Tríceps Testa", musculo: "TRÍCEPS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Tríceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Tríceps Francês", musculo: "TRÍCEPS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Tríceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Rosca Martelo", musculo: "BÍCEPS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Braquiorradial/Braquial", pctProtagonista: 60, secundario: "Bíceps", pctSecundario: 40, terciario: null, pctTerciario: null } },
+            { nome: "Rosca Inversa", musculo: "BÍCEPS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Braquiorradial", pctProtagonista: 70, secundario: "Bíceps", pctSecundario: 30, terciario: null, pctTerciario: null } },
+            { nome: "Rosca Direta", musculo: "BÍCEPS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Bíceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Rosca 45º", musculo: "BÍCEPS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Bíceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Elevação Lateral Halteres", musculo: "OMBRO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Deltoide Lateral", pctProtagonista: 80, secundario: "Trapézio", pctSecundario: 20, terciario: null, pctTerciario: null } },
+            { nome: "Elevação Lateral Polia", musculo: "OMBRO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Deltoide Lateral", pctProtagonista: 85, secundario: "Trapézio", pctSecundario: 15, terciario: null, pctTerciario: null } },
+            { nome: "Flexão de Punho", musculo: "ANTEBRAÇO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Flexores de Punho", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Cadeira Adutora", musculo: "ADUTORES/ABDUTORES", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Adutores", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Cadeira Abdutora", musculo: "ADUTORES/ABDUTORES", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Glúteos Médio/Mínimo", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } }
+        ];
+
+        // Recriando o objeto para fácil consulta pelo UI antigo
+        const muscleDictionary = {};
+        exercisesRepository.forEach(ex => muscleDictionary[ex.nome] = ex.musculo);
+
+        function obterMetadadosExercicio(nomeExercicio) {
+            return exercisesRepository.find(ex => ex.nome.toLowerCase() === nomeExercicio.toLowerCase()) || null;
+        }
 
         async function carregarExerciciosCustomizados() {
             try {
@@ -771,14 +770,15 @@
                     const data = docSnap.data();
                     if (data.nome && data.musculo) {
                         muscleDictionary[data.nome] = data.musculo;
-                        const jaExiste = exercisesRepository.some(
-                            ex => ex.nome.toLowerCase() === data.nome.toLowerCase()
-                        );
+                        const jaExiste = exercisesRepository.some(ex => ex.nome.toLowerCase() === data.nome.toLowerCase());
                         if (!jaExiste) {
                             exercisesRepository.push({
                                 nome: data.nome,
                                 musculo: data.musculo,
-                                criadoPor: data.criadoPor || "desconhecido"
+                                criadoPor: data.criadoPor || "desconhecido",
+                                pendenteRevisaoMME: data.pendenteRevisaoMME !== undefined ? data.pendenteRevisaoMME : true,
+                                mme: data.mmeFallback?.mme || criarEstruturaMmeFallback(data.musculo).mme,
+                                isCustom: true
                             });
                         }
                     }
@@ -789,7 +789,7 @@
             }
         }
 
-        // --- LÓGICA DO BOTTOM SHEET DE NÚMEROS (SUBSTITUI <select> DE CARGA/REPS) ---
+        // --- BOTTOM SHEET DE NÚMEROS ---
         const numberPickerOverlay = document.getElementById('number-picker-overlay');
         const numberPickerTitle = document.getElementById('number-picker-title');
         const numberPickerClose = document.getElementById('number-picker-close');
@@ -830,11 +830,8 @@
             numberPickerGrid.appendChild(fragment);
             numberPickerOverlay.classList.add('open');
 
-            // Centraliza a rolagem no número atualmente selecionado
             if (selectedSquare) {
-                setTimeout(() => {
-                    selectedSquare.scrollIntoView({ block: 'center', behavior: 'instant' });
-                }, 10);
+                setTimeout(() => selectedSquare.scrollIntoView({ block: 'center', behavior: 'instant' }), 10);
             }
         }
 
@@ -845,12 +842,10 @@
 
         numberPickerClose.addEventListener('click', closeNumberPicker);
         numberPickerOverlay.addEventListener('click', (e) => {
-            if (e.target === numberPickerOverlay) {
-                closeNumberPicker();
-            }
+            if (e.target === numberPickerOverlay) closeNumberPicker();
         });
 
-        // --- LÓGICA DO DROPDOWN CUSTOMIZADO (TELA 2) ---
+        // --- DROPDOWN CUSTOMIZADO (TELA 2) ---
         const customDropdown = document.getElementById('custom-exercise-dropdown');
         const dropdownTrigger = document.getElementById('dropdown-trigger');
         const dropdownMenu = document.getElementById('dropdown-menu');
@@ -873,22 +868,16 @@
         dropdownTrigger.addEventListener('click', () => toggleDropdown());
 
         document.addEventListener('click', (e) => {
-            if (!customDropdown.contains(e.target)) {
-                toggleDropdown(false);
-            }
+            if (!customDropdown.contains(e.target)) toggleDropdown(false);
         });
 
-        dropdownSearchInput.addEventListener('input', (e) => {
-            renderDropdownList(e.target.value);
-        });
+        dropdownSearchInput.addEventListener('input', (e) => renderDropdownList(e.target.value));
 
         function renderDropdownList(filterText = '') {
             dropdownExerciseList.innerHTML = '';
             const termo = filterText.trim().toLowerCase();
 
-            const filtrados = Object.keys(muscleDictionary).filter(exName =>
-                exName.toLowerCase().includes(termo)
-            );
+            const filtrados = Object.keys(muscleDictionary).filter(exName => exName.toLowerCase().includes(termo));
 
             if (filtrados.length === 0) {
                 const emptyLi = document.createElement('li');
@@ -901,7 +890,7 @@
             filtrados.forEach(exName => {
                 const li = document.createElement('li');
                 li.className = 'dropdown-option-item';
-                li.textContent = exName;
+                li.textContent = exName; 
                 li.addEventListener('click', () => {
                     adicionarCardExercicioTela2(exName);
                     toggleDropdown(false);
@@ -941,27 +930,39 @@
                 return;
             }
 
-            const novoExercicioObj = {
+            const estruturaMme = criarEstruturaMmeFallback(musculoNovo);
+            const autor = usuarioAtivo || "anonimo";
+
+            const novoExercicioFirestore = {
                 nome: nomeNovo,
                 musculo: musculoNovo,
-                criadoPor: usuarioAtivo || "anonimo",
+                mmeFallback: estruturaMme,
+                criadoPor: autor,
+                pendenteRevisaoMME: true,
                 criadoEm: new Date().toISOString()
             };
 
             muscleDictionary[nomeNovo] = musculoNovo;
-            const jaExiste = exercisesRepository.some(
-                ex => ex.nome.toLowerCase() === nomeNovo.toLowerCase()
-            );
-            if (!jaExiste) {
-                exercisesRepository.push(novoExercicioObj);
+            const idxExistente = exercisesRepository.findIndex(ex => ex.nome.toLowerCase() === nomeNovo.toLowerCase());
+
+            const registroMemoria = {
+                ...novoExercicioFirestore,
+                mme: estruturaMme.mme,
+                isCustom: true
+            };
+
+            if (idxExistente === -1) {
+                exercisesRepository.push(registroMemoria);
+            } else {
+                exercisesRepository[idxExistente] = registroMemoria;
             }
 
             try {
                 btnSaveNewEx.disabled = true;
                 btnSaveNewEx.textContent = "SALVANDO...";
-                await addDoc(collection(db, "exercicios_customizados"), novoExercicioObj);
+                await addDoc(collection(db, "exercicios_customizados"), novoExercicioFirestore);
             } catch (err) {
-                console.error("Erro ao salvar exercício customizado no Firebase:", err);
+                console.error("Erro ao salvar exercício no Firebase:", err);
             } finally {
                 btnSaveNewEx.disabled = false;
                 btnSaveNewEx.textContent = "Salvar";
@@ -975,7 +976,7 @@
             showToast(`"${nomeNovo}" adicionado à lista!`);
         });
 
-        // --- NAVEGAÇÃO ENTRE TELAS ---
+        // --- NAVEGAÇÃO ---
         const screens = {
             s0: document.getElementById('screen-0'),
             s1: document.getElementById('screen-1'),
@@ -989,7 +990,7 @@
             activeScreen.classList.add('active');
         }
 
-        // --- LÓGICA DA TELA 0: LOGIN DE PERFIL ---
+        // --- LÓGICA DE LOGIN ---
         const inputLoginUser = document.getElementById('login-user');
         const inputLoginPass = document.getElementById('login-pass');
         const displayUsername = document.getElementById('display-username');
@@ -1025,9 +1026,7 @@
         document.getElementById('back-to-home').addEventListener('click', () => switchScreen(screens.s1));
         document.getElementById('back-to-menu').addEventListener('click', () => switchScreen(screens.s3));
 
-        // =================================================================
-        // LÓGICA DA TELA 2: AGRUPAMENTO POR MÚSCULO EM CARROSSEL E GRAVAÇÃO
-        // =================================================================
+        // --- TELA 2: AGRUPAMENTO POR MÚSCULO ---
         const exerciseContainer = document.getElementById('exercise-container');
         const inputNomeRotina = document.getElementById('input-nome');
         const selectDiaRef = document.getElementById('select-dia');
@@ -1038,10 +1037,8 @@
         function adicionarCardExercicioTela2(exerciseName) {
             if (!exerciseName) return;
 
-            // 1. Identifica o grupo muscular pelo muscleDictionary
             const muscle = muscleDictionary[exerciseName] || "OUTROS";
 
-            // 2. Verifica se já existe um container para esse músculo na Tela 2
             let groupDiv = Array.from(exerciseContainer.querySelectorAll('.muscle-group')).find(
                 div => div.dataset.muscleGroup === muscle
             );
@@ -1061,7 +1058,6 @@
                 carousel = groupDiv.querySelector('.carousel');
             }
 
-            // 3. Cria o card do exercício dentro do carrossel horizontal
             const card = document.createElement('div');
             card.className = 'carousel-card exercise-card';
             card.dataset.exerciseName = exerciseName;
@@ -1101,7 +1097,6 @@
 
             carousel.appendChild(card);
 
-            // Ajusta a classe .single-card conforme a quantidade de cards no carrossel
             const allCardsInCarousel = carousel.querySelectorAll('.carousel-card');
             if (allCardsInCarousel.length === 1) {
                 allCardsInCarousel[0].classList.add('single-card');
@@ -1109,7 +1104,6 @@
                 allCardsInCarousel.forEach(c => c.classList.remove('single-card'));
             }
 
-            // Desliza suavemente para exibir o card recém-adicionado
             setTimeout(() => {
                 card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             }, 50);
@@ -1123,10 +1117,21 @@
             cards.forEach(card => {
                 const nome = card.dataset.exerciseName;
                 const series = [];
-                card.querySelectorAll('.set-row').forEach(row => {
-                    series.push(row.textContent.trim());
-                });
-                exerciciosDoDia.push({ nome, series });
+                card.querySelectorAll('.set-row').forEach(row => series.push(row.textContent.trim()));
+
+                const objExercicio = { nome, series };
+                const meta = obterMetadadosExercicio(nome);
+                
+                // Envia a estrutura pro Firebase ao criar a rotina
+                if (meta) {
+                    objExercicio.mme = meta.mme;
+                    if(meta.isCustom) {
+                        objExercicio.criadoPor = usuarioAtivo || meta.criadoPor || "anonimo";
+                        objExercicio.pendenteRevisaoMME = true;
+                    }
+                }
+
+                exerciciosDoDia.push(objExercicio);
             });
 
             return {
@@ -1163,9 +1168,7 @@
             }
 
             const diaAtual = capturarDiaAtualTela2();
-            if (diaAtual) {
-                sessoesTemporarias.push(diaAtual);
-            }
+            if (diaAtual) sessoesTemporarias.push(diaAtual);
 
             if (sessoesTemporarias.length === 0) {
                 showToast("Adicione pelo menos 1 dia com exercícios!");
@@ -1184,7 +1187,6 @@
                 btnConcluirRotina.textContent = "SALVANDO NO BANCO...";
 
                 const docRef = await addDoc(collection(db, "rotinas"), pacoteRotina);
-                console.log("Rotina salva no Firestore com ID:", docRef.id);
                 showToast("Rotina salva no Firebase com sucesso!");
 
                 sessoesTemporarias = [];
@@ -1194,17 +1196,15 @@
 
                 switchScreen(screens.s1);
             } catch (error) {
-                console.error("Erro ao salvar rotina no Firebase:", error);
-                showToast("Erro ao salvar no Firebase. Verifique o console.");
+                console.error("Erro ao salvar rotina:", error);
+                showToast("Erro ao salvar no Firebase.");
             } finally {
                 btnConcluirRotina.disabled = false;
                 btnConcluirRotina.textContent = "Concluir Rotina";
             }
         });
 
-        // =================================================================
-        // TELA 3: CARREGAR ROTINAS EXCLUSIVAMENTE DO FIREBASE
-        // =================================================================
+        // --- TELA 3: ROTINAS DO FIREBASE ---
         const routinesListContainer = document.getElementById('routines-list');
         async function carregarRotinasDoFirebase() {
             routinesListContainer.innerHTML = `<p class="empty-msg">Buscando rotinas na base...</p>`;
@@ -1228,13 +1228,11 @@
                 });
             } catch (error) {
                 console.error("Erro ao buscar rotinas:", error);
-                routinesListContainer.innerHTML = `<p class="empty-msg">Erro ao carregar rotinas do banco.</p>`;
+                routinesListContainer.innerHTML = `<p class="empty-msg">Erro ao carregar rotinas.</p>`;
             }
         }
 
-        // =================================================================
-        // LÓGICA DA TELA 4: EXECUÇÃO DINÂMICA POR DIA E GRAVAÇÃO
-        // =================================================================
+        // --- TELA 4: EXECUÇÃO E ENVIO DO MME FRACIONADO ---
         const dayRefHeader = document.getElementById('exec-day-ref');
         const dateInput = document.getElementById('exec-date');
         const sessionSelect = document.getElementById('exec-session-select');
@@ -1287,7 +1285,8 @@
             
             const groups = {};
             session.exercicios.forEach(ex => {
-                const muscle = muscleDictionary[ex.nome] || "OUTROS";
+                const meta = obterMetadadosExercicio(ex.nome);
+                const muscle = muscleDictionary[ex.nome] || (ex.mme?.protagonista) || "OUTROS";
                 if (!groups[muscle]) groups[muscle] = [];
                 groups[muscle].push(ex);
             });
@@ -1330,7 +1329,6 @@
                         </div>
                     `;
 
-                    // Eventos para abrir o Bottom Sheet de números (Carga 1-250 / Reps 1-25)
                     card.querySelectorAll('.select-kg').forEach(btnKg => {
                         btnKg.addEventListener('click', () => openNumberPicker(btnKg, 250, 'Selecionar Carga (kg)'));
                     });
@@ -1367,6 +1365,15 @@
                                 atualizadoEm: new Date().toISOString()
                             };
 
+                            // O coração da integração BI: Anexa MME fracionado exato de todos os exercícios!
+                            const meta = obterMetadadosExercicio(ex.nome);
+                            dadosExercicio.mme = meta?.mme || ex.mme || criarEstruturaMmeFallback(muscle).mme;
+                            
+                            if (meta && meta.isCustom) {
+                                dadosExercicio.criadoPor = ex.criadoPor || meta.criadoPor || usuarioAtivo || "anonimo";
+                                dadosExercicio.pendenteRevisaoMME = ex.pendenteRevisaoMME !== undefined ? ex.pendenteRevisaoMME : true;
+                            }
+
                             try {
                                 btnAction.disabled = true;
                                 btnAction.textContent = "SALVANDO...";
@@ -1376,12 +1383,10 @@
                                 if (!existingDocId) {
                                     const docRef = await addDoc(collection(db, "treinos_executados"), dadosExercicio);
                                     card.dataset.firestoreId = docRef.id;
-                                    console.log(`[CRIADO NO FIREBASE] ID: ${docRef.id}`, dadosExercicio);
                                     showToast(`${ex.nome} registrado!`);
                                 } else {
                                     const docRef = doc(db, "treinos_executados", existingDocId);
                                     await updateDoc(docRef, dadosExercicio);
-                                    console.log(`[ATUALIZADO NO FIREBASE] ID: ${existingDocId}`, dadosExercicio);
                                     showToast(`${ex.nome} atualizado!`);
                                 }
 
@@ -1432,10 +1437,7 @@
             sincronizarSessaoPeloDia(diaHoje);
         }
 
-        sessionSelect.addEventListener('change', (e) => {
-            const index = e.target.value;
-            renderSession(rotinaAtivaAtual.sessoes[index]);
-        });
+        sessionSelect.addEventListener('change', (e) => renderSession(rotinaAtivaAtual.sessoes[e.target.value]));
     </script>
 </body>
 </html>
