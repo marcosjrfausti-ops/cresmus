@@ -290,7 +290,7 @@
             padding: 12px;
         }
         
-        /* ---- TELA 4: EXECUÇÃO DO TREINO ---- */
+        /* ---- ESTRUTURA DE GRUPOS E CARROSSEL (TELAS 2 e 4) ---- */
         .exec-header {
             display: flex; justify-content: space-between; align-items: center;
             padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;
@@ -332,16 +332,31 @@
         }
         .exec-set-label { font-weight: bold; font-size: 1.05rem; color: var(--text-primary); }
         .exec-set-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
-        .exec-set-inputs select {
-            background: var(--surface-highlight); border: 1px solid var(--border-color);
-            color: var(--text-primary); padding: 8px; border-radius: 6px; font-size: 1rem; text-align: center;
-            transition: opacity 0.2s, background-color 0.2s;
+
+        /* Botão Acionador de Número (Substitui o <select> nativo) */
+        .num-picker-btn {
+            background: var(--surface-highlight);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            min-width: 64px;
+            border-radius: 6px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            text-align: center;
+            cursor: pointer;
+            transition: opacity 0.2s, background-color 0.2s, border-color 0.2s;
+            user-select: none;
         }
-        .exec-set-inputs select:disabled {
+        .num-picker-btn:hover:not(:disabled) {
+            border-color: var(--accent-color);
+        }
+        .num-picker-btn:disabled {
             opacity: 0.7;
             cursor: not-allowed;
             background: var(--bg-color);
         }
+
         .exec-suffix { color: var(--danger-color); font-weight: bold; }
 
         .carousel-card.card-salvo {
@@ -379,11 +394,113 @@
             border: 1px solid var(--text-secondary);
         }
 
+        /* ---- BOTTOM SHEET CUSTOMIZADO DE NÚMEROS ---- */
+        .bottom-sheet-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 900;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .bottom-sheet-overlay.open {
+            display: flex;
+        }
+        .bottom-sheet {
+            width: 100%;
+            max-width: 600px;
+            max-height: 50vh; /* Máximo de 50% da altura da tela */
+            background: var(--surface-color);
+            border-top: 2px solid var(--accent-color);
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.85);
+            animation: slideUpSheet 0.22s ease-out;
+        }
+        @keyframes slideUpSheet {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .bottom-sheet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .bottom-sheet-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .bottom-sheet-close {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .bottom-sheet-close:hover {
+            color: var(--text-primary);
+            border-color: var(--text-primary);
+        }
+        .number-grid-container {
+            padding: 16px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* Exatamente 4 colunas */
+            gap: 10px;
+        }
+        .number-grid-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .number-grid-container::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        .num-square-btn {
+            aspect-ratio: 1 / 1;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 10px;
+            font-size: 1.15rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease;
+            user-select: none;
+        }
+        .num-square-btn:hover {
+            background: var(--surface-highlight);
+            border-color: var(--accent-color);
+        }
+        .num-square-btn.selected {
+            background: var(--accent-color);
+            color: #000000;
+            border-color: var(--accent-color);
+            transform: scale(1.03);
+        }
+
         /* ---- ESTILOS ADICIONAIS TELA 2 & FEEDBACK ---- */
-        #exercise-container { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+        #exercise-container { display: flex; flex-direction: column; margin-bottom: 24px; }
         .exercise-card {
-            background: var(--surface-color); border: 1px solid var(--accent-color);
-            border-radius: var(--border-radius); padding: 16px; display: flex; flex-direction: column; gap: 12px;
+            border-color: var(--accent-color);
         }
         .exercise-card-title {
             text-align: center; font-size: 1.15rem; color: var(--accent-color);
@@ -393,7 +510,7 @@
             background: var(--bg-color); padding: 10px; border-radius: 6px;
             text-align: center; font-weight: 600; color: var(--text-primary);
         }
-        .card-controls { display: flex; justify-content: flex-end; gap: 12px; margin-top: 4px; }
+        .card-controls { display: flex; justify-content: flex-end; gap: 12px; margin-top: auto; padding-top: 8px; }
         .btn-control {
             background: transparent; border: 1px solid var(--text-primary); color: var(--text-primary);
             width: 34px; height: 34px; border-radius: 50%; font-size: 1.2rem;
@@ -424,6 +541,17 @@
 
     <!-- Notificação Toast -->
     <div id="toast">Salvo com sucesso!</div>
+
+    <!-- Bottom Sheet Modal: Seletor de Números (Carga / Reps) -->
+    <div id="number-picker-overlay" class="bottom-sheet-overlay">
+        <div class="bottom-sheet">
+            <div class="bottom-sheet-header">
+                <span id="number-picker-title" class="bottom-sheet-title">Selecionar Valor</span>
+                <button type="button" id="number-picker-close" class="bottom-sheet-close">✕</button>
+            </div>
+            <div id="number-picker-grid" class="number-grid-container"></div>
+        </div>
+    </div>
 
     <!-- Modal: Adicionar Novo Exercício -->
     <div id="modal-new-exercise" class="modal-overlay">
@@ -526,6 +654,7 @@
             </div>
         </div>
 
+        <!-- Container onde os grupos musculares e carrosséis serão inseridos -->
         <div id="exercise-container"></div>
 
         <div class="form-actions">
@@ -629,14 +758,12 @@
             "Cadeira Abdutora": "ADUTORES/ABDUTORES"
         };
 
-        // Lista unificada em código com metadado interno `criadoPor` (invisível na UI)
         const exercisesRepository = Object.entries(muscleDictionary).map(([nome, musculo]) => ({
             nome,
             musculo,
             criadoPor: "sistema"
         }));
 
-        // Carrega exercícios adicionados pelos usuários no Firebase e mescla na lista geral
         async function carregarExerciciosCustomizados() {
             try {
                 const snap = await getDocs(collection(db, "exercicios_customizados"));
@@ -662,6 +789,67 @@
             }
         }
 
+        // --- LÓGICA DO BOTTOM SHEET DE NÚMEROS (SUBSTITUI <select> DE CARGA/REPS) ---
+        const numberPickerOverlay = document.getElementById('number-picker-overlay');
+        const numberPickerTitle = document.getElementById('number-picker-title');
+        const numberPickerClose = document.getElementById('number-picker-close');
+        const numberPickerGrid = document.getElementById('number-picker-grid');
+
+        let activeNumberTriggerBtn = null;
+
+        function openNumberPicker(triggerBtn, maxNumber, titleText) {
+            if (triggerBtn.disabled) return;
+            activeNumberTriggerBtn = triggerBtn;
+            const currentValue = Number(triggerBtn.dataset.value || 1);
+
+            numberPickerTitle.textContent = titleText;
+            numberPickerGrid.innerHTML = '';
+
+            const fragment = document.createDocumentFragment();
+            let selectedSquare = null;
+
+            for (let i = 1; i <= maxNumber; i++) {
+                const sqBtn = document.createElement('button');
+                sqBtn.type = 'button';
+                sqBtn.className = 'num-square-btn';
+                if (i === currentValue) {
+                    sqBtn.classList.add('selected');
+                    selectedSquare = sqBtn;
+                }
+                sqBtn.textContent = i;
+
+                sqBtn.addEventListener('click', () => {
+                    activeNumberTriggerBtn.dataset.value = i;
+                    activeNumberTriggerBtn.textContent = i;
+                    closeNumberPicker();
+                });
+
+                fragment.appendChild(sqBtn);
+            }
+
+            numberPickerGrid.appendChild(fragment);
+            numberPickerOverlay.classList.add('open');
+
+            // Centraliza a rolagem no número atualmente selecionado
+            if (selectedSquare) {
+                setTimeout(() => {
+                    selectedSquare.scrollIntoView({ block: 'center', behavior: 'instant' });
+                }, 10);
+            }
+        }
+
+        function closeNumberPicker() {
+            numberPickerOverlay.classList.remove('open');
+            activeNumberTriggerBtn = null;
+        }
+
+        numberPickerClose.addEventListener('click', closeNumberPicker);
+        numberPickerOverlay.addEventListener('click', (e) => {
+            if (e.target === numberPickerOverlay) {
+                closeNumberPicker();
+            }
+        });
+
         // --- LÓGICA DO DROPDOWN CUSTOMIZADO (TELA 2) ---
         const customDropdown = document.getElementById('custom-exercise-dropdown');
         const dropdownTrigger = document.getElementById('dropdown-trigger');
@@ -684,14 +872,12 @@
 
         dropdownTrigger.addEventListener('click', () => toggleDropdown());
 
-        // Fechar o dropdown ao clicar fora dele
         document.addEventListener('click', (e) => {
             if (!customDropdown.contains(e.target)) {
                 toggleDropdown(false);
             }
         });
 
-        // Filtrar em tempo real mantendo o botão [+ Adicionar Exercício] fixo
         dropdownSearchInput.addEventListener('input', (e) => {
             renderDropdownList(e.target.value);
         });
@@ -715,7 +901,7 @@
             filtrados.forEach(exName => {
                 const li = document.createElement('li');
                 li.className = 'dropdown-option-item';
-                li.textContent = exName; // Exibe apenas o nome na UI, sem expor criadoPor
+                li.textContent = exName;
                 li.addEventListener('click', () => {
                     adicionarCardExercicioTela2(exName);
                     toggleDropdown(false);
@@ -724,7 +910,6 @@
             });
         }
 
-        // Inicializa a lista e sincroniza com o Firebase
         renderDropdownList();
         carregarExerciciosCustomizados();
 
@@ -736,7 +921,6 @@
         const btnSaveNewEx = document.getElementById('btn-save-new-ex');
 
         btnOpenAddExModal.addEventListener('click', () => {
-            // Pré-preenche com o texto já digitado na busca, se houver
             inputNewExName.value = dropdownSearchInput.value.trim();
             toggleDropdown(false);
             modalNewExercise.classList.add('open');
@@ -757,7 +941,6 @@
                 return;
             }
 
-            // Objeto interno com registro invisível de quem criou
             const novoExercicioObj = {
                 nome: nomeNovo,
                 musculo: musculoNovo,
@@ -765,7 +948,6 @@
                 criadoEm: new Date().toISOString()
             };
 
-            // Atualiza o dicionário e o repositório em memória imediatamente
             muscleDictionary[nomeNovo] = musculoNovo;
             const jaExiste = exercisesRepository.some(
                 ex => ex.nome.toLowerCase() === nomeNovo.toLowerCase()
@@ -789,17 +971,9 @@
             modalNewExercise.classList.remove('open');
             inputNewExName.value = '';
 
-            // Já gera o card do exercício recém-criado no #exercise-container
             adicionarCardExercicioTela2(nomeNovo);
             showToast(`"${nomeNovo}" adicionado à lista!`);
         });
-
-        // --- GERAÇÃO DE DROPDOWNS PARA OS INPUTS (1-250kg e 1-25 Reps) ---
-        let weightOptionsHTML = '';
-        for (let i = 1; i <= 250; i++) weightOptionsHTML += `<option value="${i}">${i}</option>`;
-        
-        let repOptionsHTML = '';
-        for (let i = 1; i <= 25; i++) repOptionsHTML += `<option value="${i}">${i}</option>`;
 
         // --- NAVEGAÇÃO ENTRE TELAS ---
         const screens = {
@@ -852,7 +1026,7 @@
         document.getElementById('back-to-menu').addEventListener('click', () => switchScreen(screens.s3));
 
         // =================================================================
-        // LÓGICA DA TELA 2: CADASTRO DO MOLDE E GRAVAÇÃO NA COLEÇÃO "rotinas"
+        // LÓGICA DA TELA 2: AGRUPAMENTO POR MÚSCULO EM CARROSSEL E GRAVAÇÃO
         // =================================================================
         const exerciseContainer = document.getElementById('exercise-container');
         const inputNomeRotina = document.getElementById('input-nome');
@@ -864,8 +1038,32 @@
         function adicionarCardExercicioTela2(exerciseName) {
             if (!exerciseName) return;
 
+            // 1. Identifica o grupo muscular pelo muscleDictionary
+            const muscle = muscleDictionary[exerciseName] || "OUTROS";
+
+            // 2. Verifica se já existe um container para esse músculo na Tela 2
+            let groupDiv = Array.from(exerciseContainer.querySelectorAll('.muscle-group')).find(
+                div => div.dataset.muscleGroup === muscle
+            );
+
+            let carousel;
+            if (!groupDiv) {
+                groupDiv = document.createElement('div');
+                groupDiv.className = 'muscle-group';
+                groupDiv.dataset.muscleGroup = muscle;
+                groupDiv.innerHTML = `<h3 class="muscle-title">${muscle}</h3>`;
+
+                carousel = document.createElement('div');
+                carousel.className = 'carousel';
+                groupDiv.appendChild(carousel);
+                exerciseContainer.appendChild(groupDiv);
+            } else {
+                carousel = groupDiv.querySelector('.carousel');
+            }
+
+            // 3. Cria o card do exercício dentro do carrossel horizontal
             const card = document.createElement('div');
-            card.className = 'exercise-card';
+            card.className = 'carousel-card exercise-card';
             card.dataset.exerciseName = exerciseName;
             
             let validSetsCount = 0;
@@ -901,7 +1099,20 @@
                 }
             });
 
-            exerciseContainer.appendChild(card);
+            carousel.appendChild(card);
+
+            // Ajusta a classe .single-card conforme a quantidade de cards no carrossel
+            const allCardsInCarousel = carousel.querySelectorAll('.carousel-card');
+            if (allCardsInCarousel.length === 1) {
+                allCardsInCarousel[0].classList.add('single-card');
+            } else {
+                allCardsInCarousel.forEach(c => c.classList.remove('single-card'));
+            }
+
+            // Desliza suavemente para exibir o card recém-adicionado
+            setTimeout(() => {
+                card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }, 50);
         }
 
         function capturarDiaAtualTela2() {
@@ -1100,9 +1311,9 @@
                             <div class="exec-set-row" data-serie="${serie}">
                                 <span class="exec-set-label">${serie}</span>
                                 <div class="exec-set-inputs">
-                                    <select class="select-kg">${weightOptionsHTML}</select>
+                                    <button type="button" class="num-picker-btn select-kg" data-value="1">1</button>
                                     <span class="exec-suffix">kg x</span>
-                                    <select class="select-reps">${repOptionsHTML}</select>
+                                    <button type="button" class="num-picker-btn select-reps" data-value="1">1</button>
                                     <span class="exec-suffix">Reps</span>
                                 </div>
                             </div>
@@ -1119,8 +1330,16 @@
                         </div>
                     `;
 
+                    // Eventos para abrir o Bottom Sheet de números (Carga 1-250 / Reps 1-25)
+                    card.querySelectorAll('.select-kg').forEach(btnKg => {
+                        btnKg.addEventListener('click', () => openNumberPicker(btnKg, 250, 'Selecionar Carga (kg)'));
+                    });
+                    card.querySelectorAll('.select-reps').forEach(btnReps => {
+                        btnReps.addEventListener('click', () => openNumberPicker(btnReps, 25, 'Selecionar Repetições'));
+                    });
+
                     const btnAction = card.querySelector('.btn-card-action');
-                    const selects = card.querySelectorAll('select');
+                    const pickerBtns = card.querySelectorAll('.num-picker-btn');
                     const setRows = card.querySelectorAll('.exec-set-row');
 
                     btnAction.addEventListener('click', async () => {
@@ -1130,8 +1349,8 @@
                             const seriesExecutadas = [];
                             setRows.forEach(row => {
                                 const nomeSerie = row.getAttribute('data-serie');
-                                const kg = Number(row.querySelector('.select-kg').value);
-                                const reps = Number(row.querySelector('.select-reps').value);
+                                const kg = Number(row.querySelector('.select-kg').dataset.value);
+                                const reps = Number(row.querySelector('.select-reps').dataset.value);
                                 seriesExecutadas.push({ serie: nomeSerie, kg, reps });
                             });
 
@@ -1167,7 +1386,7 @@
                                 }
 
                                 card.classList.add('card-salvo');
-                                selects.forEach(s => s.disabled = true);
+                                pickerBtns.forEach(b => b.disabled = true);
                                 btnAction.textContent = 'CORRIGIR';
                                 btnAction.classList.add('btn-corrigir');
 
@@ -1181,7 +1400,7 @@
 
                         } else {
                             card.classList.remove('card-salvo');
-                            selects.forEach(s => s.disabled = false);
+                            pickerBtns.forEach(b => b.disabled = false);
                             btnAction.textContent = 'SALVAR';
                             btnAction.classList.remove('btn-corrigir');
                         }
