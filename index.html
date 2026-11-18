@@ -119,10 +119,178 @@
             background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-primary);
             padding: 12px 16px; border-radius: 8px; font-size: 1rem; color-scheme: dark;
         }
+
+        /* ---- DROPDOWN CUSTOMIZADO DE EXERCÍCIOS (TELA 2) ---- */
+        .exercise-selector {
+            position: relative;
+            margin-bottom: 24px;
+            user-select: none;
+        }
+        .custom-dropdown-trigger {
+            width: 100%;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
+            padding: 14px 16px;
+            border-radius: var(--border-radius);
+            font-size: 1.05rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        .custom-dropdown-trigger:hover {
+            background: var(--surface-highlight);
+            border-color: var(--accent-color);
+        }
+        .custom-dropdown-trigger .arrow {
+            font-size: 0.8rem;
+            transition: transform 0.2s ease;
+        }
+        .custom-dropdown-trigger.open .arrow {
+            transform: rotate(180deg);
+        }
+        .custom-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            width: 100%;
+            background: var(--surface-color);
+            border: 1px solid var(--accent-color);
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+            z-index: 100;
+            overflow: hidden;
+            flex-direction: column;
+        }
+        .custom-dropdown-menu.open {
+            display: flex;
+        }
+        /* 1ª Linha: Busca com Lupa */
+        .dropdown-search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .dropdown-search-box .search-icon {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+        .dropdown-search-box input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            outline: none;
+        }
+        .dropdown-search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+        /* 2ª Linha Fixa: [+ Adicionar Exercício] */
+        .dropdown-add-fixed {
+            padding: 12px 16px;
+            background: var(--surface-highlight);
+            color: var(--accent-color);
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            text-align: left;
+            flex-shrink: 0;
+        }
+        .dropdown-add-fixed:hover {
+            background: var(--accent-color);
+            color: #000000;
+        }
+        /* Restante da Lista */
+        .dropdown-options-list {
+            list-style: none;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .dropdown-options-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .dropdown-options-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        .dropdown-option-item {
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .dropdown-option-item:last-child {
+            border-bottom: none;
+        }
+        .dropdown-option-item:hover {
+            background: var(--surface-highlight);
+            color: var(--accent-color);
+        }
+        .dropdown-empty-state {
+            padding: 16px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* ---- MODAL PARA ADICIONAR NOVO EXERCÍCIO ---- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-overlay.open {
+            display: flex;
+        }
+        .modal-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--surface-color);
+            border: 1px solid var(--accent-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal-title {
+            font-size: 1.15rem;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        .modal-actions button {
+            flex: 1;
+            padding: 12px;
+        }
         
         /* ---- TELA 4: EXECUÇÃO DO TREINO ---- */
-        
-        /* Cabeçalho Fixo (Nome e Dia) */
         .exec-header {
             display: flex; justify-content: space-between; align-items: center;
             padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;
@@ -130,18 +298,15 @@
         .exec-header h2 { font-size: 1.3rem; color: var(--accent-color); text-transform: uppercase; }
         .exec-header span { font-size: 1.1rem; font-weight: bold; color: var(--text-secondary); }
 
-        /* Controle de Data e Sessão */
         .exec-controls { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
         .date-wrapper { display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .date-wrapper label { font-size: 0.9rem; color: var(--text-secondary); }
         .date-input { width: 100%; text-align: center; max-width: 300px; font-weight: bold;}
         .session-select { width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--accent-color); padding: 16px; border-radius: var(--border-radius); font-size: 1.1rem; font-weight: bold; cursor: pointer; }
 
-        /* Agrupamentos por Músculo */
         .muscle-group { margin-bottom: 32px; }
         .muscle-title { font-size: 1.2rem; color: var(--text-primary); margin-bottom: 16px; border-left: 4px solid var(--accent-color); padding-left: 8px; letter-spacing: 1px;}
 
-        /* Carrossel Horizontal */
         .carousel {
             display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
             gap: 16px; padding-bottom: 12px; scrollbar-width: none;
@@ -161,7 +326,6 @@
 
         .exec-card-title { font-size: 1.2rem; color: var(--accent-color); text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;}
 
-        /* Linhas de Série com Inputs (Tela 4) */
         .exec-set-row {
             display: flex; flex-direction: column; align-items: center; gap: 12px;
             background: var(--bg-color); padding: 16px 12px; border-radius: 8px;
@@ -180,7 +344,6 @@
         }
         .exec-suffix { color: var(--danger-color); font-weight: bold; }
 
-        /* Estados do Card (Ativo vs. Salvo) e Botão de Ação */
         .carousel-card.card-salvo {
             opacity: 0.55;
             background: #161616;
@@ -217,12 +380,6 @@
         }
 
         /* ---- ESTILOS ADICIONAIS TELA 2 & FEEDBACK ---- */
-        .exercise-selector { margin-bottom: 24px; }
-        .exercise-selector select {
-            width: 100%; background: var(--surface-color); border: 1px solid var(--border-color);
-            color: var(--accent-color); padding: 14px; border-radius: var(--border-radius);
-            font-size: 1.05rem; font-weight: bold; cursor: pointer;
-        }
         #exercise-container { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
         .exercise-card {
             background: var(--surface-color); border: 1px solid var(--accent-color);
@@ -267,6 +424,37 @@
 
     <!-- Notificação Toast -->
     <div id="toast">Salvo com sucesso!</div>
+
+    <!-- Modal: Adicionar Novo Exercício -->
+    <div id="modal-new-exercise" class="modal-overlay">
+        <div class="modal-card">
+            <h3 class="modal-title">Novo Exercício</h3>
+            <div class="input-group">
+                <label for="new-ex-name">NOME DO EXERCÍCIO:</label>
+                <input type="text" id="new-ex-name" placeholder="Ex: Puxada Supinada">
+            </div>
+            <div class="input-group">
+                <label for="new-ex-muscle">GRUPO MUSCULAR:</label>
+                <select id="new-ex-muscle">
+                    <option value="COSTAS">COSTAS</option>
+                    <option value="PEITO">PEITO</option>
+                    <option value="PERNAS (QUADRÍCEPS/GLÚTEO)">PERNAS (QUADRÍCEPS/GLÚTEO)</option>
+                    <option value="POSTERIOR DE COXA">POSTERIOR DE COXA</option>
+                    <option value="PANTURRILHA">PANTURRILHA</option>
+                    <option value="TRÍCEPS">TRÍCEPS</option>
+                    <option value="BÍCEPS">BÍCEPS</option>
+                    <option value="OMBRO">OMBRO</option>
+                    <option value="ANTEBRAÇO">ANTEBRAÇO</option>
+                    <option value="ADUTORES/ABDUTORES">ADUTORES/ABDUTORES</option>
+                    <option value="ABDÔMEN">ABDÔMEN</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="button" id="btn-cancel-new-ex" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btn-save-new-ex" class="btn-primary">Salvar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- TELA 0: Acesso / Login de Usuário -->
     <div id="screen-0" class="screen active">
@@ -319,10 +507,23 @@
             </div>
         </header>
 
-        <div class="exercise-selector">
-            <select id="dropdown-add-exercise">
-                <option value="" disabled selected>+ Escolher Exercício...</option>
-            </select>
+        <!-- Dropdown Customizado (Div/Ul/Li) -->
+        <div class="exercise-selector" id="custom-exercise-dropdown">
+            <div class="custom-dropdown-trigger" id="dropdown-trigger">
+                <span>+ Escolher Exercício...</span>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="custom-dropdown-menu" id="dropdown-menu">
+                <!-- 1ª Linha: Input de Busca com Lupa -->
+                <div class="dropdown-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="dropdown-search-input" placeholder="Pesquisar exercício..." autocomplete="off">
+                </div>
+                <!-- 2ª Linha (Fixa): Botão Adicionar Exercício -->
+                <div class="dropdown-add-fixed" id="btn-open-add-ex-modal">[+ Adicionar Exercício]</div>
+                <!-- Restante da Lista -->
+                <ul class="dropdown-options-list" id="dropdown-exercise-list"></ul>
+            </div>
         </div>
 
         <div id="exercise-container"></div>
@@ -337,7 +538,6 @@
     <div id="screen-3" class="screen">
         <div class="nav-back" id="back-to-home">← Voltar</div>
         <h2 class="screen-title">Suas Rotinas</h2>
-        <!-- Lista de rotinas vindas exclusivamente do Firebase -->
         <div id="routines-list" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
     </div>
 
@@ -345,13 +545,11 @@
     <div id="screen-4" class="screen">
         <div class="nav-back" id="back-to-menu">← Voltar às Rotinas</div>
 
-        <!-- Cabeçalho (Sem rótulos) -->
         <div class="exec-header">
             <h2 id="exec-routine-name">NOME ROTINA</h2>
             <span id="exec-day-ref">DIA</span>
         </div>
 
-        <!-- Controles de Data e Sessão -->
         <div class="exec-controls">
             <div class="date-wrapper">
                 <label for="exec-date">Data de Execução:</label>
@@ -363,7 +561,6 @@
             </select>
         </div>
 
-        <!-- Área onde os Carrosseis de Músculos serão gerados -->
         <div id="exec-container"></div>
     </div>
 
@@ -396,7 +593,7 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // --- DICIONÁRIO DE MÚSCULOS E LISTA DE EXERCÍCIOS ---
+        // --- DICIONÁRIO DE MÚSCULOS E REPOSITÓRIO DE EXERCÍCIOS ---
         const muscleDictionary = {
             "Remada Articulada Fechada": "COSTAS",
             "Remada Aberta Polia": "COSTAS",
@@ -432,13 +629,169 @@
             "Cadeira Abdutora": "ADUTORES/ABDUTORES"
         };
 
-        // Popular dropdown da Tela 2 com os exercícios exclusivos
-        const dropdownAddExercise = document.getElementById('dropdown-add-exercise');
-        Object.keys(muscleDictionary).forEach(exName => {
-            const opt = document.createElement('option');
-            opt.value = exName;
-            opt.textContent = exName;
-            dropdownAddExercise.appendChild(opt);
+        // Lista unificada em código com metadado interno `criadoPor` (invisível na UI)
+        const exercisesRepository = Object.entries(muscleDictionary).map(([nome, musculo]) => ({
+            nome,
+            musculo,
+            criadoPor: "sistema"
+        }));
+
+        // Carrega exercícios adicionados pelos usuários no Firebase e mescla na lista geral
+        async function carregarExerciciosCustomizados() {
+            try {
+                const snap = await getDocs(collection(db, "exercicios_customizados"));
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.nome && data.musculo) {
+                        muscleDictionary[data.nome] = data.musculo;
+                        const jaExiste = exercisesRepository.some(
+                            ex => ex.nome.toLowerCase() === data.nome.toLowerCase()
+                        );
+                        if (!jaExiste) {
+                            exercisesRepository.push({
+                                nome: data.nome,
+                                musculo: data.musculo,
+                                criadoPor: data.criadoPor || "desconhecido"
+                            });
+                        }
+                    }
+                });
+                renderDropdownList(dropdownSearchInput.value);
+            } catch (err) {
+                console.error("Erro ao carregar exercícios customizados:", err);
+            }
+        }
+
+        // --- LÓGICA DO DROPDOWN CUSTOMIZADO (TELA 2) ---
+        const customDropdown = document.getElementById('custom-exercise-dropdown');
+        const dropdownTrigger = document.getElementById('dropdown-trigger');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        const dropdownSearchInput = document.getElementById('dropdown-search-input');
+        const dropdownExerciseList = document.getElementById('dropdown-exercise-list');
+        const btnOpenAddExModal = document.getElementById('btn-open-add-ex-modal');
+
+        function toggleDropdown(forceState) {
+            const isOpen = typeof forceState === 'boolean' ? forceState : !dropdownMenu.classList.contains('open');
+            dropdownMenu.classList.toggle('open', isOpen);
+            dropdownTrigger.classList.toggle('open', isOpen);
+
+            if (isOpen) {
+                dropdownSearchInput.value = '';
+                renderDropdownList('');
+                setTimeout(() => dropdownSearchInput.focus(), 50);
+            }
+        }
+
+        dropdownTrigger.addEventListener('click', () => toggleDropdown());
+
+        // Fechar o dropdown ao clicar fora dele
+        document.addEventListener('click', (e) => {
+            if (!customDropdown.contains(e.target)) {
+                toggleDropdown(false);
+            }
+        });
+
+        // Filtrar em tempo real mantendo o botão [+ Adicionar Exercício] fixo
+        dropdownSearchInput.addEventListener('input', (e) => {
+            renderDropdownList(e.target.value);
+        });
+
+        function renderDropdownList(filterText = '') {
+            dropdownExerciseList.innerHTML = '';
+            const termo = filterText.trim().toLowerCase();
+
+            const filtrados = Object.keys(muscleDictionary).filter(exName =>
+                exName.toLowerCase().includes(termo)
+            );
+
+            if (filtrados.length === 0) {
+                const emptyLi = document.createElement('li');
+                emptyLi.className = 'dropdown-empty-state';
+                emptyLi.textContent = 'Nenhum exercício encontrado.';
+                dropdownExerciseList.appendChild(emptyLi);
+                return;
+            }
+
+            filtrados.forEach(exName => {
+                const li = document.createElement('li');
+                li.className = 'dropdown-option-item';
+                li.textContent = exName; // Exibe apenas o nome na UI, sem expor criadoPor
+                li.addEventListener('click', () => {
+                    adicionarCardExercicioTela2(exName);
+                    toggleDropdown(false);
+                });
+                dropdownExerciseList.appendChild(li);
+            });
+        }
+
+        // Inicializa a lista e sincroniza com o Firebase
+        renderDropdownList();
+        carregarExerciciosCustomizados();
+
+        // --- MODAL DE ADICIONAR NOVO EXERCÍCIO ---
+        const modalNewExercise = document.getElementById('modal-new-exercise');
+        const inputNewExName = document.getElementById('new-ex-name');
+        const selectNewExMuscle = document.getElementById('new-ex-muscle');
+        const btnCancelNewEx = document.getElementById('btn-cancel-new-ex');
+        const btnSaveNewEx = document.getElementById('btn-save-new-ex');
+
+        btnOpenAddExModal.addEventListener('click', () => {
+            // Pré-preenche com o texto já digitado na busca, se houver
+            inputNewExName.value = dropdownSearchInput.value.trim();
+            toggleDropdown(false);
+            modalNewExercise.classList.add('open');
+            setTimeout(() => inputNewExName.focus(), 50);
+        });
+
+        btnCancelNewEx.addEventListener('click', () => {
+            modalNewExercise.classList.remove('open');
+            inputNewExName.value = '';
+        });
+
+        btnSaveNewEx.addEventListener('click', async () => {
+            const nomeNovo = inputNewExName.value.trim();
+            const musculoNovo = selectNewExMuscle.value;
+
+            if (!nomeNovo) {
+                showToast("Digite o nome do exercício!");
+                return;
+            }
+
+            // Objeto interno com registro invisível de quem criou
+            const novoExercicioObj = {
+                nome: nomeNovo,
+                musculo: musculoNovo,
+                criadoPor: usuarioAtivo || "anonimo",
+                criadoEm: new Date().toISOString()
+            };
+
+            // Atualiza o dicionário e o repositório em memória imediatamente
+            muscleDictionary[nomeNovo] = musculoNovo;
+            const jaExiste = exercisesRepository.some(
+                ex => ex.nome.toLowerCase() === nomeNovo.toLowerCase()
+            );
+            if (!jaExiste) {
+                exercisesRepository.push(novoExercicioObj);
+            }
+
+            try {
+                btnSaveNewEx.disabled = true;
+                btnSaveNewEx.textContent = "SALVANDO...";
+                await addDoc(collection(db, "exercicios_customizados"), novoExercicioObj);
+            } catch (err) {
+                console.error("Erro ao salvar exercício customizado no Firebase:", err);
+            } finally {
+                btnSaveNewEx.disabled = false;
+                btnSaveNewEx.textContent = "Salvar";
+            }
+
+            renderDropdownList();
+            modalNewExercise.classList.remove('open');
+            inputNewExName.value = '';
+
+            // Já gera o card do exercício recém-criado no #exercise-container
+            adicionarCardExercicioTela2(nomeNovo);
+            showToast(`"${nomeNovo}" adicionado à lista!`);
         });
 
         // --- GERAÇÃO DE DROPDOWNS PARA OS INPUTS (1-250kg e 1-25 Reps) ---
@@ -508,8 +861,7 @@
         
         let sessoesTemporarias = [];
 
-        dropdownAddExercise.addEventListener('change', (e) => {
-            const exerciseName = e.target.value;
+        function adicionarCardExercicioTela2(exerciseName) {
             if (!exerciseName) return;
 
             const card = document.createElement('div');
@@ -550,8 +902,7 @@
             });
 
             exerciseContainer.appendChild(card);
-            dropdownAddExercise.value = '';
-        });
+        }
 
         function capturarDiaAtualTela2() {
             const cards = exerciseContainer.querySelectorAll('.exercise-card');
@@ -681,7 +1032,6 @@
 
         let rotinaAtivaAtual = null;
 
-        // Sincroniza o treino (Sessão e Exercícios) de acordo com o dia da semana selecionado
         function sincronizarSessaoPeloDia(diaDaSemanaStr) {
             if (!rotinaAtivaAtual || !rotinaAtivaAtual.sessoes) return;
 
@@ -690,17 +1040,14 @@
             );
 
             if (indexEncontrado !== -1) {
-                // Encontrou treino programado para este dia da semana
                 sessionSelect.value = indexEncontrado;
                 renderSession(rotinaAtivaAtual.sessoes[indexEncontrado]);
             } else {
-                // Dia de imprevisto sem treino fixo cadastrado: mantém a sessão atual para permitir treinar normalmente
                 const currentIdx = sessionSelect.value || 0;
                 renderSession(rotinaAtivaAtual.sessoes[currentIdx]);
             }
         }
 
-        // 1. Atualizar Dia da Semana e Sessão ao mudar a Data de Execução
         dateInput.addEventListener('change', (e) => {
             const val = e.target.value;
             if (!val) return;
@@ -712,7 +1059,6 @@
             sincronizarSessaoPeloDia(novoDiaSemana);
         });
 
-        // 2. Setar data de hoje ao abrir e retornar o dia da semana correspondente
         function setTodayDate() {
             const hoje = new Date();
             const ano = hoje.getFullYear();
@@ -724,7 +1070,6 @@
             return diaSemanaHoje;
         }
 
-        // 3. Renderizar uma Sessão (Agrupando e conectando cada Card ao Firestore)
         function renderSession(session) {
             execContainer.innerHTML = '';
             if (!session || !session.exercicios) return;
@@ -850,7 +1195,6 @@
             }
         }
 
-        // 4. Abrir rotina vinda do Firebase na Tela 4 e já carregar o treino do dia atual
         function abrirRotinaNaTela4(rotina) {
             rotinaAtivaAtual = rotina;
             switchScreen(screens.s4);
@@ -866,11 +1210,9 @@
                 sessionSelect.appendChild(opt);
             });
 
-            // Seleciona automaticamente o treino correspondente ao dia de hoje
             sincronizarSessaoPeloDia(diaHoje);
         }
 
-        // 5. Mudar de sessão manualmente pelo Select (para treinar ficha de outro dia sem mudar a data)
         sessionSelect.addEventListener('change', (e) => {
             const index = e.target.value;
             renderSession(rotinaAtivaAtual.sessoes[index]);
