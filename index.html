@@ -1,895 +1,508 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fine Tuning - Tracker & BI</title>
-<style>
-  :root {
-    --bg-color: #0d0d0d; --card-bg: #1c1c1e; --icon-bg: #2c2927;
-    --text-main: #f5f5f5; --text-sec: #9e9e9e; --accent: #bb86fc;
-    --carb-color: #a275ff; --fat-color: #ff5252; --prot-color: #ffca28; --border-color: #333;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-  body { background: var(--bg-color); color: var(--text-main); display: flex; justify-content: center; min-height: 100vh; }
-  #app { width: 100%; max-width: 600px; position: relative; min-height: 100vh; overflow-x: hidden; }
-  .screen { display: none; padding: 1.5rem 1.5rem 3rem; animation: fadeIn .3s ease; }
-  .screen.active { display: block; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
-  @keyframes slideUp { from { transform: translateY(100%); } to { transform: none; } }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracker de Treinos</title>
+    <style>
+        /* Variáveis de Tema Escuro */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --surface-highlight: #2c2c2c;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-color: #bb86fc;
+            --border-color: #333333;
+            --danger-color: #cf6679;
+            --border-radius: 12px;
+        }
 
-  /* Início */
-  #home-screen { height: 100vh; padding: 0; }
-  #home-screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .home-title { position: absolute; top: 3rem; font-size: 2.2rem; font-weight: 600; letter-spacing: 1px; }
-  .home-btn { background: var(--accent); color: #0d0d0d; border: none; padding: 1rem 4rem; font-size: 1.2rem; font-weight: 600; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 15px rgba(187,134,252,.3); transition: transform .2s; }
-  .home-btn:hover { transform: scale(1.05); }
+        /* Reset e Base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
 
-  /* Geral */
-  .header { display: flex; align-items: center; margin-bottom: 1.5rem; justify-content: space-between; gap: 0.5rem; }
-  .header h2 { font-size: 1.1rem; font-weight: 500; white-space: nowrap; }
-  .icon-btn { background: none; border: none; color: var(--text-sec); font-size: 1.5rem; cursor: pointer; padding: .5rem; display: flex; align-items: center; justify-content: center; transition: color 0.2s; }
-  .icon-btn:hover { color: var(--text-main); }
-  .erro { background: #3b1111; color: #ff8a8a; border-radius: 10px; padding: .8rem 1rem; margin-bottom: 1rem; font-size: .85rem; }
-  .vazio { color: var(--text-sec); text-align: center; margin-top: 2rem; }
-  .sub { font-size: 1rem; font-weight: 500; margin-bottom: 1rem; }
-  .preview { font-size: .85rem; color: var(--text-sec); margin-top: .5rem; text-align: center; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
 
-  /* Controle de Data e Menu */
-  .date-selector { display: flex; align-items: center; justify-content: center; gap: 0.2rem; }
-  .date-text { font-size: 1.1rem; font-weight: 600; color: var(--accent); min-width: 80px; text-align: center; }
-  
-  /* Dropdown Menu */
-  .dropdown-menu { position: absolute; right: 0; top: 3rem; background: #2c2c2e; border: 1px solid var(--border-color); border-radius: 12px; display: none; flex-direction: column; overflow: hidden; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.5); min-width: 180px; }
-  .dropdown-menu.show { display: flex; }
-  .dropdown-menu button { background: none; border: none; color: var(--text-main); padding: 1rem; text-align: left; font-size: 0.95rem; cursor: pointer; border-bottom: 1px solid var(--border-color); }
-  .dropdown-menu button:last-child { border-bottom: none; }
-  .dropdown-menu button:hover { background: rgba(255,255,255,0.05); }
+        /* Controle de Telas */
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            animation: fadeIn 0.3s ease;
+        }
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-  /* Botão BI (Dashboard) */
-  .bi-nav-btn { background: var(--icon-bg); color: var(--text-main); border: 1px solid var(--border-color); width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; transition: transform 0.2s, background 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-  .bi-nav-btn:hover { transform: scale(1.08); background: #3c3937; border-color: var(--accent); }
+        /* Botoes Padrão (Telas 1 e 3) */
+        .btn-main {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--text-primary);
+            padding: 18px 32px;
+            font-size: 1.1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+        .btn-main:hover:not(:disabled) {
+            background: var(--surface-highlight);
+            transform: scale(1.02);
+        }
+        .btn-main:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: var(--text-secondary);
+        }
 
-  /* Refeições */
-  .meal-card { display: flex; align-items: center; padding: 1.2rem 0; border-bottom: 1px solid var(--border-color); cursor: pointer; position: relative; }
-  .meal-card:hover { background: rgba(255,255,255,.02); }
-  .meal-icon { width: 50px; height: 50px; background: var(--icon-bg); border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 1.5rem; margin-right: 1rem; flex-shrink: 0; }
-  .meal-content { flex-grow: 1; padding-right: 1rem; }
-  .meal-title { font-size: 1rem; font-weight: 500; margin-bottom: .2rem; }
-  .meal-desc { font-size: .75rem; color: var(--text-sec); margin-bottom: .4rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; }
-  .meal-kcal { font-size: .8rem; color: var(--text-sec); margin-bottom: .5rem; }
-  .macros-bar { display: flex; height: 4px; border-radius: 2px; overflow: hidden; background: #333; margin-bottom: .3rem; }
-  .macros-text { font-size: .65rem; color: var(--text-sec); display: flex; gap: .5rem; }
-  .dot { display: flex; align-items: center; }
-  .dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
-  .dot-carb::before { background: var(--carb-color); }
-  .dot-fat::before { background: var(--fat-color); }
-  .dot-prot::before { background: var(--prot-color); }
-  
-  .add-btn { background: none; border: none; color: var(--text-main); font-size: 1.8rem; font-weight: 300; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
-  .add-btn:hover { background: var(--icon-bg); }
-  .del-btn { background: rgba(255, 82, 82, 0.1); border: none; color: #ff5252; font-size: 1rem; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-  .del-btn:hover { background: rgba(255, 82, 82, 0.2); }
+        /* ---- TELA 1 & 3 Layout ---- */
+        #screen-1, #screen-3 {
+            flex: 1;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+        }
+        .divider { width: 80%; border: 0; border-top: 1px dashed var(--border-color); margin: 16px 0; }
+        .screen-title { font-size: 1.5rem; color: var(--accent-color); margin-bottom: 24px; text-transform: uppercase; }
 
-  /* Detalhes */
-  .macro-summary { background: var(--card-bg); border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem; }
-  .macro-summary h3 { font-size: 2.5rem; font-weight: 300; text-align: center; margin-bottom: 1rem; }
-  .macro-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center; }
-  .macro-grid p { font-size: 1.2rem; font-weight: 600; }
-  .macro-grid span { font-size: .75rem; color: var(--text-sec); }
-  .food-list-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--card-bg); border-radius: 12px; margin-bottom: .8rem; }
-  .food-name { font-weight: 500; font-size: .95rem; }
-  .food-macros { font-size: .75rem; color: var(--text-sec); margin-top: .3rem; }
+        /* ---- TELA 2 (Componentes herdados) ---- */
+        .header-form {
+            display: flex; flex-direction: column; gap: 20px; margin-bottom: 24px;
+            background: var(--surface-color); padding: 20px; border-radius: var(--border-radius); border: 1px solid var(--border-color);
+        }
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        .input-group label { font-weight: 600; font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; }
+        .input-group input, .input-group select, .date-input {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-primary);
+            padding: 12px 16px; border-radius: 8px; font-size: 1rem; color-scheme: dark; /* Para o input date no dark mode */
+        }
+        
+        /* ---- TELA 4: EXECUÇÃO DO TREINO ---- */
+        
+        /* Cabeçalho Fixo (Nome e Dia) */
+        .exec-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;
+        }
+        .exec-header h2 { font-size: 1.3rem; color: var(--accent-color); text-transform: uppercase; }
+        .exec-header span { font-size: 1.1rem; font-weight: bold; color: var(--text-secondary); }
 
-  /* Formulários e Inputs */
-  .form-section { background: var(--card-bg); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
-  .form-section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1.2rem; color: var(--accent); border-bottom: 1px solid var(--border-color); padding-bottom: .5rem; }
-  .form-group { margin-bottom: 1.2rem; }
-  .form-group label { display: block; font-size: .9rem; color: var(--text-sec); margin-bottom: .5rem; }
-  .input-group { display: flex; gap: .5rem; }
-  .input-control, .unit-select { background: #2c2c2e; border: 1px solid var(--border-color); color: var(--text-main); padding: .8rem; border-radius: 8px; font-size: 1rem; outline: none; }
-  .input-control { flex-grow: 1; width: 100%; }
-  .unit-select { font-size: .9rem; cursor: pointer; }
-  .input-control:focus, .unit-select:focus { border-color: var(--accent); }
-  .fixed-unit { display: flex; align-items: center; justify-content: center; background: var(--icon-bg); padding: 0 1rem; border-radius: 8px; color: var(--text-sec); font-size: .9rem; min-width: 60px; }
-  
-  /* Custom Range Slider (Proporção) */
-  .slider-wrapper { position: relative; margin: 3rem 0 1rem; padding: 0 5px; }
-  .slider-tooltip { position: absolute; top: -38px; left: 50%; transform: translateX(-50%); background: #444; color: #fff; padding: 5px 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; pointer-events: none; transition: left 0.1s ease; }
-  .slider-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 6px; border-style: solid; border-color: #444 transparent transparent transparent; }
-  .custom-slider { -webkit-appearance: none; width: 100%; background: transparent; outline: none; margin: 0; }
-  .custom-slider::-webkit-slider-runnable-track { width: 100%; height: 2px; background: #555; border-radius: 2px; }
-  .custom-slider::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: #fff; cursor: pointer; margin-top: -8px; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-  .slider-labels { display: flex; justify-content: space-between; color: var(--text-sec); font-size: 0.8rem; margin-top: 12px; padding: 0 5px; }
-  .total-display { text-align: center; color: var(--accent); font-weight: 600; font-size: 1.2rem; margin: 1rem 0; padding-top: 1rem; border-top: 1px solid var(--border-color); }
-  
-  .save-btn { width: 100%; padding: 1.2rem; background: var(--accent); color: #000; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin-top: 1rem; }
-  .save-btn:hover { background: #a46cf5; }
+        /* Controle de Data e Sessão */
+        .exec-controls { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
+        .date-wrapper { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .date-wrapper label { font-size: 0.9rem; color: var(--text-secondary); }
+        .date-input { width: 100%; text-align: center; max-width: 300px; font-weight: bold;}
+        .session-select { width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--accent-color); padding: 16px; border-radius: var(--border-radius); font-size: 1.1rem; font-weight: bold; }
 
-  /* Modal */
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; justify-content: center; align-items: flex-end; z-index: 1000; }
-  .modal-overlay.active { display: flex; }
-  .modal-content { background: var(--card-bg); width: 100%; max-width: 600px; border-radius: 20px 20px 0 0; padding: 2rem 1.5rem; animation: slideUp .3s ease; }
-  .modal-title { margin-bottom: 1.5rem; text-align: center; font-weight: 500; }
-  .modal-btn { width: 100%; padding: 1rem; margin-bottom: 1rem; border-radius: 12px; border: none; font-size: 1rem; font-weight: 500; cursor: pointer; background: var(--icon-bg); color: var(--text-main); }
-  .modal-btn.primary { background: var(--accent); color: #000; }
+        /* Agrupamentos por Músculo */
+        .muscle-group { margin-bottom: 32px; }
+        .muscle-title { font-size: 1.2rem; color: var(--text-primary); margin-bottom: 16px; border-left: 4px solid var(--accent-color); padding-left: 8px; letter-spacing: 1px;}
 
-  /* ---------------- Dashboard BI Styles ---------------- */
-  .bi-kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
-  .bi-kpi-card { background: var(--card-bg); padding: 1.5rem; border-radius: 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-  .bi-kpi-value { font-size: 2rem; font-weight: 700; color: var(--accent); margin-bottom: 0.3rem; }
-  .bi-kpi-label { font-size: 0.85rem; color: var(--text-sec); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
-  
-  .bi-chart-card { background: var(--card-bg); padding: 1.5rem; border-radius: 16px; margin-bottom: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-  .bi-chart-title { font-size: 1.05rem; font-weight: 600; margin-bottom: 1.5rem; text-align: center; color: var(--text-main); }
-  
-  /* Gráfico de Rosca (Conic Gradient) */
-  .bi-donut-chart { width: 160px; height: 160px; border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; position: relative; background: #333; transition: background 0.5s ease; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
-  .bi-donut-inner { width: 120px; height: 120px; background: var(--card-bg); border-radius: 50%; position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(0,0,0,0.3); }
-  .bi-donut-inner span { font-size: 1.4rem; font-weight: 700; }
-  .bi-donut-inner small { font-size: 0.75rem; color: var(--text-sec); }
-  
-  .bi-legend-container { display: flex; justify-content: space-around; font-size: 0.85rem; background: #2c2c2e; padding: 1rem; border-radius: 12px; }
-  .bi-legend-item { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
-  .bi-legend-item .dot { margin-right: 0; margin-bottom: 2px; }
-  .bi-legend-value { font-weight: 600; font-size: 1rem; }
-  
-  /* Gráfico de Barras Horizontais (Refeições) */
-  .bi-bar-row { margin-bottom: 1.2rem; }
-  .bi-bar-label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.4rem; font-weight: 500; }
-  .bi-bar-track { background: #333; height: 10px; border-radius: 5px; overflow: hidden; }
-  .bi-bar-fill { height: 100%; border-radius: 5px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); background: var(--accent); }
-  /* ----------------------------------------------------- */
+        /* Carrossel Horizontal */
+        .carousel {
+            display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+            gap: 16px; padding-bottom: 12px; scrollbar-width: none; /* Oculta scroll no Firefox */
+        }
+        .carousel::-webkit-scrollbar { display: none; } /* Oculta scroll no Chrome/Safari */
+        
+        .carousel-card {
+            flex: 0 0 88%; /* Deixa 12% da próxima carta visível como pista visual */
+            scroll-snap-align: center;
+            background: var(--surface-color); border: 1px solid var(--border-color);
+            border-radius: var(--border-radius); padding: 20px;
+            display: flex; flex-direction: column; gap: 16px;
+        }
+        
+        /* Se houver apenas 1 exercício, ocupa 100% */
+        .carousel-card.single-card { flex: 0 0 100%; }
 
-</style>
+        .exec-card-title { font-size: 1.2rem; color: var(--accent-color); text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;}
+
+        /* Linhas de Série com Inputs (Tela 4) */
+        .exec-set-row {
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+            background: var(--bg-color); padding: 16px 12px; border-radius: 8px;
+        }
+        .exec-set-label { font-weight: bold; font-size: 1.05rem; color: var(--text-primary); }
+        .exec-set-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .exec-set-inputs select {
+            background: var(--surface-highlight); border: 1px solid var(--border-color);
+            color: var(--text-primary); padding: 8px; border-radius: 6px; font-size: 1rem; text-align: center;
+            transition: opacity 0.2s, background-color 0.2s;
+        }
+        .exec-set-inputs select:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            background: var(--bg-color);
+        }
+        .exec-suffix { color: var(--danger-color); font-weight: bold; }
+
+        /* Estados do Card (Ativo vs. Salvo) e Botão de Ação */
+        .carousel-card {
+            transition: opacity 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+        }
+        .carousel-card.card-salvo {
+            opacity: 0.55;
+            background: #161616;
+            border-color: #262626;
+        }
+        .card-footer {
+            margin-top: auto;
+            padding-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+            border-top: 1px solid var(--border-color);
+        }
+        .btn-card-action {
+            background: var(--accent-color);
+            color: #000000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        .btn-card-action:hover {
+            filter: brightness(1.1);
+        }
+        /* Estilo discreto quando o botão vira "CORRIGIR" */
+        .btn-card-action.btn-corrigir {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--text-secondary);
+        }
+
+        /* Utilitários */
+        .nav-back { color: var(--text-secondary); cursor: pointer; margin-bottom: 24px; display: inline-block; font-size: 0.9rem; }
+    </style>
 </head>
 <body>
-<div id="app">
 
-  <section id="home-screen" class="screen active">
-    <h1 class="home-title">Fine Tuning</h1>
-    <button class="home-btn" data-go="dashboard">Dieta</button>
-  </section>
+    <!-- TELA 1: Página Inicial -->
+    <div id="screen-1" class="screen active">
+        <button id="btn-nova-rotina" class="btn-main">+ NOVA ROTINA</button>
+        <hr class="divider">
+        <button id="btn-cronograma" class="btn-main">CRONOGRAMA</button>
+    </div>
 
-  <section id="dashboard-screen" class="screen">
-    <div class="header">
-      <div style="display:flex; align-items:center; flex:1;">
-        <button class="icon-btn" data-go="home">&#10094;</button>
-        <h2 style="display: none;">Registrar refeição</h2>
-      </div>
-      
-      <div class="date-selector" style="flex:1;">
-        <button id="prev-date" class="icon-btn">&lt;</button>
-        <span id="current-date-display" class="date-text">Hoje</span>
-        <button id="next-date" class="icon-btn">&gt;</button>
-      </div>
+    <!-- TELA 2: (Omitida visualmente para brevidade, mas a lógica está preservada se precisar) -->
 
-      <div style="position:relative; display:flex; justify-content:flex-end; align-items: center; flex:1; gap: 0.5rem;">
-        <!-- Botão Novo do Dashboard BI -->
-        <button class="bi-nav-btn" data-go="bi" title="Dashboard Analítico">📊</button>
-        <!-- Botão Menu Original -->
-        <button class="icon-btn" id="menu-btn" style="font-size: 1.8rem; transform: translateY(-5px);">&#8942;</button>
+    <!-- TELA 3: Menu do Cronograma -->
+    <div id="screen-3" class="screen">
+        <div class="nav-back" id="back-to-home">← Voltar</div>
+        <h2 class="screen-title">Suas Rotinas</h2>
+        <!-- Botão gerado para a rotina Mockada -->
+        <button class="btn-main" id="btn-open-mock">FULL BODY</button>
+    </div>
+
+    <!-- TELA 4: Execução do Treino -->
+    <div id="screen-4" class="screen">
+        <div class="nav-back" id="back-to-menu">← Voltar às Rotinas</div>
+
+        <!-- Cabeçalho (Sem rótulos) -->
+        <div class="exec-header">
+            <h2 id="exec-routine-name">NOME ROTINA</h2>
+            <span id="exec-day-ref">DIA</span>
+        </div>
+
+        <!-- Controles de Data e Sessão -->
+        <div class="exec-controls">
+            <div class="date-wrapper">
+                <label for="exec-date">Data de Execução:</label>
+                <input type="date" id="exec-date" class="date-input">
+            </div>
+            
+            <select id="exec-session-select" class="session-select">
+                <!-- Preenchido via JS -->
+            </select>
+        </div>
+
+        <!-- Área onde os Carrosseis de Músculos serão gerados -->
+        <div id="exec-container"></div>
+    </div>
+
+    <script>
+        // --- DICIONÁRIO DE MÚSCULOS ---
+        const muscleDictionary = {
+            "Remada Articulada Fechada": "COSTAS",
+            "Remada Aberta Polia": "COSTAS",
+            "Puxada Alta Triângulo": "COSTAS",
+            "Remada Baixa": "COSTAS",
+            "Pulley Frente": "COSTAS",
+            "Peck Deck": "PEITO",
+            "Supino Inclinado com Halteres": "PEITO",
+            "Supino Reto Halteres": "PEITO",
+            "Crossover Superior": "PEITO",
+            "Crossover Inferior": "PEITO",
+            "Agachamento Búlgaro": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Agachamento Livre": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Cadeira Extensora Quadríceps Femoral": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Cadeira Extensora Unilateral": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Leg Press": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Hack Machine": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Mesa Flexora": "POSTERIOR DE COXA",
+            "Stiff": "POSTERIOR DE COXA",
+            "Gêmeos em Pé": "PANTURRILHA",
+            "Gêmeos Sentado": "PANTURRILHA",
+            "Tríceps Polia Bilateral com Corda": "TRÍCEPS",
+            "Tríceps Testa": "TRÍCEPS",
+            "Tríceps Francês": "TRÍCEPS",
+            "Rosca Martelo": "BÍCEPS",
+            "Rosca Inversa": "BÍCEPS",
+            "Rosca Direta": "BÍCEPS",
+            "Rosca 45º": "BÍCEPS",
+            "Elevação Lateral Halteres": "OMBRO",
+            "Elevação Lateral Polia": "OMBRO",
+            "Flexão de Punho": "ANTEBRAÇO",
+            "Cadeira Adutora": "ADUTORES/ABDUTORES",
+            "Cadeira Abdutora": "ADUTORES/ABDUTORES"
+        };
+
+        // --- DADOS MOCKADOS (Simulando uma rotina salva na Tela 2) ---
+        const mockRoutineData = {
+            nomeRotina: "FULL BODY",
+            sessoes: [
+                {
+                    nomeSessao: "SESSÃO 1",
+                    diaSessao: "TERÇA",
+                    exercicios: [
+                        { nome: "Supino Reto Halteres", series: ["Reconhecimento", "1ª Válida", "2ª Válida"] },
+                        { nome: "Supino Inclinado com Halteres", series: ["Reconhecimento", "1ª Válida", "2ª Válida"] },
+                        { nome: "Puxada Alta Triângulo", series: ["Reconhecimento", "1ª Válida", "2ª Válida", "3ª Válida"] },
+                        { nome: "Agachamento Livre", series: ["Reconhecimento", "1ª Válida", "2ª Válida"] }
+                    ]
+                },
+                {
+                    nomeSessao: "SESSÃO 2",
+                    diaSessao: "QUINTA",
+                    exercicios: [
+                        { nome: "Leg Press", series: ["Reconhecimento", "1ª Válida", "2ª Válida", "3ª Válida"] },
+                        { nome: "Remada Articulada Fechada", series: ["Reconhecimento", "1ª Válida", "2ª Válida"] },
+                        { nome: "Rosca Direta", series: ["Reconhecimento", "1ª Válida"] },
+                        { nome: "Tríceps Testa", series: ["Reconhecimento", "1ª Válida"] }
+                    ]
+                }
+            ]
+        };
+
+        // --- GERAÇÃO DE DROPDOWNS PARA OS INPUTS ---
+        let weightOptionsHTML = '';
+        for (let i = 1; i <= 250; i++) weightOptionsHTML += `<option value="${i}">${i}</option>`;
         
-        <div id="meal-menu" class="dropdown-menu">
-          <button id="btn-add-meal">Adicionar refeição</button>
-          <button id="btn-toggle-delete">Excluir refeição</button>
-        </div>
-      </div>
-    </div>
-    <div id="erro" class="erro" hidden></div>
-    <div id="meals-container"></div>
-  </section>
+        let repOptionsHTML = '';
+        for (let i = 1; i <= 25; i++) repOptionsHTML += `<option value="${i}">${i}</option>`;
 
-  <!-- NOVA TELA: DASHBOARD BI -->
-  <section id="bi-dashboard-screen" class="screen">
-    <div class="header">
-      <button class="icon-btn" data-go="dashboard">&#10094;</button>
-      <h2>Dashboard Analítico</h2>
-      <div style="width: 24px;"></div> <!-- Spacer para centralizar -->
-    </div>
+        // --- NAVEGAÇÃO BÁSICA ---
+        const screens = {
+            s1: document.getElementById('screen-1'),
+            s3: document.getElementById('screen-3'),
+            s4: document.getElementById('screen-4')
+        };
 
-    <!-- Data Display no BI -->
-    <div style="text-align: center; margin-bottom: 1.5rem; color: var(--text-sec); font-size: 0.9rem;">
-      Resultados para: <span id="bi-date-display" style="color: var(--accent); font-weight: 600;">Hoje</span>
-    </div>
+        function switchScreen(activeScreen) {
+            Object.values(screens).forEach(s => s.classList.remove('active'));
+            activeScreen.classList.add('active');
+        }
 
-    <!-- KPIs Principais -->
-    <div class="bi-kpi-grid">
-      <div class="bi-kpi-card">
-        <div class="bi-kpi-value" id="bi-kpi-kcal">0</div>
-        <div class="bi-kpi-label">Kcal Totais</div>
-      </div>
-      <div class="bi-kpi-card">
-        <div class="bi-kpi-value" id="bi-kpi-items">0</div>
-        <div class="bi-kpi-label">Itens Registrados</div>
-      </div>
-    </div>
+        document.getElementById('btn-cronograma').addEventListener('click', () => switchScreen(screens.s3));
+        document.getElementById('back-to-home').addEventListener('click', () => switchScreen(screens.s1));
+        document.getElementById('back-to-menu').addEventListener('click', () => switchScreen(screens.s3));
 
-    <!-- Gráfico de Rosca: Macronutrientes -->
-    <div class="bi-chart-card">
-      <h3 class="bi-chart-title">Distribuição de Macros</h3>
-      <div class="bi-donut-chart" id="bi-donut">
-        <div class="bi-donut-inner">
-          <span id="bi-donut-total-g">0g</span>
-          <small>Total Ingerido</small>
-        </div>
-      </div>
-      
-      <div class="bi-legend-container">
-        <div class="bi-legend-item">
-          <span class="dot dot-carb" style="color: var(--carb-color)">Carboidrato</span>
-          <span class="bi-legend-value" id="bi-leg-carb">0%</span>
-          <small id="bi-leg-carb-g" style="color: var(--text-sec)">0g</small>
-        </div>
-        <div class="bi-legend-item">
-          <span class="dot dot-fat" style="color: var(--fat-color)">Gordura</span>
-          <span class="bi-legend-value" id="bi-leg-fat">0%</span>
-          <small id="bi-leg-fat-g" style="color: var(--text-sec)">0g</small>
-        </div>
-        <div class="bi-legend-item">
-          <span class="dot dot-prot" style="color: var(--prot-color)">Proteína</span>
-          <span class="bi-legend-value" id="bi-leg-prot">0%</span>
-          <small id="bi-leg-prot-g" style="color: var(--text-sec)">0g</small>
-        </div>
-      </div>
-    </div>
+        // --- LÓGICA DA TELA 4: EXECUÇÃO ---
+        const dayRefHeader = document.getElementById('exec-day-ref');
+        const dateInput = document.getElementById('exec-date');
+        const sessionSelect = document.getElementById('exec-session-select');
+        const execContainer = document.getElementById('exec-container');
+        const diasDaSemana = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
 
-    <!-- Gráfico de Barras: Energia por Refeição -->
-    <div class="bi-chart-card">
-      <h3 class="bi-chart-title">Energia por Refeição</h3>
-      <div id="bi-meal-bars">
-        <!-- Renderizado via JS -->
-      </div>
-    </div>
-  </section>
+        // Estado para armazenar os exercícios salvos durante o treino na Tela 4
+        let treinoExecutadoEstado = {};
 
-  <section id="details-screen" class="screen">
-    <div class="header">
-      <button class="icon-btn" data-go="dashboard">&#10094;</button>
-      <h2 id="detail-title">Detalhes</h2>
-      <div style="width: 24px;"></div>
-    </div>
-    <div class="macro-summary">
-      <h3 id="detail-kcal">0 kcal</h3>
-      <div class="macro-grid">
-        <div><span style="color:var(--carb-color)">Carboidr</span><p id="detail-carb">0g</p></div>
-        <div><span style="color:var(--fat-color)">Gord.</span><p id="detail-fat">0g</p></div>
-        <div><span style="color:var(--prot-color)">Proteína</span><p id="detail-prot">0g</p></div>
-      </div>
-    </div>
-    <h3 class="sub">Alimentos Consumidos</h3>
-    <div id="foods-container"></div>
-  </section>
+        // 1. Atualizar Dia da Semana automaticamente ao mudar a Data
+        dateInput.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if(!val) return;
+            // Split para evitar problemas de fuso horário que o JS Date costuma ter ao fazer parse de string "YYYY-MM-DD"
+            const parts = val.split('-'); 
+            const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+            dayRefHeader.textContent = diasDaSemana[dateObj.getDay()];
+        });
 
-  <section id="add-item-screen" class="screen">
-    <div class="header">
-      <button class="icon-btn" data-go="details">&#10094;</button>
-      <h2 id="item-title">Adicionar alimento</h2>
-      <div style="width: 24px;"></div>
-    </div>
-    <form id="item-form">
-      <div class="form-section">
-        <div class="form-group">
-          <label>Alimento (Porção base)</label>
-          <select id="item-select" class="input-control" required></select>
-        </div>
-        
-        <div class="form-group">
-          <label style="text-align: center; margin-top: 1rem;">Proporção (Quantidade)</label>
-          <div class="slider-wrapper">
-            <div class="slider-tooltip" id="slider-tooltip">1.0</div>
-            <!-- Slider configurado de 0.1 até 3.0 para precisão -->
-            <input type="range" id="item-qtd" class="custom-slider" min="0.1" max="3.0" step="0.1" value="1.0" required>
-            <div class="slider-labels">
-              <span>0,1</span>
-              <span>1,0</span>
-              <span>2,0</span>
-              <span>3,0</span>
-            </div>
-          </div>
-          
-          <div class="total-display">
-            Equivale a: <span id="item-total-qty">0</span> <span id="item-unidade">g</span>
-          </div>
-          <p id="item-preview" class="preview"></p>
-        </div>
-      </div>
-      <button type="submit" class="save-btn">Adicionar à refeição</button>
-    </form>
-  </section>
+        // 2. Setar data de hoje ao abrir
+        function setTodayDate() {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            dateInput.value = `${ano}-${mes}-${dia}`;
+            dayRefHeader.textContent = diasDaSemana[hoje.getDay()];
+        }
 
-  <section id="add-food-screen" class="screen">
-    <div class="header">
-      <button class="icon-btn" data-go="dashboard">&#10094;</button>
-      <h2>Cadastrar Alimento</h2>
-      <div style="width: 24px;"></div>
-    </div>
-    <form id="food-form">
-      <div class="form-section">
-        <div class="form-section-title">📝 Informação Nutricional</div>
-        <div class="form-group">
-          <label>Nome</label>
-          <input class="input-control" name="nome" placeholder="Ex: Arroz Branco" required>
-        </div>
-        <div class="form-group">
-          <label>Porção</label>
-          <div class="input-group">
-            <input class="input-control decimal-input" name="porcao" placeholder="0,000" inputmode="decimal" required>
-            <select class="unit-select" name="porcaoUnidade"><option value="g">g</option><option value="un">un</option></select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Valor energético</label>
-          <div class="input-group">
-            <input class="input-control decimal-input" name="kcal" placeholder="0,000" inputmode="decimal" required>
-            <div class="fixed-unit">kcal</div>
-          </div>
-        </div>
-      </div>
-      <div class="form-section">
-        <div class="form-section-title">🍞 Macronutrientes</div>
-        <div id="macros-fields"></div>
-      </div>
-      <div class="form-section">
-        <div class="form-section-title">💊 Micronutrientes (Vitaminas)</div>
-        <div id="vitaminas-fields"></div>
-      </div>
-      <div class="form-section">
-        <div class="form-section-title">🪨 Micronutrientes (Minerais)</div>
-        <div id="minerais-fields"></div>
-      </div>
-      <button type="submit" class="save-btn">Salvar Alimento</button>
-    </form>
-  </section>
+        // 3. Renderizar uma Sessão (Agrupando e criando os cards)
+        function renderSession(session) {
+            execContainer.innerHTML = ''; // Limpa o container
+            treinoExecutadoEstado = {}; // Reseta o estado da sessão atual
+            
+            // Agrupar exercícios pelo Dicionário
+            const groups = {};
+            session.exercicios.forEach(ex => {
+                const muscle = muscleDictionary[ex.nome] || "OUTROS";
+                if(!groups[muscle]) groups[muscle] = [];
+                groups[muscle].push(ex);
+            });
 
-</div>
+            // Gerar o HTML agrupado
+            for (const [muscle, exercises] of Object.entries(groups)) {
+                
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'muscle-group';
+                
+                // Título do Músculo
+                groupDiv.innerHTML = `<h3 class="muscle-title">${muscle}</h3>`;
+                
+                // Carrossel
+                const carousel = document.createElement('div');
+                carousel.className = 'carousel';
+                
+                // Definir se é card único para ocupar 100% ou carrossel (88%)
+                const cardClass = exercises.length === 1 ? 'carousel-card single-card' : 'carousel-card';
 
-<div id="action-modal" class="modal-overlay">
-  <div class="modal-content">
-    <h3 id="modal-title" class="modal-title">Opções</h3>
-    <button class="modal-btn" id="btn-add-item">Adicionar alimento à refeição</button>
-    <button class="modal-btn primary" id="btn-new-food">Cadastrar novos alimentos</button>
-  </div>
-</div>
+                exercises.forEach(ex => {
+                    const card = document.createElement('div');
+                    card.className = cardClass;
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+                    let setsHTML = '';
+                    ex.series.forEach(serie => {
+                        setsHTML += `
+                            <div class="exec-set-row" data-serie="${serie}">
+                                <span class="exec-set-label">${serie}</span>
+                                <div class="exec-set-inputs">
+                                    <select class="select-kg">${weightOptionsHTML}</select>
+                                    <span class="exec-suffix">kg x</span>
+                                    <select class="select-reps">${repOptionsHTML}</select>
+                                    <span class="exec-suffix">Reps</span>
+                                </div>
+                            </div>
+                        `;
+                    });
 
-  // Configuração do projeto Firebase
-  const firebaseConfig = {
-    apiKey: "AIzaSyBLTPfj097saA-VrtxqWCLWDdS5acjgbEs",
-    authDomain: "os-coretiva-preventiva.firebaseapp.com",
-    projectId: "os-coretiva-preventiva",
-    storageBucket: "os-coretiva-preventiva.firebasestorage.app",
-    messagingSenderId: "1074947472672",
-    appId: "1:1074947472672:web:c797327b7c398fa94b2b45e",
-    measurementId: "G-H01XP1X013"
-  };
-  const db = getFirestore(initializeApp(firebaseConfig));
+                    card.innerHTML = `
+                        <h4 class="exec-card-title">${ex.nome}</h4>
+                        <div class="exec-sets-wrapper" style="display: flex; flex-direction: column; gap: 12px;">
+                            ${setsHTML}
+                        </div>
+                        <div class="card-footer">
+                            <button type="button" class="btn-card-action">SALVAR</button>
+                        </div>
+                    `;
 
-  // Estruturas Padrão
-  const DEFAULT_REFEICOES = [
-    { id: "cafe-da-manha", titulo: "Café da manhã", icone: "🌅", ordem: 1 },
-    { id: "almoco", titulo: "Almoço", icone: "☀️", ordem: 2 },
-    { id: "jantar", titulo: "Jantar", icone: "🌙", ordem: 3 },
-    { id: "lanches", titulo: "Lanches", icone: "🌤️", ordem: 4 }
-  ];
+                    // Lógica isolada de Salvar / Corrigir para este card específico
+                    const btnAction = card.querySelector('.btn-card-action');
+                    const selects = card.querySelectorAll('select');
+                    const setRows = card.querySelectorAll('.exec-set-row');
 
-  const MACROS = [
-    ["carb", "Carboidratos totais", "g"], ["acucTot", "Açúcares totais", "g"], ["acucAdd", "Açúcares adicionados", "g"],
-    ["prot", "Proteínas", "g"], ["fat", "Gorduras totais", "g"], ["fatSat", "Gorduras saturadas", "g"],
-    ["fatTrans", "Gorduras trans", "g"], ["fibra", "Fibra alimentar", "g"], ["sodio", "Sódio", "mg"]
-  ];
-  const VITAMINAS = ["Vitamina A", "Vitamina B2 (Riboflavina)", "Vitamina B5 (Ácido Pantotênico)", "Vitamina B9 (Ácido Fólico)", "Vitamina B12 (Cobalamina)", "Vitamina C", "Vitamina D", "Vitamina E"];
-  const MINERAIS = [["Cálcio", "mg"], ["Ferro", "mg"], ["Zinco", "mg"], ["Fósforo", "mg"], ["Selênio", "mcg"], ["Potássio", "mg"]];
+                    btnAction.addEventListener('click', () => {
+                        const isSaved = card.classList.contains('card-salvo');
 
-  // Gerenciamento de Estado
-  const estado = { alimentos: [], refeicoes: [], itens: {} };
-  const listenersItens = {};
-  let refeicaoAtual = null;
-  let dataAtual = new Date();
-  let deleteMode = false;
+                        if (!isSaved) {
+                            // AÇÃO DE SALVAR -> Transiciona para Estado 2 (Salvo)
+                            const seriesExecutadas = [];
+                            setRows.forEach(row => {
+                                const nomeSerie = row.getAttribute('data-serie');
+                                const kg = Number(row.querySelector('.select-kg').value);
+                                const reps = Number(row.querySelector('.select-reps').value);
+                                seriesExecutadas.push({ serie: nomeSerie, kg, reps });
+                            });
 
-  // Utilitários
-  const $ = sel => document.querySelector(sel);
-  const fmt = n => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(Number(n) || 0); // Formatado para 1 casa decimal p/ melhor visual BI
-  const escapar = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-  const parseInputPTBR = s => { const v = parseFloat(String(s || "").replace(/\./g, "").replace(",", ".")); return isNaN(v) ? 0 : v; };
-  const somar = itens => itens.reduce((a, i) => ({ kcal: a.kcal + i.kcal, carb: a.carb + i.carb, fat: a.fat + i.fat, prot: a.prot + i.prot }), { kcal: 0, carb: 0, fat: 0, prot: 0 });
-  const percentuais = t => {
-    const total = t.carb + t.fat + t.prot;
-    if (!total) return { carb: 0, fat: 0, prot: 0 };
-    return { carb: (t.carb / total) * 100, fat: (t.fat / total) * 100, prot: (t.prot / total) * 100 };
-  };
-  
-  // Datas
-  const obterDataString = data => {
-    const tzOffset = data.getTimezoneOffset() * 60000;
-    return (new Date(data.getTime() - tzOffset)).toISOString().slice(0, 10);
-  };
-  
-  const formatarDataUI = data => {
-    const hoje = new Date();
-    const strHoje = obterDataString(hoje);
-    const strData = obterDataString(data);
-    
-    if (strData === strHoje) return "Hoje";
-    
-    const ontem = new Date(); ontem.setDate(hoje.getDate() - 1);
-    if (strData === obterDataString(ontem)) return "Ontem";
-    
-    const amanha = new Date(); amanha.setDate(hoje.getDate() + 1);
-    if (strData === obterDataString(amanha)) return "Amanhã";
-    
-    return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-  };
+                            // Salva no objeto de estado do treino executado
+                            treinoExecutadoEstado[ex.nome] = {
+                                dataExecucao: dateInput.value,
+                                sessao: session.nomeSessao,
+                                series: seriesExecutadas
+                            };
 
-  const mudarData = dias => {
-    dataAtual.setDate(dataAtual.getDate() + dias);
-    $("#current-date-display").textContent = formatarDataUI(dataAtual);
-    renderDashboard();
-  };
+                            // Aplica o feedback visual e trava os selects
+                            card.classList.add('card-salvo');
+                            selects.forEach(s => s.disabled = true);
+                            btnAction.textContent = 'CORRIGIR';
+                            btnAction.classList.add('btn-corrigir');
 
-  // TELAS ATUALIZADO: Incluindo 'bi'
-  const TELAS = { home: "home-screen", dashboard: "dashboard-screen", details: "details-screen", item: "add-item-screen", food: "add-food-screen", bi: "bi-dashboard-screen" };
-  const ir = tela => {
-    document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === TELAS[tela]));
-    window.scrollTo(0, 0);
-  };
-  const alimentoSelecionado = () => estado.alimentos.find(a => a.id === $("#item-select").value);
-  const fecharModal = () => $("#action-modal").classList.remove("active");
+                            console.log(`[SALVO] ${ex.nome}:`, treinoExecutadoEstado[ex.nome]);
+                        } else {
+                            // AÇÃO DE CORRIGIR -> Retorna ao Estado 1 (Ativo)
+                            card.classList.remove('card-salvo');
+                            selects.forEach(s => s.disabled = false);
+                            btnAction.textContent = 'SALVAR';
+                            btnAction.classList.remove('btn-corrigir');
 
-  function mostrarErro(err) {
-    console.error(err);
-    const box = $("#erro");
-    box.textContent = `Erro: ${err.code || err.message}`;
-    box.hidden = false;
-  }
+                            console.log(`[EM EDIÇÃO] ${ex.nome} desbloqueado para correção.`);
+                        }
+                    });
 
-  // Geração dos campos de cadastro
-  $("#macros-fields").innerHTML = MACROS.map(([k, nome, un]) => `
-    <div class="form-group">
-      <label>${nome}</label>
-      <div class="input-group">
-        <input class="input-control decimal-input" name="${k}" placeholder="0,000" inputmode="decimal">
-        <div class="fixed-unit">${un}</div>
-      </div>
-    </div>`).join("");
+                    carousel.appendChild(card);
+                });
 
-  $("#vitaminas-fields").innerHTML = VITAMINAS.map((nome, i) => `
-    <div class="form-group">
-      <label>${nome}</label>
-      <div class="input-group">
-        <input class="input-control decimal-input" name="vit${i}" placeholder="0,000" inputmode="decimal">
-        <select class="unit-select vit-unit" name="vit${i}Un"><option>mcg</option><option>g</option><option>%</option></select>
-      </div>
-      <div class="ref-group" hidden style="margin-top:.5rem">
-        <label style="font-size:.8rem">Valor de Referência (%)</label>
-        <input class="input-control decimal-input" name="vit${i}Ref" placeholder="0,000" inputmode="decimal">
-      </div>
-    </div>`).join("");
+                groupDiv.appendChild(carousel);
+                execContainer.appendChild(groupDiv);
+            }
+        }
 
-  $("#minerais-fields").innerHTML = MINERAIS.map(([nome, un], i) => `
-    <div class="form-group">
-      <label>${nome}</label>
-      <div class="input-group">
-        <input class="input-control decimal-input" name="min${i}" placeholder="0,000" inputmode="decimal">
-        <div class="fixed-unit">${un}</div>
-      </div>
-    </div>`).join("");
+        // 4. Iniciar rotina mockada ao clicar no botão da Tela 3
+        document.getElementById('btn-open-mock').addEventListener('click', () => {
+            switchScreen(screens.s4);
+            
+            document.getElementById('exec-routine-name').textContent = mockRoutineData.nomeRotina;
+            setTodayDate();
 
-  // Funções de Refeição Customizada
-  async function adicionarRefeicao() {
-    const nome = prompt("Digite o nome da nova refeição:");
-    if (!nome || !nome.trim()) return;
-    const id = nome.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
-    const ordem = estado.refeicoes.length + 1;
-    try {
-      await setDoc(doc(db, "dieta_refeicoes_tipos", id), { id, titulo: nome.trim(), icone: "🍽️", ordem });
-    } catch(err) { mostrarErro(err); }
-  }
+            // Popular select de sessões
+            sessionSelect.innerHTML = '';
+            mockRoutineData.sessoes.forEach((sessao, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = sessao.nomeSessao;
+                sessionSelect.appendChild(opt);
+            });
 
-  async function excluirRefeicao(id) {
-    if(confirm("Tem certeza que deseja excluir permanentemente esta refeição?")) {
-      try {
-        await deleteDoc(doc(db, "dieta_refeicoes_tipos", id));
-        if(listenersItens[id]) { listenersItens[id](); delete listenersItens[id]; }
-        deleteMode = false;
-        renderDashboard();
-      } catch(err) { mostrarErro(err); }
-    }
-  }
+            // Renderiza a primeira sessão inicialmente
+            renderSession(mockRoutineData.sessoes[0]);
+        });
 
-  // Lógica do DASHBOARD BI
-  function renderBIDashboard() {
-    const strDataAtual = obterDataString(dataAtual);
-    const strDataHoje = obterDataString(new Date());
-    $("#bi-date-display").textContent = formatarDataUI(dataAtual);
+        // 5. Mudar de sessão pelo Select
+        sessionSelect.addEventListener('change', (e) => {
+            const index = e.target.value;
+            renderSession(mockRoutineData.sessoes[index]);
+            // Opcional: Atualizar a data baseada no dia planejado? 
+            // O requisito diz que a data muda o dia, não que a sessão força uma data. Então mantemos livre.
+        });
 
-    let totalKcal = 0, totalCarb = 0, totalFat = 0, totalProt = 0, totalItens = 0;
-    const mealStats = []; // Para grafico de barras
-
-    estado.refeicoes.forEach(r => {
-      const todosItens = estado.itens[r.id] || [];
-      const itens = todosItens.filter(i => {
-        if(i.dataRef) return i.dataRef === strDataAtual;
-        return strDataAtual === strDataHoje; 
-      });
-
-      const t = somar(itens);
-      totalKcal += t.kcal;
-      totalCarb += t.carb;
-      totalFat += t.fat;
-      totalProt += t.prot;
-      totalItens += itens.length;
-      
-      mealStats.push({ nome: r.titulo, kcal: t.kcal });
-    });
-
-    // Atualiza KPIs Superiores
-    $("#bi-kpi-kcal").textContent = fmt(totalKcal);
-    $("#bi-kpi-items").textContent = totalItens;
-
-    // Atualiza Gráfico de Rosca (Conic Gradient)
-    const p = percentuais({ carb: totalCarb, fat: totalFat, prot: totalProt });
-    const totalG = totalCarb + totalFat + totalProt;
-    
-    // Fallback de cinza se estiver zerado
-    let bgConic = '#333';
-    if (totalG > 0) {
-      bgConic = `conic-gradient(
-        var(--carb-color) 0% ${p.carb}%, 
-        var(--fat-color) ${p.carb}% ${p.carb + p.fat}%, 
-        var(--prot-color) ${p.carb + p.fat}% 100%
-      )`;
-    }
-    
-    $("#bi-donut").style.background = bgConic;
-    $("#bi-donut-total-g").textContent = `${fmt(totalG)}g`;
-
-    // Atualiza Legendas de Macros
-    $("#bi-leg-carb").textContent = `${fmt(p.carb)}%`;
-    $("#bi-leg-carb-g").textContent = `${fmt(totalCarb)}g`;
-    
-    $("#bi-leg-fat").textContent = `${fmt(p.fat)}%`;
-    $("#bi-leg-fat-g").textContent = `${fmt(totalFat)}g`;
-    
-    $("#bi-leg-prot").textContent = `${fmt(p.prot)}%`;
-    $("#bi-leg-prot-g").textContent = `${fmt(totalProt)}g`;
-
-    // Atualiza Gráfico de Barras das Refeições
-    const maxKcal = Math.max(...mealStats.map(m => m.kcal), 1); // Evita / 0
-    $("#bi-meal-bars").innerHTML = mealStats.map(m => {
-      const pct = (m.kcal / maxKcal) * 100;
-      return `
-        <div class="bi-bar-row">
-          <div class="bi-bar-label">
-            <span>${m.nome}</span>
-            <span style="color: var(--text-sec)">${fmt(m.kcal)} kcal</span>
-          </div>
-          <div class="bi-bar-track">
-            <div class="bi-bar-fill" style="width: ${pct}%;"></div>
-          </div>
-        </div>
-      `;
-    }).join("") || `<p class="vazio">Nenhum dado para analisar hoje.</p>`;
-  }
-
-  // Dashboard de refeições Principal
-  function renderDashboard() {
-    const strDataAtual = obterDataString(dataAtual);
-    const strDataHoje = obterDataString(new Date());
-
-    $("#meals-container").innerHTML = estado.refeicoes.map(r => {
-      const todosItens = estado.itens[r.id] || [];
-      const itens = todosItens.filter(i => {
-        if(i.dataRef) return i.dataRef === strDataAtual;
-        return strDataAtual === strDataHoje; 
-      });
-
-      const t = somar(itens);
-      const p = percentuais(t);
-      const nomes = itens.map(i => escapar(i.nome)).join(", ");
-      
-      const actionBtn = deleteMode 
-        ? `<button class="del-btn" data-del="${r.id}">❌</button>`
-        : `<button class="add-btn" data-add="${r.id}">+</button>`;
-
-      return `
-        <div class="meal-card" data-meal="${r.id}">
-          <div class="meal-icon">${r.icone}</div>
-          <div class="meal-content">
-            <div class="meal-title">${r.titulo}</div>
-            <div class="meal-desc">${nomes || "Nenhum alimento registrado"}</div>
-            <div class="meal-kcal">🔥 ${fmt(t.kcal)} kcal</div>
-            <div class="macros-bar">
-              <div style="width:${p.carb}%;background:var(--carb-color)"></div>
-              <div style="width:${p.fat}%;background:var(--fat-color)"></div>
-              <div style="width:${p.prot}%;background:var(--prot-color)"></div>
-            </div>
-            <div class="macros-text">
-              <span class="dot dot-carb">${fmt(p.carb)}%</span>
-              <span class="dot dot-fat">${fmt(p.fat)}%</span>
-              <span class="dot dot-prot">${fmt(p.prot)}%</span>
-            </div>
-          </div>
-          ${actionBtn}
-        </div>`;
-    }).join("");
-
-    // Mantém o Dashboard de BI sempre sincronizado com as mudanças
-    renderBIDashboard();
-  }
-
-  // Detalhes da refeição
-  function abrirDetalhes(id) {
-    refeicaoAtual = id;
-    renderDetalhes();
-    ir("details");
-  }
-
-  function renderDetalhes() {
-    const r = estado.refeicoes.find(x => x.id === refeicaoAtual);
-    const todosItens = estado.itens[refeicaoAtual] || [];
-    
-    const strDataAtual = obterDataString(dataAtual);
-    const strDataHoje = obterDataString(new Date());
-    const itens = todosItens.filter(i => {
-      if(i.dataRef) return i.dataRef === strDataAtual;
-      return strDataAtual === strDataHoje; 
-    });
-
-    const t = somar(itens);
-    $("#detail-title").textContent = r ? r.titulo : "";
-    $("#detail-kcal").textContent = `${fmt(t.kcal)} kcal`;
-    $("#detail-carb").textContent = `${fmt(t.carb)}g`;
-    $("#detail-fat").textContent = `${fmt(t.fat)}g`;
-    $("#detail-prot").textContent = `${fmt(t.prot)}g`;
-    $("#foods-container").innerHTML = itens.length
-      ? itens.map(i => `
-          <div class="food-list-item">
-            <div>
-              <div class="food-name">${escapar(i.nome)}</div>
-              <div class="food-macros">${fmt(i.quantidade)} ${i.unidade} • C: ${fmt(i.carb)}g | G: ${fmt(i.fat)}g | P: ${fmt(i.prot)}g</div>
-            </div>
-            <div style="font-weight:500">${fmt(i.kcal)} kcal</div>
-          </div>`).join("")
-      : `<p class="vazio">Nenhum alimento registrado nesta refeição hoje.</p>`;
-  }
-
-  // Modal de ações da refeição
-  function abrirModal(id) {
-    refeicaoAtual = id;
-    const r = estado.refeicoes.find(r => r.id === id);
-    $("#modal-title").textContent = r ? r.titulo : "";
-    $("#action-modal").classList.add("active");
-  }
-
-  // UI Lógica do Slider
-  const slider = $("#item-qtd");
-  const tooltip = $("#slider-tooltip");
-
-  function atualizarPosicaoSlider() {
-    const min = parseFloat(slider.min);
-    const max = parseFloat(slider.max);
-    const val = parseFloat(slider.value);
-    
-    tooltip.textContent = val.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-    
-    const percent = ((val - min) / (max - min)) * 100;
-    const offset = 9 - (percent * 0.18); 
-    tooltip.style.left = `calc(${percent}% + ${offset}px)`;
-  }
-
-  function atualizarResumo() {
-    atualizarPosicaoSlider();
-    const a = alimentoSelecionado();
-    
-    if (!a || !(a.porcao > 0)) {
-      $("#item-preview").textContent = "";
-      $("#item-total-qty").textContent = "0";
-      $("#item-unidade").textContent = "g";
-      return;
-    }
-    
-    const multiplicador = parseFloat(slider.value) || 1.0;
-    const quantidadeReal = a.porcao * multiplicador;
-    
-    $("#item-unidade").textContent = a.unidade;
-    $("#item-total-qty").textContent = fmt(quantidadeReal);
-
-    const c = {
-      kcal: a.kcal * multiplicador,
-      carb: a.nutrientes.carb * multiplicador,
-      fat: a.nutrientes.fat * multiplicador,
-      prot: a.nutrientes.prot * multiplicador
-    };
-    
-    $("#item-preview").textContent = `Proporcional: ${fmt(c.kcal)} kcal • C: ${fmt(c.carb)}g | G: ${fmt(c.fat)}g | P: ${fmt(c.prot)}g`;
-  }
-
-  // Adicionar alimento
-  function abrirAdicionarItem() {
-    const r = estado.refeicoes.find(r => r.id === refeicaoAtual);
-    $("#item-title").textContent = `Adicionar em ${r ? r.titulo : ""}`;
-    $("#item-select").innerHTML = estado.alimentos.length
-      ? estado.alimentos.map(a => `<option value="${a.id}">${escapar(a.nome)} (Porção: ${fmt(a.porcao)} ${a.unidade})</option>`).join("")
-      : `<option value="">Cadastre um alimento primeiro</option>`;
-    
-    $("#item-form").reset();
-    slider.value = 1.0;
-    atualizarResumo();
-    ir("item");
-  }
-
-  async function salvarItem(e) {
-    e.preventDefault();
-    const a = alimentoSelecionado();
-    const multiplicador = parseFloat(slider.value);
-    
-    if (!a || multiplicador <= 0) return alert("Escolha um alimento e a proporção.");
-    
-    const quantidadeReal = a.porcao * multiplicador;
-    
-    const c = {
-      kcal: a.kcal * multiplicador,
-      carb: a.nutrientes.carb * multiplicador,
-      fat: a.nutrientes.fat * multiplicador,
-      prot: a.nutrientes.prot * multiplicador
-    };
-
-    try {
-      await addDoc(collection(db, "dieta_refeicoes", refeicaoAtual, "itens"), {
-        nome: a.nome, 
-        alimentoId: a.id, 
-        quantidade: quantidadeReal, 
-        multiplicador: multiplicador, 
-        unidade: a.unidade,
-        kcal: c.kcal, carb: c.carb, fat: c.fat, prot: c.prot, 
-        criadoEm: Date.now(), 
-        dataRef: obterDataString(dataAtual)
-      });
-      abrirDetalhes(refeicaoAtual);
-    } catch (err) {
-      console.error(err);
-      alert(`Não foi possível salvar: ${err.code || err.message}`);
-    }
-  }
-
-  // Cadastro de alimento (catálogo)
-  function abrirCadastro() {
-    $("#food-form").reset();
-    document.querySelectorAll(".ref-group").forEach(g => (g.hidden = true));
-    ir("food");
-  }
-
-  async function salvarAlimento(e) {
-    e.preventDefault();
-    const f = e.target;
-    const num = name => parseInputPTBR(f.elements[name].value);
-    const porcao = num("porcao");
-    if (!(porcao > 0)) return alert("A porção precisa ser maior que zero.");
-    const dados = {
-      nome: f.elements.nome.value.trim(),
-      porcao,
-      unidade: f.elements.porcaoUnidade.value,
-      kcal: num("kcal"),
-      nutrientes: Object.fromEntries(MACROS.map(([k]) => [k, num(k)])),
-      vitaminas: VITAMINAS.map((nome, i) => ({ nome, valor: num(`vit${i}`), unidade: f.elements[`vit${i}Un`].value, ref: num(`vit${i}Ref`) })),
-      minerais: MINERAIS.map(([nome, unidade], i) => ({ nome, valor: num(`min${i}`), unidade })),
-      criadoEm: Date.now()
-    };
-    try {
-      await addDoc(collection(db, "dieta_alimentos"), dados);
-      alert("Alimento salvo com sucesso!");
-      ir("dashboard");
-    } catch (err) {
-      console.error(err);
-      alert(`Não foi possível salvar: ${err.code || err.message}`);
-    }
-  }
-
-  // Máscara PT-BR
-  function mascaraDecimal(e) {
-    const el = e.target;
-    if (!el.classList.contains("decimal-input")) return;
-    let partes = el.value.replace(/[^0-9,]/g, "").split(",");
-    if (partes.length > 2) partes = [partes[0], partes.slice(1).join("")];
-    if (partes.length === 2) partes[1] = partes[1].slice(0, 3);
-    const inteira = partes[0] === ""
-      ? (partes.length === 2 ? "0" : "")
-      : parseInt(partes[0], 10).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    el.value = partes.length === 2 ? `${inteira},${partes[1]}` : inteira;
-  }
-
-  // Controle do Menu Dropdown e Cliques
-  document.addEventListener("click", e => {
-    if (!e.target.closest("#menu-btn") && !e.target.closest("#meal-menu")) {
-      $("#meal-menu").classList.remove("show");
-    }
-    const btn = e.target.closest("[data-go]");
-    if (btn) ir(btn.dataset.go);
-  });
-
-  $("#menu-btn").addEventListener("click", (e) => {
-    e.stopPropagation(); 
-    $("#meal-menu").classList.toggle("show");
-  });
-
-  // Outros Listeners
-  $("#prev-date").addEventListener("click", () => mudarData(-1));
-  $("#next-date").addEventListener("click", () => mudarData(1));
-  
-  $("#btn-add-meal").addEventListener("click", () => { $("#meal-menu").classList.remove("show"); adicionarRefeicao(); });
-  $("#btn-toggle-delete").addEventListener("click", () => {
-    $("#meal-menu").classList.remove("show");
-    deleteMode = !deleteMode;
-    renderDashboard();
-  });
-
-  $("#meals-container").addEventListener("click", e => {
-    const del = e.target.closest("[data-del]");
-    if (del) { e.stopPropagation(); return excluirRefeicao(del.dataset.del); }
-
-    const add = e.target.closest("[data-add]");
-    if (add) { e.stopPropagation(); return abrirModal(add.dataset.add); }
-    
-    const card = e.target.closest("[data-meal]");
-    if (card && !deleteMode) abrirDetalhes(card.dataset.meal);
-  });
-
-  $("#action-modal").addEventListener("click", e => { if (e.target.id === "action-modal") fecharModal(); });
-  $("#btn-add-item").addEventListener("click", () => { fecharModal(); abrirAdicionarItem(); });
-  $("#btn-new-food").addEventListener("click", () => { fecharModal(); abrirCadastro(); });
-  
-  // Listeners do form de proporção (Slider)
-  $("#item-select").addEventListener("change", atualizarResumo);
-  slider.addEventListener("input", atualizarResumo);
-  
-  $("#item-form").addEventListener("submit", salvarItem);
-  $("#food-form").addEventListener("submit", salvarAlimento);
-  document.addEventListener("input", mascaraDecimal);
-
-  document.addEventListener("change", e => {
-    if (!e.target.classList.contains("vit-unit")) return;
-    const grupo = e.target.closest(".form-group").querySelector(".ref-group");
-    grupo.hidden = e.target.value !== "%";
-    if (grupo.hidden) grupo.querySelector("input").value = "";
-  });
-
-  // Listeners Dinâmicos do Firestore
-  function configurarListenersItens() {
-    estado.refeicoes.forEach(r => {
-      if (!listenersItens[r.id]) {
-        listenersItens[r.id] = onSnapshot(query(collection(db, "dieta_refeicoes", r.id, "itens"), orderBy("criadoEm")),
-          snap => {
-            estado.itens[r.id] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            renderDashboard();
-            if (refeicaoAtual === r.id) renderDetalhes();
-          }, mostrarErro);
-      }
-    });
-  }
-
-  // Lógica principal de inicialização
-  onSnapshot(query(collection(db, "dieta_alimentos"), orderBy("nome")),
-    snap => { estado.alimentos = snap.docs.map(d => ({ id: d.id, ...d.data() })); },
-    mostrarErro);
-
-  // Inicializa lista dinâmica de refeições
-  onSnapshot(collection(db, "dieta_refeicoes_tipos"), snap => {
-    if (snap.empty) {
-      DEFAULT_REFEICOES.forEach(m => setDoc(doc(db, "dieta_refeicoes_tipos", m.id), m));
-    } else {
-      estado.refeicoes = snap.docs.map(d => ({id: d.id, ...d.data()})).sort((a,b) => a.ordem - b.ordem);
-      configurarListenersItens();
-      renderDashboard();
-    }
-  }, mostrarErro);
-
-  // Define layout inicial do slider
-  atualizarPosicaoSlider();
-</script>
+    </script>
 </body>
 </html>
