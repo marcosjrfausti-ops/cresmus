@@ -1,749 +1,1222 @@
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, updateDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracker de Treinos</title>
+    <style>
+        /* Variáveis de Tema Escuro */
+        :root {
+            --bg-color: #121212;
+            --surface-color: #1e1e1e;
+            --surface-highlight: #2c2c2c;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-color: #bb86fc;
+            --border-color: #333333;
+            --danger-color: #cf6679;
+            --border-radius: 12px;
+        }
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyDTyVjHdTo5vmRhqGzpyPGlLXolzu31dYo",
-        authDomain: "painel-fotografico-galpao.firebaseapp.com",
-        projectId: "painel-fotografico-galpao",
-        storageBucket: "painel-fotografico-galpao.firebasestorage.app",
-        messagingSenderId: "521603564212",
-        appId: "1:521603564212:web:e4585543f470e214b54de1",
-        measurementId: "G-0QX19DYWT5"
-    };
+        /* Reset e Base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
 
-    let usuarioAtivo = "";
+        /* Controle de Telas */
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            animation: fadeIn 0.3s ease;
+        }
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-    function showToast(msg) {
-        const toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 3000);
-    }
+        /* Botões Padrão (Telas 1 e 3) */
+        .btn-main {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--text-primary);
+            padding: 18px 32px;
+            font-size: 1.1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+        .btn-main:hover:not(:disabled) {
+            background: var(--surface-highlight);
+            transform: scale(1.02);
+        }
+        .btn-main:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: var(--text-secondary);
+        }
 
-    // --- DICIONÁRIO DE MÚSCULOS E REPOSITÓRIO DE EXERCÍCIOS ---
-    const muscleDictionary = {
-        "Remada Articulada Fechada": "COSTAS",
-        "Remada Aberta Polia": "COSTAS",
-        "Puxada Alta Triângulo": "COSTAS",
-        "Remada Baixa": "COSTAS",
-        "Pulley Frente": "COSTAS",
-        "Peck Deck": "PEITO",
-        "Supino Inclinado com Halteres": "PEITO",
-        "Supino Reto Halteres": "PEITO",
-        "Crossover Superior": "PEITO",
-        "Crossover Inferior": "PEITO",
-        "Agachamento Búlgaro": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-        "Agachamento Livre": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-        "Cadeira Extensora Quadríceps Femoral": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-        "Cadeira Extensora Unilateral": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-        "Leg Press": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-        "Hack Machine": "PERNAS (QUADRÍCEPS/GLÚTEO)",
-        "Mesa Flexora": "POSTERIOR DE COXA",
-        "Stiff": "POSTERIOR DE COXA",
-        "Gêmeos em Pé": "PANTURRILHA",
-        "Gêmeos Sentado": "PANTURRILHA",
-        "Tríceps Polia Bilateral com Corda": "TRÍCEPS",
-        "Tríceps Testa": "TRÍCEPS",
-        "Tríceps Francês": "TRÍCEPS",
-        "Rosca Martelo": "BÍCEPS",
-        "Rosca Inversa": "BÍCEPS",
-        "Rosca Direta": "BÍCEPS",
-        "Rosca 45º": "BÍCEPS",
-        "Elevação Lateral Halteres": "OMBRO",
-        "Elevação Lateral Polia": "OMBRO",
-        "Flexão de Punho": "ANTEBRAÇO",
-        "Cadeira Adutora": "ADUTORES/ABDUTORES",
-        "Cadeira Abdutora": "ADUTORES/ABDUTORES"
-    };
+        /* ---- TELA 0, 1 & 3 Layout ---- */
+        #screen-0, #screen-1, #screen-3 {
+            flex: 1;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+        }
+        .login-card {
+            width: 100%;
+            background: var(--surface-color);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .user-badge {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .user-badge strong {
+            color: var(--accent-color);
+            text-transform: uppercase;
+        }
+        .divider { width: 80%; border: 0; border-top: 1px dashed var(--border-color); margin: 16px 0; }
+        .screen-title { font-size: 1.5rem; color: var(--accent-color); margin-bottom: 24px; text-transform: uppercase; text-align: center; }
 
-    const exercisesRepository = Object.entries(muscleDictionary).map(([nome, musculo]) => ({
-        nome,
-        musculo,
-        criadoPor: "sistema"
-    }));
+        /* ---- TELA 2 (Componentes herdados) ---- */
+        .header-form {
+            display: flex; flex-direction: column; gap: 20px; margin-bottom: 24px;
+            background: var(--surface-color); padding: 20px; border-radius: var(--border-radius); border: 1px solid var(--border-color);
+        }
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        .input-group label { font-weight: 600; font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; }
+        .input-group input, .input-group select, .date-input {
+            background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-primary);
+            padding: 12px 16px; border-radius: 8px; font-size: 1rem; color-scheme: dark;
+        }
 
-    async function carregarExerciciosCustomizados() {
-        try {
-            const snap = await getDocs(collection(db, "exercicios_customizados"));
-            snap.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data.nome && data.musculo) {
-                    muscleDictionary[data.nome] = data.musculo;
-                    const jaExiste = exercisesRepository.some(
-                        ex => ex.nome.toLowerCase() === data.nome.toLowerCase()
-                    );
-                    if (!jaExiste) {
-                        exercisesRepository.push({
-                            nome: data.nome,
-                            musculo: data.musculo,
-                            criadoPor: data.criadoPor || "desconhecido"
-                        });
+        /* ---- DROPDOWN CUSTOMIZADO DE EXERCÍCIOS (TELA 2) ---- */
+        .exercise-selector {
+            position: relative;
+            margin-bottom: 24px;
+            user-select: none;
+        }
+        .custom-dropdown-trigger {
+            width: 100%;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
+            padding: 14px 16px;
+            border-radius: var(--border-radius);
+            font-size: 1.05rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        .custom-dropdown-trigger:hover {
+            background: var(--surface-highlight);
+            border-color: var(--accent-color);
+        }
+        .custom-dropdown-trigger .arrow {
+            font-size: 0.8rem;
+            transition: transform 0.2s ease;
+        }
+        .custom-dropdown-trigger.open .arrow {
+            transform: rotate(180deg);
+        }
+        .custom-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            width: 100%;
+            background: var(--surface-color);
+            border: 1px solid var(--accent-color);
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75);
+            z-index: 100;
+            overflow: hidden;
+            flex-direction: column;
+        }
+        .custom-dropdown-menu.open {
+            display: flex;
+        }
+        /* 1ª Linha: Busca com Lupa */
+        .dropdown-search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            background: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .dropdown-search-box .search-icon {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+        .dropdown-search-box input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            outline: none;
+        }
+        .dropdown-search-box input::placeholder {
+            color: var(--text-secondary);
+        }
+        /* 2ª Linha Fixa: [+ Adicionar Exercício] */
+        .dropdown-add-fixed {
+            padding: 12px 16px;
+            background: var(--surface-highlight);
+            color: var(--accent-color);
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            text-align: left;
+            flex-shrink: 0;
+        }
+        .dropdown-add-fixed:hover {
+            background: var(--accent-color);
+            color: #000000;
+        }
+        /* Restante da Lista */
+        .dropdown-options-list {
+            list-style: none;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .dropdown-options-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .dropdown-options-list::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+        .dropdown-option-item {
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .dropdown-option-item:last-child {
+            border-bottom: none;
+        }
+        .dropdown-option-item:hover {
+            background: var(--surface-highlight);
+            color: var(--accent-color);
+        }
+        .dropdown-empty-state {
+            padding: 16px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* ---- MODAL PARA ADICIONAR NOVO EXERCÍCIO ---- */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-overlay.open {
+            display: flex;
+        }
+        .modal-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--surface-color);
+            border: 1px solid var(--accent-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal-title {
+            font-size: 1.15rem;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 4px;
+        }
+        .modal-actions button {
+            flex: 1;
+            padding: 12px;
+        }
+        
+        /* ---- TELA 4: EXECUÇÃO DO TREINO ---- */
+        .exec-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;
+        }
+        .exec-header h2 { font-size: 1.3rem; color: var(--accent-color); text-transform: uppercase; }
+        .exec-header span { font-size: 1.1rem; font-weight: bold; color: var(--text-secondary); }
+
+        .exec-controls { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
+        .date-wrapper { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .date-wrapper label { font-size: 0.9rem; color: var(--text-secondary); }
+        .date-input { width: 100%; text-align: center; max-width: 300px; font-weight: bold;}
+        .session-select { width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--accent-color); padding: 16px; border-radius: var(--border-radius); font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+
+        .muscle-group { margin-bottom: 32px; }
+        .muscle-title { font-size: 1.2rem; color: var(--text-primary); margin-bottom: 16px; border-left: 4px solid var(--accent-color); padding-left: 8px; letter-spacing: 1px;}
+
+        .carousel {
+            display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
+            gap: 16px; padding-bottom: 12px; scrollbar-width: none;
+        }
+        .carousel::-webkit-scrollbar { display: none; }
+        
+        .carousel-card {
+            flex: 0 0 88%;
+            scroll-snap-align: center;
+            background: var(--surface-color); border: 1px solid var(--border-color);
+            border-radius: var(--border-radius); padding: 20px;
+            display: flex; flex-direction: column; gap: 16px;
+            transition: opacity 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+        }
+        
+        .carousel-card.single-card { flex: 0 0 100%; }
+
+        .exec-card-title { font-size: 1.2rem; color: var(--accent-color); text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;}
+
+        .exec-set-row {
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+            background: var(--bg-color); padding: 16px 12px; border-radius: 8px;
+        }
+        .exec-set-label { font-weight: bold; font-size: 1.05rem; color: var(--text-primary); }
+        .exec-set-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .exec-set-inputs select {
+            background: var(--surface-highlight); border: 1px solid var(--border-color);
+            color: var(--text-primary); padding: 8px; border-radius: 6px; font-size: 1rem; text-align: center;
+            transition: opacity 0.2s, background-color 0.2s;
+        }
+        .exec-set-inputs select:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            background: var(--bg-color);
+        }
+        .exec-suffix { color: var(--danger-color); font-weight: bold; }
+
+        .carousel-card.card-salvo {
+            opacity: 0.55;
+            background: #161616;
+            border-color: #262626;
+        }
+        .card-footer {
+            margin-top: auto;
+            padding-top: 12px;
+            display: flex;
+            justify-content: flex-end;
+            border-top: 1px solid var(--border-color);
+        }
+        .btn-card-action {
+            background: var(--accent-color);
+            color: #000000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        .btn-card-action:hover {
+            filter: brightness(1.1);
+        }
+        .btn-card-action.btn-corrigir {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--text-secondary);
+        }
+
+        /* ---- ESTILOS ADICIONAIS TELA 2 & FEEDBACK ---- */
+        #exercise-container { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+        .exercise-card {
+            background: var(--surface-color); border: 1px solid var(--accent-color);
+            border-radius: var(--border-radius); padding: 16px; display: flex; flex-direction: column; gap: 12px;
+        }
+        .exercise-card-title {
+            text-align: center; font-size: 1.15rem; color: var(--accent-color);
+            padding-bottom: 8px; border-bottom: 1px solid var(--border-color);
+        }
+        .set-row {
+            background: var(--bg-color); padding: 10px; border-radius: 6px;
+            text-align: center; font-weight: 600; color: var(--text-primary);
+        }
+        .card-controls { display: flex; justify-content: flex-end; gap: 12px; margin-top: 4px; }
+        .btn-control {
+            background: transparent; border: 1px solid var(--text-primary); color: var(--text-primary);
+            width: 34px; height: 34px; border-radius: 50%; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .form-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; padding-bottom: 40px; }
+        .btn-secondary {
+            background: var(--surface-highlight); color: var(--text-primary); border: 1px solid var(--border-color);
+            padding: 16px; border-radius: var(--border-radius); font-weight: 600; cursor: pointer; text-transform: uppercase;
+        }
+        .btn-primary {
+            background: var(--accent-color); color: #000; border: none;
+            padding: 16px; border-radius: var(--border-radius); font-weight: 700; cursor: pointer; text-transform: uppercase;
+        }
+        #toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--accent-color); color: #000; padding: 12px 24px; border-radius: 8px;
+            font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.5); opacity: 0;
+            pointer-events: none; transition: opacity 0.3s ease; z-index: 1000; text-align: center;
+        }
+        #toast.show { opacity: 1; }
+
+        .nav-back { color: var(--text-secondary); cursor: pointer; margin-bottom: 24px; display: inline-block; font-size: 0.9rem; }
+        .empty-msg { color: var(--text-secondary); text-align: center; margin-top: 16px; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Notificação Toast -->
+    <div id="toast">Salvo com sucesso!</div>
+
+    <!-- Modal: Adicionar Novo Exercício -->
+    <div id="modal-new-exercise" class="modal-overlay">
+        <div class="modal-card">
+            <h3 class="modal-title">Novo Exercício</h3>
+            <div class="input-group">
+                <label for="new-ex-name">NOME DO EXERCÍCIO:</label>
+                <input type="text" id="new-ex-name" placeholder="Ex: Puxada Supinada">
+            </div>
+            <div class="input-group">
+                <label for="new-ex-muscle">GRUPO MUSCULAR:</label>
+                <select id="new-ex-muscle">
+                    <option value="COSTAS">COSTAS</option>
+                    <option value="PEITO">PEITO</option>
+                    <option value="PERNAS (QUADRÍCEPS/GLÚTEO)">PERNAS (QUADRÍCEPS/GLÚTEO)</option>
+                    <option value="POSTERIOR DE COXA">POSTERIOR DE COXA</option>
+                    <option value="PANTURRILHA">PANTURRILHA</option>
+                    <option value="TRÍCEPS">TRÍCEPS</option>
+                    <option value="BÍCEPS">BÍCEPS</option>
+                    <option value="OMBRO">OMBRO</option>
+                    <option value="ANTEBRAÇO">ANTEBRAÇO</option>
+                    <option value="ADUTORES/ABDUTORES">ADUTORES/ABDUTORES</option>
+                    <option value="ABDÔMEN">ABDÔMEN</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button type="button" id="btn-cancel-new-ex" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btn-save-new-ex" class="btn-primary">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA 0: Acesso / Login de Usuário -->
+    <div id="screen-0" class="screen active">
+        <h2 class="screen-title">Acesso ao Tracker</h2>
+        <div class="login-card">
+            <div class="input-group">
+                <label for="login-user">USUÁRIO:</label>
+                <input type="text" id="login-user" placeholder="Digite seu usuário">
+            </div>
+            <div class="input-group">
+                <label for="login-pass">SENHA:</label>
+                <input type="password" id="login-pass" placeholder="Digite qualquer senha">
+            </div>
+            <button type="button" id="btn-entrar" class="btn-primary">ENTRAR</button>
+        </div>
+    </div>
+
+    <!-- TELA 1: Página Inicial -->
+    <div id="screen-1" class="screen">
+        <div class="user-badge">Perfil ativo: <strong id="display-username">---</strong></div>
+        <button id="btn-nova-rotina" class="btn-main">+ NOVA ROTINA</button>
+        <hr class="divider">
+        <button id="btn-cronograma" class="btn-main">CRONOGRAMA</button>
+        <div class="nav-back" id="btn-logout" style="margin-top: 24px;">← Trocar Perfil</div>
+    </div>
+
+    <!-- TELA 2: Cadastro de Rotina -->
+    <div id="screen-2" class="screen">
+        <div class="nav-back" id="back-from-s2">← Cancelar e Voltar</div>
+        <header class="header-form">
+            <div class="input-group">
+                <label for="input-nome">NOME DA ROTINA:</label>
+                <input type="text" id="input-nome" placeholder="Ex: Hipertrofia A/B">
+            </div>
+            <div class="input-group">
+                <label for="select-dia">DATA REFERÊNCIA:</label>
+                <select id="select-dia">
+                    <option value="SEGUNDA">SEGUNDA</option>
+                    <option value="TERÇA">TERÇA</option>
+                    <option value="QUARTA">QUARTA</option>
+                    <option value="QUINTA">QUINTA</option>
+                    <option value="SEXTA">SEXTA</option>
+                    <option value="SÁBADO">SÁBADO</option>
+                    <option value="DOMINGO">DOMINGO</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="input-treino">NOME DO TREINO:</label>
+                <input type="text" id="input-treino" placeholder="Ex: SESSÃO 1">
+            </div>
+        </header>
+
+        <!-- Dropdown Customizado (Div/Ul/Li) -->
+        <div class="exercise-selector" id="custom-exercise-dropdown">
+            <div class="custom-dropdown-trigger" id="dropdown-trigger">
+                <span>+ Escolher Exercício...</span>
+                <span class="arrow">▼</span>
+            </div>
+            <div class="custom-dropdown-menu" id="dropdown-menu">
+                <!-- 1ª Linha: Input de Busca com Lupa -->
+                <div class="dropdown-search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="dropdown-search-input" placeholder="Pesquisar exercício..." autocomplete="off">
+                </div>
+                <!-- 2ª Linha (Fixa): Botão Adicionar Exercício -->
+                <div class="dropdown-add-fixed" id="btn-open-add-ex-modal">[+ Adicionar Exercício]</div>
+                <!-- Restante da Lista -->
+                <ul class="dropdown-options-list" id="dropdown-exercise-list"></ul>
+            </div>
+        </div>
+
+        <div id="exercise-container"></div>
+
+        <div class="form-actions">
+            <button type="button" id="btn-salvar-dia" class="btn-secondary">Salvar e Adicionar Outro Dia</button>
+            <button type="button" id="btn-concluir-rotina" class="btn-primary">Concluir Rotina</button>
+        </div>
+    </div>
+
+    <!-- TELA 3: Menu do Cronograma -->
+    <div id="screen-3" class="screen">
+        <div class="nav-back" id="back-to-home">← Voltar</div>
+        <h2 class="screen-title">Suas Rotinas</h2>
+        <div id="routines-list" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
+    </div>
+
+    <!-- TELA 4: Execução do Treino -->
+    <div id="screen-4" class="screen">
+        <div class="nav-back" id="back-to-menu">← Voltar às Rotinas</div>
+
+        <div class="exec-header">
+            <h2 id="exec-routine-name">NOME ROTINA</h2>
+            <span id="exec-day-ref">DIA</span>
+        </div>
+
+        <div class="exec-controls">
+            <div class="date-wrapper">
+                <label for="exec-date">Data de Execução:</label>
+                <input type="date" id="exec-date" class="date-input">
+            </div>
+            
+            <select id="exec-session-select" class="session-select">
+                <!-- Preenchido via JS -->
+            </select>
+        </div>
+
+        <div id="exec-container"></div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- INTEGRAÇÃO COM FIREBASE FIRESTORE (SDK Modular via CDN)           -->
+    <!-- ================================================================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTyVjHdTo5vmRhqGzpyPGlLXolzu31dYo",
+            authDomain: "painel-fotografico-galpao.firebaseapp.com",
+            projectId: "painel-fotografico-galpao",
+            storageBucket: "painel-fotografico-galpao.firebasestorage.app",
+            messagingSenderId: "521603564212",
+            appId: "1:521603564212:web:e4585543f470e214b54de1",
+            measurementId: "G-0QX19DYWT5"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let usuarioAtivo = "";
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // --- DICIONÁRIO DE MÚSCULOS E REPOSITÓRIO DE EXERCÍCIOS ---
+        const muscleDictionary = {
+            "Remada Articulada Fechada": "COSTAS",
+            "Remada Aberta Polia": "COSTAS",
+            "Puxada Alta Triângulo": "COSTAS",
+            "Remada Baixa": "COSTAS",
+            "Pulley Frente": "COSTAS",
+            "Peck Deck": "PEITO",
+            "Supino Inclinado com Halteres": "PEITO",
+            "Supino Reto Halteres": "PEITO",
+            "Crossover Superior": "PEITO",
+            "Crossover Inferior": "PEITO",
+            "Agachamento Búlgaro": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Agachamento Livre": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Cadeira Extensora Quadríceps Femoral": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Cadeira Extensora Unilateral": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Leg Press": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Hack Machine": "PERNAS (QUADRÍCEPS/GLÚTEO)",
+            "Mesa Flexora": "POSTERIOR DE COXA",
+            "Stiff": "POSTERIOR DE COXA",
+            "Gêmeos em Pé": "PANTURRILHA",
+            "Gêmeos Sentado": "PANTURRILHA",
+            "Tríceps Polia Bilateral com Corda": "TRÍCEPS",
+            "Tríceps Testa": "TRÍCEPS",
+            "Tríceps Francês": "TRÍCEPS",
+            "Rosca Martelo": "BÍCEPS",
+            "Rosca Inversa": "BÍCEPS",
+            "Rosca Direta": "BÍCEPS",
+            "Rosca 45º": "BÍCEPS",
+            "Elevação Lateral Halteres": "OMBRO",
+            "Elevação Lateral Polia": "OMBRO",
+            "Flexão de Punho": "ANTEBRAÇO",
+            "Cadeira Adutora": "ADUTORES/ABDUTORES",
+            "Cadeira Abdutora": "ADUTORES/ABDUTORES"
+        };
+
+        // Lista unificada em código com metadado interno `criadoPor` (invisível na UI)
+        const exercisesRepository = Object.entries(muscleDictionary).map(([nome, musculo]) => ({
+            nome,
+            musculo,
+            criadoPor: "sistema"
+        }));
+
+        // Carrega exercícios adicionados pelos usuários no Firebase e mescla na lista geral
+        async function carregarExerciciosCustomizados() {
+            try {
+                const snap = await getDocs(collection(db, "exercicios_customizados"));
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.nome && data.musculo) {
+                        muscleDictionary[data.nome] = data.musculo;
+                        const jaExiste = exercisesRepository.some(
+                            ex => ex.nome.toLowerCase() === data.nome.toLowerCase()
+                        );
+                        if (!jaExiste) {
+                            exercisesRepository.push({
+                                nome: data.nome,
+                                musculo: data.musculo,
+                                criadoPor: data.criadoPor || "desconhecido"
+                            });
+                        }
                     }
-                }
-            });
-            renderDropdownList(dropdownSearchInput.value);
-        } catch (err) {
-            console.error("Erro ao carregar exercícios customizados:", err);
-        }
-    }
-
-    // =================================================================
-    // LÓGICA DO BOTTOM SHEET CUSTOMIZADO DE NÚMEROS (GRADE 5 COLUNAS)
-    // =================================================================
-    const numberPickerSheet = document.getElementById('number-picker-sheet');
-    const numberPickerTitle = document.getElementById('number-picker-title');
-    const numberPickerGrid = document.getElementById('number-picker-grid');
-    const btnCloseNumberSheet = document.getElementById('btn-close-number-sheet');
-
-    let activeNumberButton = null;
-
-    function abrirSeletorDeNumeros(targetBtn, maxNumber, labelTitulo) {
-        if (targetBtn.disabled) return;
-        activeNumberButton = targetBtn;
-        const currentValue = Number(targetBtn.dataset.value || targetBtn.textContent);
-
-        numberPickerTitle.textContent = labelTitulo;
-        numberPickerGrid.innerHTML = '';
-
-        for (let i = 1; i <= maxNumber; i++) {
-            const squareBtn = document.createElement('button');
-            squareBtn.type = 'button';
-            squareBtn.className = 'num-square-btn';
-            if (i === currentValue) {
-                squareBtn.classList.add('selected');
+                });
+                renderDropdownList(dropdownSearchInput.value);
+            } catch (err) {
+                console.error("Erro ao carregar exercícios customizados:", err);
             }
-            squareBtn.textContent = i;
-
-            squareBtn.addEventListener('click', () => {
-                activeNumberButton.dataset.value = i;
-                activeNumberButton.textContent = i;
-                fecharSeletorDeNumeros();
-            });
-
-            numberPickerGrid.appendChild(squareBtn);
         }
 
-        numberPickerSheet.classList.add('open');
+        // --- LÓGICA DO DROPDOWN CUSTOMIZADO (TELA 2) ---
+        const customDropdown = document.getElementById('custom-exercise-dropdown');
+        const dropdownTrigger = document.getElementById('dropdown-trigger');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        const dropdownSearchInput = document.getElementById('dropdown-search-input');
+        const dropdownExerciseList = document.getElementById('dropdown-exercise-list');
+        const btnOpenAddExModal = document.getElementById('btn-open-add-ex-modal');
 
-        // Centraliza a rolagem no item atualmente selecionado
-        const selectedEl = numberPickerGrid.querySelector('.selected');
-        if (selectedEl) {
-            setTimeout(() => {
-                selectedEl.scrollIntoView({ block: 'center', behavior: 'instant' });
-            }, 20);
-        }
-    }
+        function toggleDropdown(forceState) {
+            const isOpen = typeof forceState === 'boolean' ? forceState : !dropdownMenu.classList.contains('open');
+            dropdownMenu.classList.toggle('open', isOpen);
+            dropdownTrigger.classList.toggle('open', isOpen);
 
-    function fecharSeletorDeNumeros() {
-        numberPickerSheet.classList.remove('open');
-        activeNumberButton = null;
-    }
-
-    btnCloseNumberSheet.addEventListener('click', fecharSeletorDeNumeros);
-    numberPickerSheet.addEventListener('click', (e) => {
-        if (e.target === numberPickerSheet) {
-            fecharSeletorDeNumeros();
-        }
-    });
-
-    // =================================================================
-    // LÓGICA DO DROPDOWN CUSTOMIZADO (TELA 2)
-    // =================================================================
-    const customDropdown = document.getElementById('custom-exercise-dropdown');
-    const dropdownTrigger = document.getElementById('dropdown-trigger');
-    const dropdownMenu = document.getElementById('dropdown-menu');
-    const dropdownSearchInput = document.getElementById('dropdown-search-input');
-    const dropdownExerciseList = document.getElementById('dropdown-exercise-list');
-    const btnOpenAddExModal = document.getElementById('btn-open-add-ex-modal');
-
-    function toggleDropdown(forceState) {
-        const isOpen = typeof forceState === 'boolean' ? forceState : !dropdownMenu.classList.contains('open');
-        dropdownMenu.classList.toggle('open', isOpen);
-        dropdownTrigger.classList.toggle('open', isOpen);
-
-        if (isOpen) {
-            dropdownSearchInput.value = '';
-            renderDropdownList('');
-            setTimeout(() => dropdownSearchInput.focus(), 50);
-        }
-    }
-
-    dropdownTrigger.addEventListener('click', () => toggleDropdown());
-
-    document.addEventListener('click', (e) => {
-        if (!customDropdown.contains(e.target)) {
-            toggleDropdown(false);
-        }
-    });
-
-    dropdownSearchInput.addEventListener('input', (e) => {
-        renderDropdownList(e.target.value);
-    });
-
-    function renderDropdownList(filterText = '') {
-        dropdownExerciseList.innerHTML = '';
-        const termo = filterText.trim().toLowerCase();
-
-        const filtrados = Object.keys(muscleDictionary).filter(exName =>
-            exName.toLowerCase().includes(termo)
-        );
-
-        if (filtrados.length === 0) {
-            const emptyLi = document.createElement('li');
-            emptyLi.className = 'dropdown-empty-state';
-            emptyLi.textContent = 'Nenhum exercício encontrado.';
-            dropdownExerciseList.appendChild(emptyLi);
-            return;
+            if (isOpen) {
+                dropdownSearchInput.value = '';
+                renderDropdownList('');
+                setTimeout(() => dropdownSearchInput.focus(), 50);
+            }
         }
 
-        filtrados.forEach(exName => {
-            const li = document.createElement('li');
-            li.className = 'dropdown-option-item';
-            li.textContent = exName;
-            li.addEventListener('click', () => {
-                adicionarCardExercicioTela2(exName);
+        dropdownTrigger.addEventListener('click', () => toggleDropdown());
+
+        // Fechar o dropdown ao clicar fora dele
+        document.addEventListener('click', (e) => {
+            if (!customDropdown.contains(e.target)) {
                 toggleDropdown(false);
-            });
-            dropdownExerciseList.appendChild(li);
-        });
-    }
-
-    renderDropdownList();
-    carregarExerciciosCustomizados();
-
-    // --- MODAL DE ADICIONAR NOVO EXERCÍCIO ---
-    const modalNewExercise = document.getElementById('modal-new-exercise');
-    const inputNewExName = document.getElementById('new-ex-name');
-    const selectNewExMuscle = document.getElementById('new-ex-muscle');
-    const btnCancelNewEx = document.getElementById('btn-cancel-new-ex');
-    const btnSaveNewEx = document.getElementById('btn-save-new-ex');
-
-    btnOpenAddExModal.addEventListener('click', () => {
-        inputNewExName.value = dropdownSearchInput.value.trim();
-        toggleDropdown(false);
-        modalNewExercise.classList.add('open');
-        setTimeout(() => inputNewExName.focus(), 50);
-    });
-
-    btnCancelNewEx.addEventListener('click', () => {
-        modalNewExercise.classList.remove('open');
-        inputNewExName.value = '';
-    });
-
-    btnSaveNewEx.addEventListener('click', async () => {
-        const nomeNovo = inputNewExName.value.trim();
-        const musculoNovo = selectNewExMuscle.value;
-
-        if (!nomeNovo) {
-            showToast("Digite o nome do exercício!");
-            return;
-        }
-
-        const novoExercicioObj = {
-            nome: nomeNovo,
-            musculo: musculoNovo,
-            criadoPor: usuarioAtivo || "anonimo",
-            criadoEm: new Date().toISOString()
-        };
-
-        muscleDictionary[nomeNovo] = musculoNovo;
-        const jaExiste = exercisesRepository.some(
-            ex => ex.nome.toLowerCase() === nomeNovo.toLowerCase()
-        );
-        if (!jaExiste) {
-            exercisesRepository.push(novoExercicioObj);
-        }
-
-        try {
-            btnSaveNewEx.disabled = true;
-            btnSaveNewEx.textContent = "SALVANDO...";
-            await addDoc(collection(db, "exercicios_customizados"), novoExercicioObj);
-        } catch (err) {
-            console.error("Erro ao salvar exercício customizado no Firebase:", err);
-        } finally {
-            btnSaveNewEx.disabled = false;
-            btnSaveNewEx.textContent = "Salvar";
-        }
-
-        renderDropdownList();
-        modalNewExercise.classList.remove('open');
-        inputNewExName.value = '';
-
-        adicionarCardExercicioTela2(nomeNovo);
-        showToast(`"${nomeNovo}" adicionado à lista!`);
-    });
-
-    // --- NAVEGAÇÃO ENTRE TELAS ---
-    const screens = {
-        s0: document.getElementById('screen-0'),
-        s1: document.getElementById('screen-1'),
-        s2: document.getElementById('screen-2'),
-        s3: document.getElementById('screen-3'),
-        s4: document.getElementById('screen-4')
-    };
-
-    function switchScreen(activeScreen) {
-        Object.values(screens).forEach(s => s.classList.remove('active'));
-        activeScreen.classList.add('active');
-    }
-
-    // --- LÓGICA DA TELA 0: LOGIN DE PERFIL ---
-    const inputLoginUser = document.getElementById('login-user');
-    const inputLoginPass = document.getElementById('login-pass');
-    const displayUsername = document.getElementById('display-username');
-
-    document.getElementById('btn-entrar').addEventListener('click', () => {
-        const userVal = inputLoginUser.value.trim();
-        const passVal = inputLoginPass.value.trim();
-
-        if (!userVal || !passVal) {
-            showToast("Preencha usuário e senha para entrar!");
-            return;
-        }
-
-        usuarioAtivo = userVal;
-        displayUsername.textContent = usuarioAtivo;
-        showToast(`Bem-vindo, ${usuarioAtivo}!`);
-        switchScreen(screens.s1);
-    });
-
-    document.getElementById('btn-logout').addEventListener('click', () => {
-        usuarioAtivo = "";
-        inputLoginUser.value = "";
-        inputLoginPass.value = "";
-        switchScreen(screens.s0);
-    });
-
-    document.getElementById('btn-nova-rotina').addEventListener('click', () => switchScreen(screens.s2));
-    document.getElementById('back-from-s2').addEventListener('click', () => switchScreen(screens.s1));
-    document.getElementById('btn-cronograma').addEventListener('click', () => {
-        carregarRotinasDoFirebase();
-        switchScreen(screens.s3);
-    });
-    document.getElementById('back-to-home').addEventListener('click', () => switchScreen(screens.s1));
-    document.getElementById('back-to-menu').addEventListener('click', () => switchScreen(screens.s3));
-
-    // =================================================================
-    // LÓGICA DA TELA 2: AGRUPAMENTO POR MÚSCULO EM CARROSSEL E GRAVAÇÃO
-    // =================================================================
-    const exerciseContainer = document.getElementById('exercise-container');
-    const inputNomeRotina = document.getElementById('input-nome');
-    const selectDiaRef = document.getElementById('select-dia');
-    const inputNomeTreino = document.getElementById('input-treino');
-    
-    let sessoesTemporarias = [];
-
-    // Ajusta a classe .single-card dinamicamente conforme o número de cards no carrossel do músculo
-    function atualizarLarguraCardsCarrossel(carouselEl) {
-        const cards = carouselEl.querySelectorAll('.carousel-card');
-        cards.forEach(c => {
-            if (cards.length === 1) {
-                c.classList.add('single-card');
-            } else {
-                c.classList.remove('single-card');
-            }
-        });
-    }
-
-    function adicionarCardExercicioTela2(exerciseName) {
-        if (!exerciseName) return;
-
-        // 1. Identifica o grupo muscular pelo muscleDictionary
-        const muscle = muscleDictionary[exerciseName] || "OUTROS";
-
-        // 2. Verifica se já existe um container para esse músculo na Tela 2; se não, cria
-        let groupDiv = exerciseContainer.querySelector(`.muscle-group[data-muscle="${muscle}"]`);
-        let carousel;
-
-        if (!groupDiv) {
-            groupDiv = document.createElement('div');
-            groupDiv.className = 'muscle-group';
-            groupDiv.dataset.muscle = muscle;
-            groupDiv.innerHTML = `
-                <h3 class="muscle-title">${muscle}</h3>
-                <div class="carousel"></div>
-            `;
-            exerciseContainer.appendChild(groupDiv);
-        }
-
-        carousel = groupDiv.querySelector('.carousel');
-
-        // 3. Cria o card do exercício dentro do carrossel horizontal (.carousel-card + .exercise-card)
-        const card = document.createElement('div');
-        card.className = 'carousel-card exercise-card';
-        card.dataset.exerciseName = exerciseName;
-        
-        let validSetsCount = 0;
-
-        card.innerHTML = `
-            <h3 class="exercise-card-title">${exerciseName}</h3>
-            <div class="sets-wrapper" style="display: flex; flex-direction: column; gap: 8px;">
-                <div class="set-row">Reconhecimento</div>
-                <div class="valid-sets-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
-            </div>
-            <div class="card-controls">
-                <button type="button" class="btn-control btn-minus">-</button>
-                <button type="button" class="btn-control btn-plus">+</button>
-            </div>
-        `;
-
-        const validSetsContainer = card.querySelector('.valid-sets-container');
-        const btnPlus = card.querySelector('.btn-plus');
-        const btnMinus = card.querySelector('.btn-minus');
-
-        // 5. Mantém a funcionalidade dos botões (+) e (-)
-        btnPlus.addEventListener('click', () => {
-            validSetsCount++;
-            const newRow = document.createElement('div');
-            newRow.className = 'set-row valid-set';
-            newRow.textContent = `${validSetsCount}ª Válida`;
-            validSetsContainer.appendChild(newRow);
-        });
-
-        btnMinus.addEventListener('click', () => {
-            if (validSetsCount > 0) {
-                validSetsContainer.lastElementChild.remove();
-                validSetsCount--;
             }
         });
 
-        carousel.appendChild(card);
-        atualizarLarguraCardsCarrossel(carousel);
-
-        // Faz scroll suave para mostrar o novo card adicionado no carrossel
-        setTimeout(() => {
-            card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-        }, 50);
-    }
-
-    function capturarDiaAtualTela2() {
-        const cards = exerciseContainer.querySelectorAll('.exercise-card');
-        if (cards.length === 0) return null;
-
-        const exerciciosDoDia = [];
-        cards.forEach(card => {
-            const nome = card.dataset.exerciseName;
-            const series = [];
-            card.querySelectorAll('.set-row').forEach(row => {
-                series.push(row.textContent.trim());
-            });
-            exerciciosDoDia.push({ nome, series });
+        // Filtrar em tempo real mantendo o botão [+ Adicionar Exercício] fixo
+        dropdownSearchInput.addEventListener('input', (e) => {
+            renderDropdownList(e.target.value);
         });
 
-        return {
-            nomeSessao: inputNomeTreino.value.trim() || `SESSÃO ${sessoesTemporarias.length + 1}`,
-            diaSessao: selectDiaRef.value,
-            exercicios: exerciciosDoDia
-        };
-    }
+        function renderDropdownList(filterText = '') {
+            dropdownExerciseList.innerHTML = '';
+            const termo = filterText.trim().toLowerCase();
 
-    document.getElementById('btn-salvar-dia').addEventListener('click', () => {
-        if (!inputNomeRotina.value.trim()) {
-            showToast("Preencha o NOME DA ROTINA!");
-            return;
-        }
-        const diaCapturado = capturarDiaAtualTela2();
-        if (!diaCapturado) {
-            showToast("Adicione pelo menos 1 exercício!");
-            return;
-        }
+            const filtrados = Object.keys(muscleDictionary).filter(exName =>
+                exName.toLowerCase().includes(termo)
+            );
 
-        sessoesTemporarias.push(diaCapturado);
-        
-        exerciseContainer.innerHTML = '';
-        inputNomeTreino.value = '';
-        showToast(`Dia (${diaCapturado.diaSessao}) salvo na memória!`);
-    });
-
-    const btnConcluirRotina = document.getElementById('btn-concluir-rotina');
-    btnConcluirRotina.addEventListener('click', async () => {
-        const nomeRotina = inputNomeRotina.value.trim();
-        if (!nomeRotina) {
-            showToast("Preencha o NOME DA ROTINA!");
-            return;
-        }
-
-        const diaAtual = capturarDiaAtualTela2();
-        if (diaAtual) {
-            sessoesTemporarias.push(diaAtual);
-        }
-
-        if (sessoesTemporarias.length === 0) {
-            showToast("Adicione pelo menos 1 dia com exercícios!");
-            return;
-        }
-
-        const pacoteRotina = {
-            usuario: usuarioAtivo,
-            nomeRotina: nomeRotina.toUpperCase(),
-            sessoes: sessoesTemporarias,
-            criadoEm: new Date().toISOString()
-        };
-
-        try {
-            btnConcluirRotina.disabled = true;
-            btnConcluirRotina.textContent = "SALVANDO NO BANCO...";
-
-            const docRef = await addDoc(collection(db, "rotinas"), pacoteRotina);
-            console.log("Rotina salva no Firestore com ID:", docRef.id);
-            showToast("Rotina salva no Firebase com sucesso!");
-
-            sessoesTemporarias = [];
-            inputNomeRotina.value = '';
-            inputNomeTreino.value = '';
-            exerciseContainer.innerHTML = '';
-
-            switchScreen(screens.s1);
-        } catch (error) {
-            console.error("Erro ao salvar rotina no Firebase:", error);
-            showToast("Erro ao salvar no Firebase. Verifique o console.");
-        } finally {
-            btnConcluirRotina.disabled = false;
-            btnConcluirRotina.textContent = "Concluir Rotina";
-        }
-    });
-
-    // =================================================================
-    // TELA 3: CARREGAR ROTINAS EXCLUSIVAMENTE DO FIREBASE
-    // =================================================================
-    const routinesListContainer = document.getElementById('routines-list');
-    async function carregarRotinasDoFirebase() {
-        routinesListContainer.innerHTML = `<p class="empty-msg">Buscando rotinas na base...</p>`;
-
-        try {
-            const querySnapshot = await getDocs(collection(db, "rotinas"));
-            routinesListContainer.innerHTML = '';
-
-            if (querySnapshot.empty) {
-                routinesListContainer.innerHTML = `<p class="empty-msg">Nenhuma rotina cadastrada no banco ainda.</p>`;
+            if (filtrados.length === 0) {
+                const emptyLi = document.createElement('li');
+                emptyLi.className = 'dropdown-empty-state';
+                emptyLi.textContent = 'Nenhum exercício encontrado.';
+                dropdownExerciseList.appendChild(emptyLi);
                 return;
             }
 
-            querySnapshot.forEach((docSnap) => {
-                const dadosRotina = docSnap.data();
-                const btn = document.createElement('button');
-                btn.className = 'btn-main';
-                btn.textContent = dadosRotina.nomeRotina;
-                btn.addEventListener('click', () => abrirRotinaNaTela4(dadosRotina));
-                routinesListContainer.appendChild(btn);
+            filtrados.forEach(exName => {
+                const li = document.createElement('li');
+                li.className = 'dropdown-option-item';
+                li.textContent = exName; // Exibe apenas o nome na UI, sem expor criadoPor
+                li.addEventListener('click', () => {
+                    adicionarCardExercicioTela2(exName);
+                    toggleDropdown(false);
+                });
+                dropdownExerciseList.appendChild(li);
             });
-        } catch (error) {
-            console.error("Erro ao buscar rotinas:", error);
-            routinesListContainer.innerHTML = `<p class="empty-msg">Erro ao carregar rotinas do banco.</p>`;
         }
-    }
 
-    // =================================================================
-    // LÓGICA DA TELA 4: EXECUÇÃO DINÂMICA COM SELETOR NUMÉRICO CUSTOMIZADO
-    // =================================================================
-    const dayRefHeader = document.getElementById('exec-day-ref');
-    const dateInput = document.getElementById('exec-date');
-    const sessionSelect = document.getElementById('exec-session-select');
-    const execContainer = document.getElementById('exec-container');
-    const diasDaSemana = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
+        // Inicializa a lista e sincroniza com o Firebase
+        renderDropdownList();
+        carregarExerciciosCustomizados();
 
-    let rotinaAtivaAtual = null;
+        // --- MODAL DE ADICIONAR NOVO EXERCÍCIO ---
+        const modalNewExercise = document.getElementById('modal-new-exercise');
+        const inputNewExName = document.getElementById('new-ex-name');
+        const selectNewExMuscle = document.getElementById('new-ex-muscle');
+        const btnCancelNewEx = document.getElementById('btn-cancel-new-ex');
+        const btnSaveNewEx = document.getElementById('btn-save-new-ex');
 
-    function sincronizarSessaoPeloDia(diaDaSemanaStr) {
-        if (!rotinaAtivaAtual || !rotinaAtivaAtual.sessoes) return;
-
-        const indexEncontrado = rotinaAtivaAtual.sessoes.findIndex(
-            s => s.diaSessao && s.diaSessao.toUpperCase() === diaDaSemanaStr.toUpperCase()
-        );
-
-        if (indexEncontrado !== -1) {
-            sessionSelect.value = indexEncontrado;
-            renderSession(rotinaAtivaAtual.sessoes[indexEncontrado]);
-        } else {
-            const currentIdx = sessionSelect.value || 0;
-            renderSession(rotinaAtivaAtual.sessoes[currentIdx]);
-        }
-    }
-
-    dateInput.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (!val) return;
-        const parts = val.split('-'); 
-        const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
-        const novoDiaSemana = diasDaSemana[dateObj.getDay()];
-        
-        dayRefHeader.textContent = novoDiaSemana;
-        sincronizarSessaoPeloDia(novoDiaSemana);
-    });
-
-    function setTodayDate() {
-        const hoje = new Date();
-        const ano = hoje.getFullYear();
-        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-        const dia = String(hoje.getDate()).padStart(2, '0');
-        dateInput.value = `${ano}-${mes}-${dia}`;
-        const diaSemanaHoje = diasDaSemana[hoje.getDay()];
-        dayRefHeader.textContent = diaSemanaHoje;
-        return diaSemanaHoje;
-    }
-
-    function renderSession(session) {
-        execContainer.innerHTML = '';
-        if (!session || !session.exercicios) return;
-        
-        const groups = {};
-        session.exercicios.forEach(ex => {
-            const muscle = muscleDictionary[ex.nome] || "OUTROS";
-            if (!groups[muscle]) groups[muscle] = [];
-            groups[muscle].push(ex);
+        btnOpenAddExModal.addEventListener('click', () => {
+            // Pré-preenche com o texto já digitado na busca, se houver
+            inputNewExName.value = dropdownSearchInput.value.trim();
+            toggleDropdown(false);
+            modalNewExercise.classList.add('open');
+            setTimeout(() => inputNewExName.focus(), 50);
         });
 
-        for (const [muscle, exercises] of Object.entries(groups)) {
-            const groupDiv = document.createElement('div');
-            groupDiv.className = 'muscle-group';
-            groupDiv.innerHTML = `<h3 class="muscle-title">${muscle}</h3>`;
+        btnCancelNewEx.addEventListener('click', () => {
+            modalNewExercise.classList.remove('open');
+            inputNewExName.value = '';
+        });
+
+        btnSaveNewEx.addEventListener('click', async () => {
+            const nomeNovo = inputNewExName.value.trim();
+            const musculoNovo = selectNewExMuscle.value;
+
+            if (!nomeNovo) {
+                showToast("Digite o nome do exercício!");
+                return;
+            }
+
+            // Objeto interno com registro invisível de quem criou
+            const novoExercicioObj = {
+                nome: nomeNovo,
+                musculo: musculoNovo,
+                criadoPor: usuarioAtivo || "anonimo",
+                criadoEm: new Date().toISOString()
+            };
+
+            // Atualiza o dicionário e o repositório em memória imediatamente
+            muscleDictionary[nomeNovo] = musculoNovo;
+            const jaExiste = exercisesRepository.some(
+                ex => ex.nome.toLowerCase() === nomeNovo.toLowerCase()
+            );
+            if (!jaExiste) {
+                exercisesRepository.push(novoExercicioObj);
+            }
+
+            try {
+                btnSaveNewEx.disabled = true;
+                btnSaveNewEx.textContent = "SALVANDO...";
+                await addDoc(collection(db, "exercicios_customizados"), novoExercicioObj);
+            } catch (err) {
+                console.error("Erro ao salvar exercício customizado no Firebase:", err);
+            } finally {
+                btnSaveNewEx.disabled = false;
+                btnSaveNewEx.textContent = "Salvar";
+            }
+
+            renderDropdownList();
+            modalNewExercise.classList.remove('open');
+            inputNewExName.value = '';
+
+            // Já gera o card do exercício recém-criado no #exercise-container
+            adicionarCardExercicioTela2(nomeNovo);
+            showToast(`"${nomeNovo}" adicionado à lista!`);
+        });
+
+        // --- GERAÇÃO DE DROPDOWNS PARA OS INPUTS (1-250kg e 1-25 Reps) ---
+        let weightOptionsHTML = '';
+        for (let i = 1; i <= 250; i++) weightOptionsHTML += `<option value="${i}">${i}</option>`;
+        
+        let repOptionsHTML = '';
+        for (let i = 1; i <= 25; i++) repOptionsHTML += `<option value="${i}">${i}</option>`;
+
+        // --- NAVEGAÇÃO ENTRE TELAS ---
+        const screens = {
+            s0: document.getElementById('screen-0'),
+            s1: document.getElementById('screen-1'),
+            s2: document.getElementById('screen-2'),
+            s3: document.getElementById('screen-3'),
+            s4: document.getElementById('screen-4')
+        };
+
+        function switchScreen(activeScreen) {
+            Object.values(screens).forEach(s => s.classList.remove('active'));
+            activeScreen.classList.add('active');
+        }
+
+        // --- LÓGICA DA TELA 0: LOGIN DE PERFIL ---
+        const inputLoginUser = document.getElementById('login-user');
+        const inputLoginPass = document.getElementById('login-pass');
+        const displayUsername = document.getElementById('display-username');
+
+        document.getElementById('btn-entrar').addEventListener('click', () => {
+            const userVal = inputLoginUser.value.trim();
+            const passVal = inputLoginPass.value.trim();
+
+            if (!userVal || !passVal) {
+                showToast("Preencha usuário e senha para entrar!");
+                return;
+            }
+
+            usuarioAtivo = userVal;
+            displayUsername.textContent = usuarioAtivo;
+            showToast(`Bem-vindo, ${usuarioAtivo}!`);
+            switchScreen(screens.s1);
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            usuarioAtivo = "";
+            inputLoginUser.value = "";
+            inputLoginPass.value = "";
+            switchScreen(screens.s0);
+        });
+
+        document.getElementById('btn-nova-rotina').addEventListener('click', () => switchScreen(screens.s2));
+        document.getElementById('back-from-s2').addEventListener('click', () => switchScreen(screens.s1));
+        document.getElementById('btn-cronograma').addEventListener('click', () => {
+            carregarRotinasDoFirebase();
+            switchScreen(screens.s3);
+        });
+        document.getElementById('back-to-home').addEventListener('click', () => switchScreen(screens.s1));
+        document.getElementById('back-to-menu').addEventListener('click', () => switchScreen(screens.s3));
+
+        // =================================================================
+        // LÓGICA DA TELA 2: CADASTRO DO MOLDE E GRAVAÇÃO NA COLEÇÃO "rotinas"
+        // =================================================================
+        const exerciseContainer = document.getElementById('exercise-container');
+        const inputNomeRotina = document.getElementById('input-nome');
+        const selectDiaRef = document.getElementById('select-dia');
+        const inputNomeTreino = document.getElementById('input-treino');
+        
+        let sessoesTemporarias = [];
+
+        function adicionarCardExercicioTela2(exerciseName) {
+            if (!exerciseName) return;
+
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            card.dataset.exerciseName = exerciseName;
             
-            const carousel = document.createElement('div');
-            carousel.className = 'carousel';
-            const cardClass = exercises.length === 1 ? 'carousel-card single-card' : 'carousel-card';
+            let validSetsCount = 0;
 
-            exercises.forEach(ex => {
-                const card = document.createElement('div');
-                card.className = cardClass;
+            card.innerHTML = `
+                <h3 class="exercise-card-title">${exerciseName}</h3>
+                <div class="sets-wrapper" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="set-row">Reconhecimento</div>
+                    <div class="valid-sets-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+                <div class="card-controls">
+                    <button type="button" class="btn-control btn-minus">-</button>
+                    <button type="button" class="btn-control btn-plus">+</button>
+                </div>
+            `;
 
-                let setsHTML = '';
-                ex.series.forEach(serie => {
-                    setsHTML += `
-                        <div class="exec-set-row" data-serie="${serie}">
-                            <span class="exec-set-label">${serie}</span>
-                            <div class="exec-set-inputs">
-                                <button type="button" class="btn-num-picker select-kg" data-value="1">1</button>
-                                <span class="exec-suffix">kg x</span>
-                                <button type="button" class="btn-num-picker select-reps" data-value="1">1</button>
-                                <span class="exec-suffix">Reps</span>
+            const validSetsContainer = card.querySelector('.valid-sets-container');
+            const btnPlus = card.querySelector('.btn-plus');
+            const btnMinus = card.querySelector('.btn-minus');
+
+            btnPlus.addEventListener('click', () => {
+                validSetsCount++;
+                const newRow = document.createElement('div');
+                newRow.className = 'set-row valid-set';
+                newRow.textContent = `${validSetsCount}ª Válida`;
+                validSetsContainer.appendChild(newRow);
+            });
+
+            btnMinus.addEventListener('click', () => {
+                if (validSetsCount > 0) {
+                    validSetsContainer.lastElementChild.remove();
+                    validSetsCount--;
+                }
+            });
+
+            exerciseContainer.appendChild(card);
+        }
+
+        function capturarDiaAtualTela2() {
+            const cards = exerciseContainer.querySelectorAll('.exercise-card');
+            if (cards.length === 0) return null;
+
+            const exerciciosDoDia = [];
+            cards.forEach(card => {
+                const nome = card.dataset.exerciseName;
+                const series = [];
+                card.querySelectorAll('.set-row').forEach(row => {
+                    series.push(row.textContent.trim());
+                });
+                exerciciosDoDia.push({ nome, series });
+            });
+
+            return {
+                nomeSessao: inputNomeTreino.value.trim() || `SESSÃO ${sessoesTemporarias.length + 1}`,
+                diaSessao: selectDiaRef.value,
+                exercicios: exerciciosDoDia
+            };
+        }
+
+        document.getElementById('btn-salvar-dia').addEventListener('click', () => {
+            if (!inputNomeRotina.value.trim()) {
+                showToast("Preencha o NOME DA ROTINA!");
+                return;
+            }
+            const diaCapturado = capturarDiaAtualTela2();
+            if (!diaCapturado) {
+                showToast("Adicione pelo menos 1 exercício!");
+                return;
+            }
+
+            sessoesTemporarias.push(diaCapturado);
+            
+            exerciseContainer.innerHTML = '';
+            inputNomeTreino.value = '';
+            showToast(`Dia (${diaCapturado.diaSessao}) salvo na memória!`);
+        });
+
+        const btnConcluirRotina = document.getElementById('btn-concluir-rotina');
+        btnConcluirRotina.addEventListener('click', async () => {
+            const nomeRotina = inputNomeRotina.value.trim();
+            if (!nomeRotina) {
+                showToast("Preencha o NOME DA ROTINA!");
+                return;
+            }
+
+            const diaAtual = capturarDiaAtualTela2();
+            if (diaAtual) {
+                sessoesTemporarias.push(diaAtual);
+            }
+
+            if (sessoesTemporarias.length === 0) {
+                showToast("Adicione pelo menos 1 dia com exercícios!");
+                return;
+            }
+
+            const pacoteRotina = {
+                usuario: usuarioAtivo,
+                nomeRotina: nomeRotina.toUpperCase(),
+                sessoes: sessoesTemporarias,
+                criadoEm: new Date().toISOString()
+            };
+
+            try {
+                btnConcluirRotina.disabled = true;
+                btnConcluirRotina.textContent = "SALVANDO NO BANCO...";
+
+                const docRef = await addDoc(collection(db, "rotinas"), pacoteRotina);
+                console.log("Rotina salva no Firestore com ID:", docRef.id);
+                showToast("Rotina salva no Firebase com sucesso!");
+
+                sessoesTemporarias = [];
+                inputNomeRotina.value = '';
+                inputNomeTreino.value = '';
+                exerciseContainer.innerHTML = '';
+
+                switchScreen(screens.s1);
+            } catch (error) {
+                console.error("Erro ao salvar rotina no Firebase:", error);
+                showToast("Erro ao salvar no Firebase. Verifique o console.");
+            } finally {
+                btnConcluirRotina.disabled = false;
+                btnConcluirRotina.textContent = "Concluir Rotina";
+            }
+        });
+
+        // =================================================================
+        // TELA 3: CARREGAR ROTINAS EXCLUSIVAMENTE DO FIREBASE
+        // =================================================================
+        const routinesListContainer = document.getElementById('routines-list');
+        async function carregarRotinasDoFirebase() {
+            routinesListContainer.innerHTML = `<p class="empty-msg">Buscando rotinas na base...</p>`;
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "rotinas"));
+                routinesListContainer.innerHTML = '';
+
+                if (querySnapshot.empty) {
+                    routinesListContainer.innerHTML = `<p class="empty-msg">Nenhuma rotina cadastrada no banco ainda.</p>`;
+                    return;
+                }
+
+                querySnapshot.forEach((docSnap) => {
+                    const dadosRotina = docSnap.data();
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-main';
+                    btn.textContent = dadosRotina.nomeRotina;
+                    btn.addEventListener('click', () => abrirRotinaNaTela4(dadosRotina));
+                    routinesListContainer.appendChild(btn);
+                });
+            } catch (error) {
+                console.error("Erro ao buscar rotinas:", error);
+                routinesListContainer.innerHTML = `<p class="empty-msg">Erro ao carregar rotinas do banco.</p>`;
+            }
+        }
+
+        // =================================================================
+        // LÓGICA DA TELA 4: EXECUÇÃO DINÂMICA POR DIA E GRAVAÇÃO
+        // =================================================================
+        const dayRefHeader = document.getElementById('exec-day-ref');
+        const dateInput = document.getElementById('exec-date');
+        const sessionSelect = document.getElementById('exec-session-select');
+        const execContainer = document.getElementById('exec-container');
+        const diasDaSemana = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
+
+        let rotinaAtivaAtual = null;
+
+        function sincronizarSessaoPeloDia(diaDaSemanaStr) {
+            if (!rotinaAtivaAtual || !rotinaAtivaAtual.sessoes) return;
+
+            const indexEncontrado = rotinaAtivaAtual.sessoes.findIndex(
+                s => s.diaSessao && s.diaSessao.toUpperCase() === diaDaSemanaStr.toUpperCase()
+            );
+
+            if (indexEncontrado !== -1) {
+                sessionSelect.value = indexEncontrado;
+                renderSession(rotinaAtivaAtual.sessoes[indexEncontrado]);
+            } else {
+                const currentIdx = sessionSelect.value || 0;
+                renderSession(rotinaAtivaAtual.sessoes[currentIdx]);
+            }
+        }
+
+        dateInput.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (!val) return;
+            const parts = val.split('-'); 
+            const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+            const novoDiaSemana = diasDaSemana[dateObj.getDay()];
+            
+            dayRefHeader.textContent = novoDiaSemana;
+            sincronizarSessaoPeloDia(novoDiaSemana);
+        });
+
+        function setTodayDate() {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            dateInput.value = `${ano}-${mes}-${dia}`;
+            const diaSemanaHoje = diasDaSemana[hoje.getDay()];
+            dayRefHeader.textContent = diaSemanaHoje;
+            return diaSemanaHoje;
+        }
+
+        function renderSession(session) {
+            execContainer.innerHTML = '';
+            if (!session || !session.exercicios) return;
+            
+            const groups = {};
+            session.exercicios.forEach(ex => {
+                const muscle = muscleDictionary[ex.nome] || "OUTROS";
+                if (!groups[muscle]) groups[muscle] = [];
+                groups[muscle].push(ex);
+            });
+
+            for (const [muscle, exercises] of Object.entries(groups)) {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'muscle-group';
+                groupDiv.innerHTML = `<h3 class="muscle-title">${muscle}</h3>`;
+                
+                const carousel = document.createElement('div');
+                carousel.className = 'carousel';
+                const cardClass = exercises.length === 1 ? 'carousel-card single-card' : 'carousel-card';
+
+                exercises.forEach(ex => {
+                    const card = document.createElement('div');
+                    card.className = cardClass;
+
+                    let setsHTML = '';
+                    ex.series.forEach(serie => {
+                        setsHTML += `
+                            <div class="exec-set-row" data-serie="${serie}">
+                                <span class="exec-set-label">${serie}</span>
+                                <div class="exec-set-inputs">
+                                    <select class="select-kg">${weightOptionsHTML}</select>
+                                    <span class="exec-suffix">kg x</span>
+                                    <select class="select-reps">${repOptionsHTML}</select>
+                                    <span class="exec-suffix">Reps</span>
+                                </div>
                             </div>
+                        `;
+                    });
+
+                    card.innerHTML = `
+                        <h4 class="exec-card-title">${ex.nome}</h4>
+                        <div class="exec-sets-wrapper" style="display: flex; flex-direction: column; gap: 12px;">
+                            ${setsHTML}
+                        </div>
+                        <div class="card-footer">
+                            <button type="button" class="btn-card-action">SALVAR</button>
                         </div>
                     `;
-                });
 
-                card.innerHTML = `
-                    <h4 class="exec-card-title">${ex.nome}</h4>
-                    <div class="exec-sets-wrapper" style="display: flex; flex-direction: column; gap: 12px;">
-                        ${setsHTML}
-                    </div>
-                    <div class="card-footer">
-                        <button type="button" class="btn-card-action">SALVAR</button>
-                    </div>
-                `;
+                    const btnAction = card.querySelector('.btn-card-action');
+                    const selects = card.querySelectorAll('select');
+                    const setRows = card.querySelectorAll('.exec-set-row');
 
-                // Conecta os botões de Peso (1-250) e Reps (1-25) ao Bottom Sheet
-                card.querySelectorAll('.select-kg').forEach(btnKg => {
-                    btnKg.addEventListener('click', () => {
-                        abrirSeletorDeNumeros(btnKg, 250, `${ex.nome} — Carga (kg)`);
-                    });
-                });
+                    btnAction.addEventListener('click', async () => {
+                        const isSaved = card.classList.contains('card-salvo');
 
-                card.querySelectorAll('.select-reps').forEach(btnReps => {
-                    btnReps.addEventListener('click', () => {
-                        abrirSeletorDeNumeros(btnReps, 25, `${ex.nome} — Repetições`);
-                    });
-                });
+                        if (!isSaved) {
+                            const seriesExecutadas = [];
+                            setRows.forEach(row => {
+                                const nomeSerie = row.getAttribute('data-serie');
+                                const kg = Number(row.querySelector('.select-kg').value);
+                                const reps = Number(row.querySelector('.select-reps').value);
+                                seriesExecutadas.push({ serie: nomeSerie, kg, reps });
+                            });
 
-                const btnAction = card.querySelector('.btn-card-action');
-                const pickerBtns = card.querySelectorAll('.btn-num-picker');
-                const setRows = card.querySelectorAll('.exec-set-row');
+                            const dadosExercicio = {
+                                usuario: usuarioAtivo,
+                                nomeRotina: rotinaAtivaAtual.nomeRotina,
+                                nomeTreino: session.nomeSessao,
+                                diaProgramadoSessao: session.diaSessao,
+                                dataExecucao: dateInput.value,
+                                diaSemana: dayRefHeader.textContent,
+                                musculo: muscle,
+                                exercicio: ex.nome,
+                                series: seriesExecutadas,
+                                atualizadoEm: new Date().toISOString()
+                            };
 
-                btnAction.addEventListener('click', async () => {
-                    const isSaved = card.classList.contains('card-salvo');
+                            try {
+                                btnAction.disabled = true;
+                                btnAction.textContent = "SALVANDO...";
 
-                    if (!isSaved) {
-                        const seriesExecutadas = [];
-                        setRows.forEach(row => {
-                            const nomeSerie = row.getAttribute('data-serie');
-                            const kg = Number(row.querySelector('.select-kg').dataset.value);
-                            const reps = Number(row.querySelector('.select-reps').dataset.value);
-                            seriesExecutadas.push({ serie: nomeSerie, kg, reps });
-                        });
+                                const existingDocId = card.dataset.firestoreId;
 
-                        const dadosExercicio = {
-                            usuario: usuarioAtivo,
-                            nomeRotina: rotinaAtivaAtual.nomeRotina,
-                            nomeTreino: session.nomeSessao,
-                            diaProgramadoSessao: session.diaSessao,
-                            dataExecucao: dateInput.value,
-                            diaSemana: dayRefHeader.textContent,
-                            musculo: muscle,
-                            exercicio: ex.nome,
-                            series: seriesExecutadas,
-                            atualizadoEm: new Date().toISOString()
-                        };
+                                if (!existingDocId) {
+                                    const docRef = await addDoc(collection(db, "treinos_executados"), dadosExercicio);
+                                    card.dataset.firestoreId = docRef.id;
+                                    console.log(`[CRIADO NO FIREBASE] ID: ${docRef.id}`, dadosExercicio);
+                                    showToast(`${ex.nome} registrado!`);
+                                } else {
+                                    const docRef = doc(db, "treinos_executados", existingDocId);
+                                    await updateDoc(docRef, dadosExercicio);
+                                    console.log(`[ATUALIZADO NO FIREBASE] ID: ${existingDocId}`, dadosExercicio);
+                                    showToast(`${ex.nome} atualizado!`);
+                                }
 
-                        try {
-                            btnAction.disabled = true;
-                            btnAction.textContent = "SALVANDO...";
+                                card.classList.add('card-salvo');
+                                selects.forEach(s => s.disabled = true);
+                                btnAction.textContent = 'CORRIGIR';
+                                btnAction.classList.add('btn-corrigir');
 
-                            const existingDocId = card.dataset.firestoreId;
-
-                            if (!existingDocId) {
-                                const docRef = await addDoc(collection(db, "treinos_executados"), dadosExercicio);
-                                card.dataset.firestoreId = docRef.id;
-                                console.log(`[CRIADO NO FIREBASE] ID: ${docRef.id}`, dadosExercicio);
-                                showToast(`${ex.nome} registrado!`);
-                            } else {
-                                const docRef = doc(db, "treinos_executados", existingDocId);
-                                await updateDoc(docRef, dadosExercicio);
-                                console.log(`[ATUALIZADO NO FIREBASE] ID: ${existingDocId}`, dadosExercicio);
-                                showToast(`${ex.nome} atualizado!`);
+                            } catch (error) {
+                                console.error("Erro ao gravar exercício no Firestore:", error);
+                                showToast("Erro ao salvar no Firebase!");
+                                btnAction.textContent = 'SALVAR';
+                            } finally {
+                                btnAction.disabled = false;
                             }
 
-                            card.classList.add('card-salvo');
-                            pickerBtns.forEach(b => b.disabled = true);
-                            btnAction.textContent = 'CORRIGIR';
-                            btnAction.classList.add('btn-corrigir');
-
-                        } catch (error) {
-                            console.error("Erro ao gravar exercício no Firestore:", error);
-                            showToast("Erro ao salvar no Firebase!");
+                        } else {
+                            card.classList.remove('card-salvo');
+                            selects.forEach(s => s.disabled = false);
                             btnAction.textContent = 'SALVAR';
-                        } finally {
-                            btnAction.disabled = false;
+                            btnAction.classList.remove('btn-corrigir');
                         }
+                    });
 
-                    } else {
-                        card.classList.remove('card-salvo');
-                        pickerBtns.forEach(b => b.disabled = false);
-                        btnAction.textContent = 'SALVAR';
-                        btnAction.classList.remove('btn-corrigir');
-                    }
+                    carousel.appendChild(card);
                 });
 
-                carousel.appendChild(card);
+                groupDiv.appendChild(carousel);
+                execContainer.appendChild(groupDiv);
+            }
+        }
+
+        function abrirRotinaNaTela4(rotina) {
+            rotinaAtivaAtual = rotina;
+            switchScreen(screens.s4);
+            
+            document.getElementById('exec-routine-name').textContent = rotina.nomeRotina;
+            const diaHoje = setTodayDate();
+
+            sessionSelect.innerHTML = '';
+            rotina.sessoes.forEach((sessao, index) => {
+                const opt = document.createElement('option');
+                opt.value = index;
+                opt.textContent = `${sessao.nomeSessao} (${sessao.diaSessao})`;
+                sessionSelect.appendChild(opt);
             });
 
-            groupDiv.appendChild(carousel);
-            execContainer.appendChild(groupDiv);
+            sincronizarSessaoPeloDia(diaHoje);
         }
-    }
 
-    function abrirRotinaNaTela4(rotina) {
-        rotinaAtivaAtual = rotina;
-        switchScreen(screens.s4);
-        
-        document.getElementById('exec-routine-name').textContent = rotina.nomeRotina;
-        const diaHoje = setTodayDate();
-
-        sessionSelect.innerHTML = '';
-        rotina.sessoes.forEach((sessao, index) => {
-            const opt = document.createElement('option');
-            opt.value = index;
-            opt.textContent = `${sessao.nomeSessao} (${sessao.diaSessao})`;
-            sessionSelect.appendChild(opt);
+        sessionSelect.addEventListener('change', (e) => {
+            const index = e.target.value;
+            renderSession(rotinaAtivaAtual.sessoes[index]);
         });
-
-        sincronizarSessaoPeloDia(diaHoje);
-    }
-
-    sessionSelect.addEventListener('change', (e) => {
-        const index = e.target.value;
-        renderSession(rotinaAtivaAtual.sessoes[index]);
-    });
-</script>
+    </script>
+</body>
+</html>
