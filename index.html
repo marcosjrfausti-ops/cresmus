@@ -50,9 +50,8 @@
             margin: 0 auto;
             animation: fadeIn 0.3s ease;
         }
-        /* Na tela 5 (Dashboard), permitimos largura maior em telas desktop para melhor visualização dos gráficos */
         #screen-5.screen {
-            max-width: 960px;
+            max-width: 980px;
         }
         .screen.active {
             display: flex;
@@ -760,7 +759,7 @@
             text-align: center;
             color: var(--text-secondary);
             font-size: 0.88rem;
-            background: rgba(30, 30, 30, 0.85);
+            background: rgba(30, 30, 30, 0.88);
             border-radius: 8px;
             padding: 16px;
         }
@@ -972,16 +971,16 @@
             <!-- Filtro Global -->
             <section class="bi-global-filter-card">
                 <div class="bi-global-filter-header">
-                    <h3>Filtro Global (Padrão para todos os gráficos)</h3>
+                    <h3>Filtro Global de Período e Contexto</h3>
                     <button type="button" id="btn-reset-global-filter" class="btn-bi-clear">Limpar Global</button>
                 </div>
                 <div class="bi-filter-grid">
                     <div class="bi-filter-item">
-                        <label for="bi-global-start">Data Início:</label>
+                        <label for="bi-global-start">Data Inicial:</label>
                         <input type="date" id="bi-global-start">
                     </div>
                     <div class="bi-filter-item">
-                        <label for="bi-global-end">Data Fim:</label>
+                        <label for="bi-global-end">Data Final:</label>
                         <input type="date" id="bi-global-end">
                     </div>
                     <div class="bi-filter-item">
@@ -1006,14 +1005,14 @@
                 <article class="bi-card">
                     <div class="bi-card-header">
                         <div class="bi-card-title-row">
-                            <h4 class="bi-card-title">1. Volume de Treino Válido</h4>
+                            <h4 class="bi-card-title">1. Volume de Treino Válido (Esforço Bruto)</h4>
                         </div>
-                        <p class="bi-card-subtitle">Esforço Bruto: Σ (Carga × Reps) em séries válidas por data</p>
+                        <p class="bi-card-subtitle">Soma de (Carga × Repetições) de todas as séries válidas por data</p>
                     </div>
                     <div class="bi-local-filter">
                         <span class="filter-tag">Filtro Local:</span>
                         <select id="f1-muscle">
-                            <option value="">Grupo Muscular (Global)</option>
+                            <option value="">Todos os Grupos Musculares</option>
                         </select>
                         <input type="date" id="f1-date" title="Sobrepõe a data global">
                     </div>
@@ -1029,51 +1028,50 @@
                     </div>
                     <div class="chart-wrapper">
                         <canvas id="chart-1-volume"></canvas>
-                        <div id="empty-chart-1" class="chart-empty-overlay">Sem séries válidas para o filtro selecionado.</div>
+                        <div id="empty-chart-1" class="chart-empty-overlay">Sem séries válidas para o período selecionado.</div>
                     </div>
                 </article>
 
-                <!-- 2. Carga Máxima (Pico de Força) -->
+                <!-- 2. Força Bruta vs. Resistência (Progressão Real) -->
                 <article class="bi-card">
                     <div class="bi-card-header">
                         <div class="bi-card-title-row">
-                            <h4 class="bi-card-title">2. Carga Máxima (Pico de Força)</h4>
+                            <h4 class="bi-card-title">2. Força Bruta vs. Resistência</h4>
                         </div>
-                        <p class="bi-card-subtitle">Maior carga absoluta registrada (ignorando repetições)</p>
+                        <p class="bi-card-subtitle">Colunas: Volume Protagonista (kg) | Linha: Carga Máxima (kg)</p>
                     </div>
                     <div class="bi-local-filter">
-                        <span class="filter-tag">Filtro Local:</span>
+                        <span class="filter-tag">Exercício (Obrigatório):</span>
                         <select id="f2-exercise">
-                            <option value="TODOS">Todos os Exercícios</option>
+                            <option value="">Selecione 1 Exercício...</option>
                         </select>
-                        <input type="date" id="f2-date" title="Data específica (opcional)">
                     </div>
                     <div class="bi-kpi-banner">
                         <div class="bi-kpi-box">
-                            <span class="bi-kpi-label">Pico Absoluto</span>
+                            <span class="bi-kpi-label">Pico de Força (Carga Máx)</span>
                             <span class="bi-kpi-value accent" id="kpi-carga-max">0 kg</span>
                         </div>
                         <div class="bi-kpi-box">
-                            <span class="bi-kpi-label">Exercício do Pico</span>
-                            <span class="bi-kpi-value" id="kpi-carga-ex" style="font-size: 0.95rem;">---</span>
+                            <span class="bi-kpi-label">Vol. Protagonista Acumulado</span>
+                            <span class="bi-kpi-value" id="kpi-vol-prot-ex">0 kg</span>
                         </div>
                     </div>
                     <div class="chart-wrapper">
-                        <canvas id="chart-2-maxload"></canvas>
-                        <div id="empty-chart-2" class="chart-empty-overlay">Sem dados de carga para o filtro selecionado.</div>
+                        <canvas id="chart-2-forca-resistencia"></canvas>
+                        <div id="empty-chart-2" class="chart-empty-overlay">Selecione 1 exercício acima para visualizar a progressão de Força vs. Resistência.</div>
                     </div>
                 </article>
 
                 <!-- 3. Volume Protagonista (Tensão Mecânica Direta) -->
                 <article class="bi-card">
                     <div class="bi-card-header">
-                        <h4 class="bi-card-title">3. Volume Protagonista</h4>
-                        <p class="bi-card-subtitle">Tensão Mecânica Direta: (Carga × Reps) × % Protagonista</p>
+                        <h4 class="bi-card-title">3. Volume Protagonista (Tensão Direta)</h4>
+                        <p class="bi-card-subtitle">(Carga × Reps) × % Protagonista (mme.pctProtagonista)</p>
                     </div>
                     <div class="bi-local-filter">
                         <span class="filter-tag">Filtro Local:</span>
                         <select id="f3-session">
-                            <option value="">Sessão/Treino (Global)</option>
+                            <option value="">Todas as Sessões</option>
                         </select>
                         <input type="date" id="f3-date" title="Data específica (sobrepõe global)">
                     </div>
@@ -1087,12 +1085,12 @@
                 <article class="bi-card">
                     <div class="bi-card-header">
                         <h4 class="bi-card-title">4. Volume Secundário / Sinergista</h4>
-                        <p class="bi-card-subtitle">Fadiga Oculta: (Carga × Reps) × % Secundário</p>
+                        <p class="bi-card-subtitle">Fadiga Oculta: (Carga × Reps) × % Secundário (mme.pctSecundario)</p>
                     </div>
                     <div class="bi-local-filter">
                         <span class="filter-tag">Filtro Local:</span>
                         <select id="f4-session">
-                            <option value="">Sessão/Treino (Global)</option>
+                            <option value="">Todas as Sessões</option>
                         </select>
                         <input type="date" id="f4-date" title="Data específica (sobrepõe global)">
                     </div>
@@ -1106,12 +1104,12 @@
                 <article class="bi-card">
                     <div class="bi-card-header">
                         <h4 class="bi-card-title">5. Volume Terciário</h4>
-                        <p class="bi-card-subtitle">Estabilizadores e Sinergistas Menores: (Carga × Reps) × % Terciário</p>
+                        <p class="bi-card-subtitle">Sinergistas Menores: (Carga × Reps) × % Terciário (mme.pctTerciario)</p>
                     </div>
                     <div class="bi-local-filter">
                         <span class="filter-tag">Filtro Local:</span>
                         <select id="f5-session">
-                            <option value="">Sessão/Treino (Global)</option>
+                            <option value="">Todas as Sessões</option>
                         </select>
                         <input type="date" id="f5-date" title="Data específica (sobrepõe global)">
                     </div>
@@ -1125,7 +1123,7 @@
                 <article class="bi-card">
                     <div class="bi-card-header">
                         <h4 class="bi-card-title">6. Distribuição de Simetria</h4>
-                        <p class="bi-card-subtitle">Proporção do Volume Protagonista: Superiores vs. Inferiores</p>
+                        <p class="bi-card-subtitle">Volume Protagonista: SUPERIORES vs. INFERIORES</p>
                     </div>
                     <div class="bi-local-filter">
                         <span class="filter-tag">Filtro Local:</span>
@@ -1144,7 +1142,7 @@
                 <article class="bi-card full-width">
                     <div class="bi-card-header">
                         <h4 class="bi-card-title">7. Consistência de Repetições (Queda de Rendimento)</h4>
-                        <p class="bi-card-subtitle">Comparativo lado a lado: 1ª Válida vs. 2ª Válida agrupado por Data e Exercício</p>
+                        <p class="bi-card-subtitle">Comparativo lado a lado: "1ª Válida" vs. "2ª Válida" agrupado por Data e Exercício</p>
                     </div>
                     <div class="bi-local-filter">
                         <span class="filter-tag">Filtro Local:</span>
@@ -1163,7 +1161,7 @@
         </div>
 
         <div class="bi-export-footer">
-            <button type="button" id="btn-export-pdf" class="btn-pdf-export">📄 BAIXAR RELATÓRIO (PDF A4 - 300 DPI)</button>
+            <button type="button" id="btn-export-pdf" class="btn-pdf-export">📄 BAIXAR RELATÓRIO (PDF)</button>
         </div>
     </div>
 
@@ -1198,7 +1196,7 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // Helper para Contingência
+        // Helper para Contingência MME
         function criarEstruturaMmeFallback(musculoEscolhido) {
             return {
                 mme: {
@@ -1469,7 +1467,7 @@
             showToast(`"${nomeNovo}" adicionado à lista!`);
         });
 
-        // --- NAVEGAÇÃO ENTRE AS 5 TELAS ---
+        // --- NAVEGAÇÃO ENTRE AS TELAS ---
         const screens = {
             s0: document.getElementById('screen-0'),
             s1: document.getElementById('screen-1'),
@@ -1944,7 +1942,6 @@
         let rawTreinosExecutados = [];
         const chartInstances = {};
 
-        // Paleta vibrante otimizada para Dark Mode
         const BI_PALETTE = [
             '#bb86fc', '#03dac6', '#ff7597', '#ffb74d', '#4fc3f7',
             '#aed581', '#ba68c8', '#fff176', '#ff8a65', '#90a4ae', '#f06292'
@@ -1960,7 +1957,6 @@
         const f1Muscle = document.getElementById('f1-muscle');
         const f1Date = document.getElementById('f1-date');
         const f2Exercise = document.getElementById('f2-exercise');
-        const f2Date = document.getElementById('f2-date');
         const f3Session = document.getElementById('f3-session');
         const f3Date = document.getElementById('f3-date');
         const f4Session = document.getElementById('f4-session');
@@ -1972,15 +1968,22 @@
         const f7Exercise = document.getElementById('f7-exercise');
         const f7Date = document.getElementById('f7-date');
 
-        // Regra de Negócio Crítica: Ignorar séries de "Reconhecimento"
+        // Regra de Negócio Crítica: Excluir qualquer série onde o nome seja "Reconhecimento"
         function ehSerieValida(serieObj) {
             if (!serieObj || !serieObj.serie) return false;
             return serieObj.serie.trim().toLowerCase() !== 'reconhecimento';
         }
 
-        // Classificador de Simetria (Superiores vs. Inferiores)
+        // Classificador de Simetria: SUPERIORES vs INFERIORES
         function classificarSimetria(docItem, mmeData) {
-            const textoAlvo = `${docItem.musculo || ''} ${mmeData?.protagonista || ''}`.toUpperCase();
+            const grupoMuscular = (docItem.musculo || '').trim().toUpperCase();
+            const gruposInferiores = ['PERNAS', 'POSTERIOR DE COXA', 'PANTURRILHA', 'ADUTORES/ABDUTORES'];
+            const gruposSuperiores = ['PEITO', 'COSTAS', 'BÍCEPS', 'BICEPS', 'TRÍCEPS', 'TRICEPS', 'OMBRO', 'ANTEBRAÇO', 'ANTEBRACO', 'ABDÔMEN', 'ABDOMEN'];
+
+            if (gruposInferiores.includes(grupoMuscular)) return 'INFERIORES';
+            if (gruposSuperiores.includes(grupoMuscular)) return 'SUPERIORES';
+
+            const textoAlvo = `${grupoMuscular} ${mmeData?.protagonista || ''}`.toUpperCase();
             const termosInferiores = [
                 'PERNA', 'QUADRÍCEPS', 'QUADRICEPS', 'GLÚTEO', 'GLUTEO',
                 'POSTERIOR', 'ISQUIOTIBIAIS', 'PANTURRILHA', 'GASTROCNÊMIO',
@@ -1998,7 +2001,6 @@
             return `${dia}/${mes}`;
         }
 
-        // Busca dados na coleção treinos_executados
         async function carregarDadosDashboardBI() {
             try {
                 showToast("Carregando métricas do BI...");
@@ -2007,7 +2009,6 @@
 
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
-                    // Garante que o objeto MME exista mesmo em registros antigos
                     const meta = obterMetadadosExercicio(data.exercicio);
                     const mmeResolvido = data.mme || meta?.mme || criarEstruturaMmeFallback(data.musculo || "OUTROS").mme;
                     rawTreinosExecutados.push({
@@ -2040,29 +2041,32 @@
                 if (item.nomeTreino) sessoesSet.add(item.nomeTreino.toUpperCase());
             });
 
-            // Preserva seleções ou define padrão
             preencherSelect(biGlobalRotina, Array.from(rotinasSet).sort(), "TODAS", "Todas as Rotinas");
             
             const defaultUser = usuarioAtivo && usuariosSet.has(usuarioAtivo) ? usuarioAtivo : "TODOS";
             preencherSelect(biGlobalUsuario, Array.from(usuariosSet).sort(), defaultUser, "Todos os Usuários");
 
-            preencherSelect(f1Muscle, Array.from(musculosSet).sort(), "", "Grupo Muscular (Global)");
+            preencherSelect(f1Muscle, Array.from(musculosSet).sort(), "", "Todos os Grupos Musculares");
             
             const listaExercicios = Array.from(exerciciosSet).sort();
-            preencherSelect(f2Exercise, listaExercicios, "TODOS", "Todos os Exercícios");
+            // No Gráfico 2, é obrigatório escolher apenas 1 exercício por vez. Seleciona o 1º disponível por padrão se existir.
+            const defaultEx2 = f2Exercise.value || (listaExercicios.length > 0 ? listaExercicios[0] : "");
+            preencherSelect(f2Exercise, listaExercicios, defaultEx2, "Selecione 1 Exercício...");
+
             preencherSelect(f7Exercise, listaExercicios, "TODOS", "Todos os Exercícios");
 
             const listaSessoes = Array.from(sessoesSet).sort();
-            preencherSelect(f3Session, listaSessoes, "", "Sessão/Treino (Global)");
-            preencherSelect(f4Session, listaSessoes, "", "Sessão/Treino (Global)");
-            preencherSelect(f5Session, listaSessoes, "", "Sessão/Treino (Global)");
+            preencherSelect(f3Session, listaSessoes, "", "Todas as Sessões");
+            preencherSelect(f4Session, listaSessoes, "", "Todas as Sessões");
+            preencherSelect(f5Session, listaSessoes, "", "Todas as Sessões");
 
             preencherSelect(f6Rotina, Array.from(rotinasSet).sort(), "", "Rotina (Usar Global)");
         }
 
         function preencherSelect(selectEl, valuesArray, defaultVal, firstLabel) {
             const valorAtual = selectEl.value;
-            selectEl.innerHTML = `<option value="${defaultVal === 'TODOS' || defaultVal === 'TODAS' ? defaultVal : ''}">${firstLabel}</option>`;
+            const firstOptValue = (defaultVal === 'TODOS' || defaultVal === 'TODAS') ? defaultVal : '';
+            selectEl.innerHTML = `<option value="${firstOptValue}">${firstLabel}</option>`;
             valuesArray.forEach(val => {
                 const opt = document.createElement('option');
                 opt.value = val;
@@ -2076,10 +2080,6 @@
             }
         }
 
-        /**
-         * Filtra os documentos combinando o Filtro Global com as sobreposições do Filtro Individual
-         * Se um filtro local (ex: localDate ou localRotina) estiver preenchido, ele sobrepõe o Global.
-         */
         function filtrarRegistros({ localDate = '', localRotina = '', localMuscle = '', localExercise = '', localSession = '' } = {}) {
             const gStart = biGlobalStart.value;
             const gEnd = biGlobalEnd.value;
@@ -2087,18 +2087,15 @@
             const gUsuario = biGlobalUsuario.value;
 
             return rawTreinosExecutados.filter(docItem => {
-                // 1. Filtro de Usuário
                 if (gUsuario && gUsuario !== 'TODOS') {
                     if ((docItem.usuario || '').toLowerCase() !== gUsuario.toLowerCase()) return false;
                 }
 
-                // 2. Filtro de Rotina (Local sobrepõe Global)
                 const rotinaAlvo = localRotina || (gRotina !== 'TODAS' ? gRotina : '');
                 if (rotinaAlvo) {
                     if ((docItem.nomeRotina || '').toUpperCase() !== rotinaAlvo.toUpperCase()) return false;
                 }
 
-                // 3. Filtro de Data (Local sobrepõe o período Global)
                 const dataDoc = docItem.dataExecucao || '';
                 if (localDate) {
                     if (dataDoc !== localDate) return false;
@@ -2107,7 +2104,6 @@
                     if (gEnd && dataDoc > gEnd) return false;
                 }
 
-                // 4. Filtros específicos do Card
                 if (localMuscle && (docItem.musculo || '').toUpperCase() !== localMuscle.toUpperCase()) {
                     return false;
                 }
@@ -2122,9 +2118,11 @@
             });
         }
 
-        function alternarEmptyState(emptyId, isEmpty) {
+        function alternarEmptyState(emptyId, isEmpty, customMessage = null) {
             const el = document.getElementById(emptyId);
-            if (el) el.classList.toggle('visible', isEmpty);
+            if (!el) return;
+            if (customMessage) el.textContent = customMessage;
+            el.classList.toggle('visible', isEmpty);
         }
 
         function destruirGraficoSeExistir(key) {
@@ -2134,8 +2132,8 @@
             }
         }
 
-        // --- CONFIGURAÇÃO PADRÃO PARA GRÁFICOS DE ROSCA (REGRAS DE UI: SEM LEGENDA + DATALABELS AO LADO) ---
-        function criarConfigRosca(labels, valores, sufixoUnidade = '%') {
+        // --- CONFIGURAÇÃO PADRÃO PARA GRÁFICOS DE ROSCA (SEM LEGENDA PADRÃO + DATALABELS FLUTUANDO) ---
+        function criarConfigRosca(labels, valores, sufixoUnidade = 'pct') {
             const total = valores.reduce((acc, v) => acc + v, 0);
             return {
                 type: 'doughnut',
@@ -2154,11 +2152,11 @@
                     maintainAspectRatio: false,
                     cutout: '58%',
                     layout: {
-                        padding: { top: 32, bottom: 32, left: 42, right: 42 }
+                        padding: { top: 34, bottom: 34, left: 45, right: 45 }
                     },
                     plugins: {
                         legend: {
-                            display: false // Regra de UI: Sem legenda padrão
+                            display: false // Sem legenda padrão do Chart.js
                         },
                         tooltip: {
                             callbacks: {
@@ -2195,7 +2193,7 @@
         }
 
         // =========================================================================
-        // 1. VOLUME DE TREINO VÁLIDO (ESFORÇO BRUTO)
+        // 1. VOLUME DE TREINO VÁLIDO (ESFORÇO BRUTO) - EIXO Y TOTALMENTE OCULTO
         // =========================================================================
         function renderizarGrafico1Volume() {
             const dados = filtrarRegistros({
@@ -2246,23 +2244,29 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 24 }
+                    },
                     plugins: {
                         legend: { display: false },
                         datalabels: {
                             color: '#e0e0e0',
                             anchor: 'end',
                             align: 'top',
-                            font: { weight: 'bold', size: 10 },
+                            font: { weight: 'bold', size: 11 },
                             formatter: (val) => `${Math.round(val)}kg`
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#a0a0a0' }, grid: { color: '#262626' } },
-                        y: {
-                            beginAtZero: true,
-                            grace: '15%',
+                        x: {
                             ticks: { color: '#a0a0a0' },
-                            grid: { color: '#262626' }
+                            grid: { display: false },
+                            border: { color: '#333333' }
+                        },
+                        y: {
+                            display: false, // Oculta totalmente valores, grade e linha do Eixo Y
+                            beginAtZero: true,
+                            grace: '20%'
                         }
                     }
                 }
@@ -2270,82 +2274,150 @@
         }
 
         // =========================================================================
-        // 2. CARGA MÁXIMA (PICO DE FORÇA)
+        // 2. FORÇA BRUTA VS. RESISTÊNCIA (PROGRESSÃO REAL - GRÁFICO MISTO)
         // =========================================================================
-        function renderizarGrafico2CargaMaxima() {
+        function renderizarGrafico2ForcaResistencia() {
+            const exercicioEscolhido = f2Exercise.value;
+
+            // Filtro Local Obrigatório: Só renderiza com 1 exercício selecionado
+            if (!exercicioEscolhido) {
+                document.getElementById('kpi-carga-max').textContent = `0 kg`;
+                document.getElementById('kpi-vol-prot-ex').textContent = `0 kg`;
+                alternarEmptyState('empty-chart-2', true, 'Selecione 1 exercício acima para visualizar a progressão de Força vs. Resistência.');
+                destruirGraficoSeExistir('c2');
+                return;
+            }
+
             const dados = filtrarRegistros({
-                localExercise: f2Exercise.value,
-                localDate: f2Date.value
+                localExercise: exercicioEscolhido
             });
 
-            const picoPorData = {};
+            const mapaPorData = {};
             let maiorCargaGlobal = 0;
-            let exercicioDoPico = '---';
+            let volumeProtAcumulado = 0;
 
             dados.forEach(docItem => {
                 const dataKey = docItem.dataExecucao || 'Sem Data';
                 if (!Array.isArray(docItem.series)) return;
 
+                const mme = docItem.mme || criarEstruturaMmeFallback(docItem.musculo || 'OUTROS').mme;
+                const pctProt = Number(mme.pctProtagonista) || 100;
+
                 docItem.series.forEach(s => {
                     if (!ehSerieValida(s)) return;
                     const carga = Number(s.kg) || 0;
+                    const reps = Number(s.reps) || 0;
+                    const volProt = (carga * reps) * (pctProt / 100);
+
+                    if (!mapaPorData[dataKey]) {
+                        mapaPorData[dataKey] = { volProt: 0, maxKg: 0 };
+                    }
+
+                    mapaPorData[dataKey].volProt += volProt;
+                    if (carga > mapaPorData[dataKey].maxKg) {
+                        mapaPorData[dataKey].maxKg = carga;
+                    }
+
+                    volumeProtAcumulado += volProt;
                     if (carga > maiorCargaGlobal) {
                         maiorCargaGlobal = carga;
-                        exercicioDoPico = docItem.exercicio || '---';
-                    }
-                    if (!picoPorData[dataKey] || carga > picoPorData[dataKey]) {
-                        picoPorData[dataKey] = carga;
                     }
                 });
             });
 
             document.getElementById('kpi-carga-max').textContent = `${maiorCargaGlobal} kg`;
-            document.getElementById('kpi-carga-ex').textContent = exercicioDoPico;
+            document.getElementById('kpi-vol-prot-ex').textContent = `${Math.round(volumeProtAcumulado).toLocaleString('pt-BR')} kg`;
 
-            const datasOrdenadas = Object.keys(picoPorData).sort();
-            const valores = datasOrdenadas.map(d => picoPorData[d]);
+            const datasOrdenadas = Object.keys(mapaPorData).sort();
+            const valoresVolProt = datasOrdenadas.map(d => Math.round(mapaPorData[d].volProt));
+            const valoresCargaMax = datasOrdenadas.map(d => mapaPorData[d].maxKg);
 
-            alternarEmptyState('empty-chart-2', datasOrdenadas.length === 0);
+            alternarEmptyState('empty-chart-2', datasOrdenadas.length === 0, `Sem séries válidas para "${exercicioEscolhido}" no período selecionado.`);
             destruirGraficoSeExistir('c2');
 
             if (datasOrdenadas.length === 0) return;
 
-            const ctx = document.getElementById('chart-2-maxload').getContext('2d');
+            const ctx = document.getElementById('chart-2-forca-resistencia').getContext('2d');
             chartInstances['c2'] = new Chart(ctx, {
-                type: 'line',
+                type: 'bar',
                 data: {
                     labels: datasOrdenadas.map(formatarDataCurta),
-                    datasets: [{
-                        label: 'Pico de Carga (kg)',
-                        data: valores,
-                        borderColor: '#03dac6',
-                        backgroundColor: 'rgba(3, 218, 198, 0.2)',
-                        tension: 0.25,
-                        fill: true,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#03dac6'
-                    }]
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Carga Máxima (kg)',
+                            data: valoresCargaMax,
+                            yAxisID: 'yMaxLoad',
+                            borderColor: '#03dac6',
+                            backgroundColor: '#03dac6',
+                            borderWidth: 3,
+                            tension: 0.25,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#03dac6',
+                            order: 1,
+                            datalabels: {
+                                color: '#03dac6',
+                                backgroundColor: 'rgba(18, 18, 18, 0.85)',
+                                borderRadius: 4,
+                                padding: { top: 2, bottom: 2, left: 4, right: 4 },
+                                anchor: 'end',
+                                align: 'top',
+                                offset: 4,
+                                font: { weight: 'bold', size: 11 },
+                                formatter: (val) => `${val}kg`
+                            }
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Volume Protagonista (kg)',
+                            data: valoresVolProt,
+                            yAxisID: 'yVolProt',
+                            backgroundColor: 'rgba(187, 134, 252, 0.72)',
+                            borderColor: '#bb86fc',
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            order: 2,
+                            datalabels: {
+                                color: '#ffffff',
+                                anchor: 'center',
+                                align: 'center',
+                                font: { weight: 'bold', size: 10 },
+                                formatter: (val) => val > 0 ? `${val}kg` : ''
+                            }
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 28 }
+                    },
                     plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            color: '#03dac6',
-                            anchor: 'end',
-                            align: 'top',
-                            font: { weight: 'bold', size: 11 },
-                            formatter: (val) => `${val}kg`
+                        legend: {
+                            display: true,
+                            labels: { color: '#e0e0e0', boxWidth: 12, font: { size: 11 } }
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#a0a0a0' }, grid: { color: '#262626' } },
-                        y: {
-                            beginAtZero: true,
-                            grace: '18%',
+                        x: {
                             ticks: { color: '#a0a0a0' },
-                            grid: { color: '#262626' }
+                            grid: { display: false },
+                            border: { color: '#333333' }
+                        },
+                        yVolProt: {
+                            type: 'linear',
+                            position: 'left',
+                            display: false, // Eixo Y invisível 1
+                            beginAtZero: true,
+                            grace: '25%'
+                        },
+                        yMaxLoad: {
+                            type: 'linear',
+                            position: 'right',
+                            display: false, // Eixo Y invisível 2
+                            beginAtZero: true,
+                            grace: '30%'
                         }
                     }
                 }
@@ -2430,7 +2502,7 @@
             if (labels.length === 0) return;
 
             const ctx = document.getElementById('chart-4-secundario').getContext('2d');
-            chartInstances['c4'] = new Chart(ctx, criarConfigRosca(labels, valores, 'kg_pct'));
+            chartInstances['c4'] = new Chart(ctx, criarConfigRosca(labels, valores, 'pct'));
         }
 
         // =========================================================================
@@ -2472,7 +2544,7 @@
             if (labels.length === 0) return;
 
             const ctx = document.getElementById('chart-5-terciario').getContext('2d');
-            chartInstances['c5'] = new Chart(ctx, criarConfigRosca(labels, valores, 'kg_pct'));
+            chartInstances['c5'] = new Chart(ctx, criarConfigRosca(labels, valores, 'pct'));
         }
 
         // =========================================================================
@@ -2514,7 +2586,7 @@
         }
 
         // =========================================================================
-        // 7. CONSISTÊNCIA DE REPETIÇÕES (1ª VÁLIDA VS. 2ª VÁLIDA)
+        // 7. CONSISTÊNCIA DE REPETIÇÕES (1ª VÁLIDA VS. 2ª VÁLIDA) - SEM EIXO Y
         // =========================================================================
         function renderizarGrafico7Consistencia() {
             const dados = filtrarRegistros({
@@ -2522,7 +2594,6 @@
                 localDate: f7Date.value
             });
 
-            // Ordena cronologicamente
             const registrosOrdenados = [...dados].sort((a, b) => (a.dataExecucao || '').localeCompare(b.dataExecucao || ''));
 
             const labels = [];
@@ -2572,6 +2643,9 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 24 }
+                    },
                     plugins: {
                         legend: {
                             display: true,
@@ -2581,20 +2655,20 @@
                             color: '#e0e0e0',
                             anchor: 'end',
                             align: 'top',
-                            font: { weight: 'bold', size: 10 },
+                            font: { weight: 'bold', size: 11 },
                             formatter: (val) => val > 0 ? val : ''
                         }
                     },
                     scales: {
                         x: {
                             ticks: { color: '#a0a0a0', maxRotation: 35, minRotation: 0, font: { size: 10 } },
-                            grid: { color: '#262626' }
+                            grid: { display: false },
+                            border: { color: '#333333' }
                         },
                         y: {
+                            display: false, // Oculta totalmente valores, grade e linha do Eixo Y
                             beginAtZero: true,
-                            grace: '18%',
-                            ticks: { color: '#a0a0a0', stepSize: 2 },
-                            grid: { color: '#262626' }
+                            grace: '22%'
                         }
                     }
                 }
@@ -2603,7 +2677,7 @@
 
         function atualizarTodosOsGraficos() {
             renderizarGrafico1Volume();
-            renderizarGrafico2CargaMaxima();
+            renderizarGrafico2ForcaResistencia();
             renderizarGrafico3Protagonista();
             renderizarGrafico4Secundario();
             renderizarGrafico5Terciario();
@@ -2626,12 +2700,11 @@
 
         document.getElementById('btn-refresh-bi').addEventListener('click', carregarDadosDashboardBI);
 
-        // Eventos dos Filtros Individuais (Cada um atualiza apenas o seu gráfico correspondente)
+        // Eventos dos Filtros Individuais
         f1Muscle.addEventListener('change', renderizarGrafico1Volume);
         f1Date.addEventListener('change', renderizarGrafico1Volume);
 
-        f2Exercise.addEventListener('change', renderizarGrafico2CargaMaxima);
-        f2Date.addEventListener('change', renderizarGrafico2CargaMaxima);
+        f2Exercise.addEventListener('change', renderizarGrafico2ForcaResistencia);
 
         f3Session.addEventListener('change', renderizarGrafico3Protagonista);
         f3Date.addEventListener('change', renderizarGrafico3Protagonista);
@@ -2665,13 +2738,12 @@
                 printableArea.classList.add('pdf-export-mode');
 
                 const dataHoje = new Date().toISOString().slice(0, 10);
-                // Para folha A4 (210mm x 297mm) a 300 DPI (~2480 x 3508 px), usamos scale: 3.125 sobre a base de 96 DPI
                 const opt = {
                     margin: [8, 8, 8, 8],
                     filename: `Relatorio_BI_Treinos_${usuarioAtivo || 'Geral'}_${dataHoje}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: {
-                        scale: 3.125, // Resolução de 300 DPI real
+                        scale: 3.125, // 300 DPI reais (300 / 96 = 3.125)
                         useCORS: true,
                         backgroundColor: '#121212',
                         logging: false
@@ -2692,7 +2764,7 @@
             } finally {
                 printableArea.classList.remove('pdf-export-mode');
                 btnExportPdf.disabled = false;
-                btnExportPdf.textContent = "📄 BAIXAR RELATÓRIO (PDF A4 - 300 DPI)";
+                btnExportPdf.textContent = "📄 BAIXAR RELATÓRIO (PDF)";
             }
         });
     </script>
