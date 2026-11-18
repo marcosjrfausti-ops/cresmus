@@ -107,7 +107,7 @@
             position: relative;
             padding-top: 56px;
         }
-        /* Botão Circular "+" na Tela 1 (Canto Superior Direito) */
+        
         .btn-add-global-ex {
             position: absolute;
             top: 8px;
@@ -145,6 +145,22 @@
             flex-direction: column;
             gap: 20px;
         }
+        .auth-toggle {
+            text-align: center;
+            margin-top: 8px;
+        }
+        .auth-toggle a {
+            color: var(--secondary-accent);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        .auth-toggle a:hover {
+            color: var(--accent-color);
+            text-decoration: underline;
+        }
+
         .user-badge {
             font-size: 0.9rem;
             color: var(--text-secondary);
@@ -921,19 +937,22 @@
         </div>
     </div>
 
-    <!-- TELA 0: Login -->
+    <!-- TELA 0: Login / Cadastro -->
     <div id="screen-0" class="screen active">
-        <h2 class="screen-title">Acesso ao Tracker</h2>
+        <h2 class="screen-title" id="auth-title">Acesso ao Tracker</h2>
         <div class="login-card">
             <div class="input-group">
                 <label for="login-user">USUÁRIO:</label>
-                <input type="text" id="login-user" placeholder="Digite seu usuário">
+                <input type="text" id="login-user" placeholder="Digite seu usuário (qualquer nome)">
             </div>
             <div class="input-group">
                 <label for="login-pass">SENHA:</label>
-                <input type="password" id="login-pass" placeholder="Digite qualquer senha">
+                <input type="password" id="login-pass" placeholder="Digite sua senha">
             </div>
             <button type="button" id="btn-entrar" class="btn-primary">ENTRAR</button>
+            <div class="auth-toggle">
+                <a href="#" id="toggle-auth-mode">Não tem uma conta? Crie aqui.</a>
+            </div>
         </div>
     </div>
 
@@ -947,7 +966,7 @@
         <button id="btn-cronograma" class="btn-main">CRONOGRAMA</button>
         <hr class="divider">
         <button id="btn-dashboard" class="btn-main btn-dashboard-home">📊 DASHBOARD</button>
-        <div class="nav-back" id="btn-logout" style="margin-top: 24px;">← Trocar Perfil</div>
+        <div class="nav-back" id="btn-logout" style="margin-top: 24px;">← Trocar Perfil / Sair</div>
     </div>
 
     <!-- TELA 2: Cadastro e Edição de Rotina -->
@@ -1253,7 +1272,7 @@
     <!-- INTEGRAÇÃO COM FIREBASE E MOTOR DE BI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, getDocs, getDoc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Registra o plugin Datalabels globalmente no Chart.js
         if (window.Chart && window.ChartDataLabels) {
@@ -1496,7 +1515,7 @@
         renderDropdownList();
         carregarExerciciosCustomizados();
 
-        // --- MODAL DE ADICIONAR NOVO EXERCÍCIO (ACESSÍVEL PELA TELA 1 E TELA 2) ---
+        // --- MODAL DE ADICIONAR NOVO EXERCÍCIO ---
         const modalNewExercise = document.getElementById('modal-new-exercise');
         const inputNewExName = document.getElementById('new-ex-name');
         const selectNewExMuscle = document.getElementById('new-ex-muscle');
@@ -1504,14 +1523,12 @@
         const btnSaveNewEx = document.getElementById('btn-save-new-ex');
         const btnAddGlobalEx = document.getElementById('btn-add-global-ex');
 
-        // Requisito 1: Abertura do modal pelo botão "+" na TELA 1
         btnAddGlobalEx.addEventListener('click', () => {
             inputNewExName.value = '';
             modalNewExercise.classList.add('open');
             setTimeout(() => inputNewExName.focus(), 50);
         });
 
-        // Abertura do modal pelo dropdown da TELA 2
         btnOpenAddExModal.addEventListener('click', () => {
             inputNewExName.value = dropdownSearchInput.value.trim();
             toggleDropdown(false);
@@ -1575,7 +1592,6 @@
             modalNewExercise.classList.remove('open');
             inputNewExName.value = '';
 
-            // Requisito 1: Verifica em qual tela o usuário está antes de injetar card na Tela 2
             const isOnScreen1 = screens.s1.classList.contains('active');
             const isOnScreen2 = screens.s2.classList.contains('active');
 
@@ -1586,24 +1602,80 @@
             showToast(`"${nomeNovo}" adicionado com sucesso!`);
         });
 
-        // --- LÓGICA DE LOGIN ---
+        // --- LÓGICA DE LOGIN CLÁSSICO E CADASTRO ---
         const inputLoginUser = document.getElementById('login-user');
         const inputLoginPass = document.getElementById('login-pass');
         const displayUsername = document.getElementById('display-username');
+        const toggleAuthMode = document.getElementById('toggle-auth-mode');
+        const btnEntrar = document.getElementById('btn-entrar');
+        const authTitle = document.getElementById('auth-title');
+        
+        let isLoginMode = true;
 
-        document.getElementById('btn-entrar').addEventListener('click', () => {
+        toggleAuthMode.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+            authTitle.textContent = isLoginMode ? 'Acesso ao Tracker' : 'Criar Nova Conta';
+            btnEntrar.textContent = isLoginMode ? 'ENTRAR' : 'CRIAR CONTA';
+            toggleAuthMode.textContent = isLoginMode ? 'Não tem uma conta? Crie aqui.' : 'Já tem uma conta? Faça login.';
+        });
+
+        btnEntrar.addEventListener('click', async () => {
             const userVal = inputLoginUser.value.trim();
             const passVal = inputLoginPass.value.trim();
 
             if (!userVal || !passVal) {
-                showToast("Preencha usuário e senha para entrar!");
+                showToast("Preencha usuário e senha!");
                 return;
             }
 
-            usuarioAtivo = userVal;
-            displayUsername.textContent = usuarioAtivo;
-            showToast(`Bem-vindo, ${usuarioAtivo}!`);
-            switchScreen(screens.s1);
+            btnEntrar.disabled = true;
+            btnEntrar.textContent = "AGUARDE...";
+            
+            // Tratamento case-insensitive para não repetir ID
+            const userIdLowerCase = userVal.toLowerCase();
+            const userDocRef = doc(db, "usuarios", userIdLowerCase);
+
+            try {
+                const docSnap = await getDoc(userDocRef);
+
+                if (isLoginMode) {
+                    if (docSnap.exists()) {
+                        const userData = docSnap.data();
+                        if (userData.senha === passVal) {
+                            usuarioAtivo = userData.username; // Usa o formato original de digitação
+                            displayUsername.textContent = usuarioAtivo;
+                            showToast(`Bem-vindo de volta, ${usuarioAtivo}!`);
+                            switchScreen(screens.s1);
+                        } else {
+                            showToast("Senha incorreta!");
+                        }
+                    } else {
+                        showToast("Usuário não encontrado!");
+                    }
+                } else {
+                    // Modo Criar Conta
+                    if (docSnap.exists()) {
+                        showToast("Usuário já existe! Escolha outro.");
+                    } else {
+                        await setDoc(userDocRef, {
+                            username: userVal,
+                            senha: passVal,
+                            criadoEm: new Date().toISOString()
+                        });
+                        usuarioAtivo = userVal;
+                        displayUsername.textContent = usuarioAtivo;
+                        showToast(`Conta criada! Bem-vindo, ${usuarioAtivo}!`);
+                        switchScreen(screens.s1);
+                    }
+                }
+            } catch (error) {
+                console.error("Erro na autenticação:", error);
+                showToast("Erro ao processar autenticação no Firebase.");
+            } finally {
+                btnEntrar.disabled = false;
+                btnEntrar.textContent = isLoginMode ? 'ENTRAR' : 'CRIAR CONTA';
+            }
         });
 
         document.getElementById('btn-logout').addEventListener('click', () => {
@@ -1647,32 +1719,27 @@
             }
         }
 
-        // Botão + NOVA ROTINA (Home -> Tela 2 em modo criação limpa)
         document.getElementById('btn-nova-rotina').addEventListener('click', () => {
             resetarEstadoTela2(false);
             switchScreen(screens.s2);
         });
 
-        // Botão ALTERAR ROTINA (Home -> Tela 6)
         document.getElementById('btn-alterar-rotina').addEventListener('click', () => {
             resetarEstadoTela2(false);
             carregarRotinasParaEdicaoTela6();
             switchScreen(screens.s6);
         });
 
-        // Voltar da Tela 6 -> Home
         document.getElementById('back-from-s6').addEventListener('click', () => {
             resetarEstadoTela2(false);
             switchScreen(screens.s1);
         });
 
-        // Voltar da Tela 7 -> Tela 6
         document.getElementById('back-from-s7').addEventListener('click', () => {
             carregarRotinasParaEdicaoTela6();
             switchScreen(screens.s6);
         });
 
-        // Voltar/Cancelar da Tela 2 (Se estiver editando, volta para a Tela 7; se criando, volta para a Home)
         document.getElementById('back-from-s2').addEventListener('click', () => {
             if (modoEdicaoRotina && editRoutineObj) {
                 const rotBackup = editRoutineObj;
@@ -1692,7 +1759,6 @@
         document.getElementById('back-to-home').addEventListener('click', () => switchScreen(screens.s1));
         document.getElementById('back-to-menu').addEventListener('click', () => switchScreen(screens.s3));
 
-        // Navegação para a TELA 5 (Dashboard)
         document.getElementById('btn-dashboard').addEventListener('click', () => {
             switchScreen(screens.s5);
             carregarDadosDashboardBI();
@@ -1994,7 +2060,7 @@
 
             const diaAtual = capturarDiaAtualTela2();
 
-            // --- FLUXO 1: ATUALIZAÇÃO DE ROTINA EXISTENTE (updateDoc) ---
+            // --- FLUXO 1: ATUALIZAÇÃO DE ROTINA EXISTENTE ---
             if (modoEdicaoRotina && editRoutineDocId && editRoutineObj) {
                 if (!Array.isArray(editRoutineObj.sessoes)) editRoutineObj.sessoes = [];
 
@@ -2040,7 +2106,7 @@
                 return;
             }
 
-            // --- FLUXO 2: CRIAÇÃO DE NOVA ROTINA (addDoc) ---
+            // --- FLUXO 2: CRIAÇÃO DE NOVA ROTINA ---
             if (diaAtual) sessoesTemporarias.push(diaAtual);
 
             if (sessoesTemporarias.length === 0) {
@@ -2101,7 +2167,7 @@
             }
         }
 
-        // --- TELA 4: EXECUÇÃO, ENVIO DO MME FRACIONADO E RECUPERAÇÃO DE HISTÓRICO DO DIA ---
+        // --- TELA 4: EXECUÇÃO E HISTÓRICO DO DIA ---
         const dayRefHeader = document.getElementById('exec-day-ref');
         const dateInput = document.getElementById('exec-date');
         const sessionSelect = document.getElementById('exec-session-select');
@@ -2110,7 +2176,6 @@
 
         let rotinaAtivaAtual = null;
 
-        // Requisito 2: Função assíncrona que busca no Firestore os exercícios já executados no dia e hidrata a Tela 4
         async function recuperarDadosExecutadosNoDia() {
             if (!rotinaAtivaAtual || !dateInput.value) return;
 
@@ -2126,7 +2191,6 @@
                 const querySnapshot = await getDocs(q);
                 if (querySnapshot.empty) return;
 
-                // Mapa de exercícios salvos indexado pelo nome do exercício (normalizado)
                 const mapaSalvos = {};
                 querySnapshot.forEach(docSnap => {
                     const data = docSnap.data();
@@ -2138,7 +2202,6 @@
                     }
                 });
 
-                // Varre os cards renderizados na Tela 4 e cruza os nomes
                 const cardsNoDOM = execContainer.querySelectorAll('.carousel-card');
                 cardsNoDOM.forEach(card => {
                     const tituloEl = card.querySelector('.exec-card-title');
@@ -2147,10 +2210,8 @@
                     const registroSalvo = mapaSalvos[nomeExCard];
                     if (!registroSalvo) return;
 
-                    // Vincula o ID do documento do Firestore ao card para habilitar updateDoc se clicar em CORRIGIR
                     card.dataset.firestoreId = registroSalvo.id;
 
-                    // Atualiza cada série correspondente (Reconhecimento, 1ª Válida, 2ª Válida, etc.)
                     if (Array.isArray(registroSalvo.series)) {
                         const setRows = card.querySelectorAll('.exec-set-row');
                         setRows.forEach(row => {
@@ -2175,7 +2236,6 @@
                         });
                     }
 
-                    // Aplica o estado visual de card salvo ("CORRIGIR")
                     card.classList.add('card-salvo');
                     card.querySelectorAll('.num-picker-btn').forEach(btn => {
                         btn.disabled = true;
@@ -2368,7 +2428,6 @@
                 execContainer.appendChild(groupDiv);
             }
 
-            // Requisito 2: Após montar os cards da sessão no DOM, busca e preenche os dados salvos na data
             await recuperarDadosExecutadosNoDia();
         }
 
@@ -2405,13 +2464,11 @@
             '#aed581', '#ba68c8', '#fff176', '#ff8a65', '#90a4ae', '#f06292'
         ];
 
-        // Referências de Filtros Globais
         const biGlobalStart = document.getElementById('bi-global-start');
         const biGlobalEnd = document.getElementById('bi-global-end');
         const biGlobalRotina = document.getElementById('bi-global-rotina');
         const biGlobalUsuario = document.getElementById('bi-global-usuario');
 
-        // Referências de Filtros Locais (Gráficos 1 a 7)
         const f1Muscle = document.getElementById('f1-muscle');
         const f1Date = document.getElementById('f1-date');
         const f2Exercise = document.getElementById('f2-exercise');
