@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tracker de Treinos</title>
+    
+    <!-- CDNs: Chart.js, Datalabels Plugin e html2pdf.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
         /* Variáveis de Tema Escuro */
         :root {
@@ -13,6 +19,7 @@
             --text-primary: #e0e0e0;
             --text-secondary: #a0a0a0;
             --accent-color: #bb86fc;
+            --secondary-accent: #03dac6;
             --border-color: #333333;
             --danger-color: #cf6679;
             --border-radius: 12px;
@@ -42,6 +49,10 @@
             max-width: 600px;
             margin: 0 auto;
             animation: fadeIn 0.3s ease;
+        }
+        /* Na tela 5 (Dashboard), permitimos largura maior em telas desktop para melhor visualização dos gráficos */
+        #screen-5.screen {
+            max-width: 960px;
         }
         .screen.active {
             display: flex;
@@ -76,6 +87,10 @@
             opacity: 0.3;
             cursor: not-allowed;
             border-color: var(--text-secondary);
+        }
+        .btn-main.btn-dashboard-home {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
         }
 
         /* ---- TELA 0, 1 & 3 Layout ---- */
@@ -530,6 +545,269 @@
 
         .nav-back { color: var(--text-secondary); cursor: pointer; margin-bottom: 24px; display: inline-block; font-size: 0.9rem; }
         .empty-msg { color: var(--text-secondary); text-align: center; margin-top: 16px; font-size: 0.95rem; }
+
+        /* =========================================================
+           TELA 5: DASHBOARD DE BI E ANALYTICS
+           ========================================================= */
+        .bi-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .bi-global-filter-card {
+            background: var(--surface-color);
+            border: 1px solid var(--accent-color);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .bi-global-filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        .bi-global-filter-header h3 {
+            font-size: 0.95rem;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .bi-filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+        .bi-filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .bi-filter-item label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .bi-filter-item input, .bi-filter-item select {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 9px 12px;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            color-scheme: dark;
+            width: 100%;
+        }
+        .btn-bi-clear {
+            background: var(--surface-highlight);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 9px 14px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: border-color 0.2s;
+        }
+        .btn-bi-clear:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        /* Grid de Cards dos Gráficos */
+        .bi-charts-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+        @media (min-width: 768px) {
+            .bi-charts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .bi-card.full-width {
+                grid-column: 1 / -1;
+            }
+        }
+
+        .bi-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        .bi-card-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .bi-card-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .bi-card-title {
+            font-size: 1.05rem;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .bi-card-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Filtro Individual de cada Card */
+        .bi-local-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: var(--bg-color);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #282828;
+            align-items: center;
+        }
+        .bi-local-filter span.filter-tag {
+            font-size: 0.7rem;
+            color: var(--secondary-accent);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+        }
+        .bi-local-filter select, .bi-local-filter input {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color-scheme: dark;
+            flex: 1;
+            min-width: 110px;
+        }
+
+        /* KPI Destaque dentro dos Cards */
+        .bi-kpi-banner {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: var(--bg-color);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary-accent);
+        }
+        .bi-kpi-box {
+            text-align: center;
+        }
+        .bi-kpi-label {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 2px;
+        }
+        .bi-kpi-value {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        .bi-kpi-value.accent {
+            color: var(--secondary-accent);
+        }
+
+        /* Containers de Canvas */
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 270px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chart-wrapper.doughnut-wrapper {
+            height: 300px;
+        }
+        .chart-wrapper.tall-wrapper {
+            height: 320px;
+        }
+        .chart-empty-overlay {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            background: rgba(30, 30, 30, 0.85);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .chart-empty-overlay.visible {
+            display: flex;
+        }
+
+        /* Rodapé de Exportação PDF */
+        .bi-export-footer {
+            margin-top: 8px;
+            margin-bottom: 48px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .btn-pdf-export {
+            background: linear-gradient(135deg, #bb86fc 0%, #985eff 100%);
+            color: #000000;
+            border: none;
+            padding: 18px 24px;
+            border-radius: var(--border-radius);
+            font-size: 1.05rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            cursor: pointer;
+            transition: transform 0.2s, filter 0.2s;
+            box-shadow: 0 4px 16px rgba(187, 134, 252, 0.3);
+        }
+        .btn-pdf-export:hover:not(:disabled) {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+        .btn-pdf-export:disabled {
+            opacity: 0.5;
+            cursor: wait;
+        }
+
+        /* Ajustes para modo de impressão PDF (300 DPI A4) */
+        .pdf-export-mode {
+            background-color: #121212 !important;
+            padding: 12px !important;
+        }
+        .pdf-export-mode .bi-local-filter,
+        .pdf-export-mode .btn-bi-clear {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -560,7 +838,7 @@
                 <select id="new-ex-muscle">
                     <option value="COSTAS">COSTAS</option>
                     <option value="PEITO">PEITO</option>
-                    <option value="PERNAS (QUADRÍCEPS/GLÚTEO)">PERNAS (QUADRÍCEPS/GLÚTEO)</option>
+                    <option value="PERNAS">PERNAS</option>
                     <option value="POSTERIOR DE COXA">POSTERIOR DE COXA</option>
                     <option value="PANTURRILHA">PANTURRILHA</option>
                     <option value="TRÍCEPS">TRÍCEPS</option>
@@ -600,6 +878,8 @@
         <button id="btn-nova-rotina" class="btn-main">+ NOVA ROTINA</button>
         <hr class="divider">
         <button id="btn-cronograma" class="btn-main">CRONOGRAMA</button>
+        <hr class="divider">
+        <button id="btn-dashboard" class="btn-main btn-dashboard-home">📊 DASHBOARD</button>
         <div class="nav-back" id="btn-logout" style="margin-top: 24px;">← Trocar Perfil</div>
     </div>
 
@@ -679,10 +959,223 @@
         <div id="exec-container"></div>
     </div>
 
-    <!-- INTEGRAÇÃO COM FIREBASE -->
+    <!-- TELA 5: Dashboard de BI -->
+    <div id="screen-5" class="screen">
+        <div class="bi-top-bar">
+            <div class="nav-back" id="back-from-s5" style="margin-bottom: 0;">← Voltar à Home</div>
+            <button type="button" id="btn-refresh-bi" class="btn-bi-clear">↻ Atualizar Dados</button>
+        </div>
+
+        <div id="bi-printable-area">
+            <h2 class="screen-title" style="margin-bottom: 16px;">Dashboard BI — Performance & MME</h2>
+
+            <!-- Filtro Global -->
+            <section class="bi-global-filter-card">
+                <div class="bi-global-filter-header">
+                    <h3>Filtro Global (Padrão para todos os gráficos)</h3>
+                    <button type="button" id="btn-reset-global-filter" class="btn-bi-clear">Limpar Global</button>
+                </div>
+                <div class="bi-filter-grid">
+                    <div class="bi-filter-item">
+                        <label for="bi-global-start">Data Início:</label>
+                        <input type="date" id="bi-global-start">
+                    </div>
+                    <div class="bi-filter-item">
+                        <label for="bi-global-end">Data Fim:</label>
+                        <input type="date" id="bi-global-end">
+                    </div>
+                    <div class="bi-filter-item">
+                        <label for="bi-global-rotina">Rotina:</label>
+                        <select id="bi-global-rotina">
+                            <option value="TODAS">Todas as Rotinas</option>
+                        </select>
+                    </div>
+                    <div class="bi-filter-item">
+                        <label for="bi-global-usuario">Usuário:</label>
+                        <select id="bi-global-usuario">
+                            <option value="TODOS">Todos os Usuários</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Grid dos 7 Gráficos -->
+            <div class="bi-charts-grid">
+
+                <!-- 1. Volume de Treino Válido (Esforço Bruto) -->
+                <article class="bi-card">
+                    <div class="bi-card-header">
+                        <div class="bi-card-title-row">
+                            <h4 class="bi-card-title">1. Volume de Treino Válido</h4>
+                        </div>
+                        <p class="bi-card-subtitle">Esforço Bruto: Σ (Carga × Reps) em séries válidas por data</p>
+                    </div>
+                    <div class="bi-local-filter">
+                        <span class="filter-tag">Filtro Local:</span>
+                        <select id="f1-muscle">
+                            <option value="">Grupo Muscular (Global)</option>
+                        </select>
+                        <input type="date" id="f1-date" title="Sobrepõe a data global">
+                    </div>
+                    <div class="bi-kpi-banner">
+                        <div class="bi-kpi-box">
+                            <span class="bi-kpi-label">Volume Total Válido</span>
+                            <span class="bi-kpi-value accent" id="kpi-vol-valido">0 kg</span>
+                        </div>
+                        <div class="bi-kpi-box">
+                            <span class="bi-kpi-label">Séries Válidas</span>
+                            <span class="bi-kpi-value" id="kpi-series-validas">0</span>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-1-volume"></canvas>
+                        <div id="empty-chart-1" class="chart-empty-overlay">Sem séries válidas para o filtro selecionado.</div>
+                    </div>
+                </article>
+
+                <!-- 2. Carga Máxima (Pico de Força) -->
+                <article class="bi-card">
+                    <div class="bi-card-header">
+                        <div class="bi-card-title-row">
+                            <h4 class="bi-card-title">2. Carga Máxima (Pico de Força)</h4>
+                        </div>
+                        <p class="bi-card-subtitle">Maior carga absoluta registrada (ignorando repetições)</p>
+                    </div>
+                    <div class="bi-local-filter">
+                        <span class="filter-tag">Filtro Local:</span>
+                        <select id="f2-exercise">
+                            <option value="TODOS">Todos os Exercícios</option>
+                        </select>
+                        <input type="date" id="f2-date" title="Data específica (opcional)">
+                    </div>
+                    <div class="bi-kpi-banner">
+                        <div class="bi-kpi-box">
+                            <span class="bi-kpi-label">Pico Absoluto</span>
+                            <span class="bi-kpi-value accent" id="kpi-carga-max">0 kg</span>
+                        </div>
+                        <div class="bi-kpi-box">
+                            <span class="bi-kpi-label">Exercício do Pico</span>
+                            <span class="bi-kpi-value" id="kpi-carga-ex" style="font-size: 0.95rem;">---</span>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="chart-2-maxload"></canvas>
+                        <div id="empty-chart-2" class="chart-empty-overlay">Sem dados de carga para o filtro selecionado.</div>
+                    </div>
+                </article>
+
+                <!-- 3. Volume Protagonista (Tensão Mecânica Direta) -->
+                <article class="bi-card">
+                    <div class="bi-card-header">
+                        <h4 class="bi-card-title">3. Volume Protagonista</h4>
+                        <p class="bi-card-subtitle">Tensão Mecânica Direta: (Carga × Reps) × % Protagonista</p>
+                    </div>
+                    <div class="bi-local-filter">
+                        <span class="filter-tag">Filtro Local:</span>
+                        <select id="f3-session">
+                            <option value="">Sessão/Treino (Global)</option>
+                        </select>
+                        <input type="date" id="f3-date" title="Data específica (sobrepõe global)">
+                    </div>
+                    <div class="chart-wrapper doughnut-wrapper">
+                        <canvas id="chart-3-protagonista"></canvas>
+                        <div id="empty-chart-3" class="chart-empty-overlay">Sem volume protagonista registrado no período.</div>
+                    </div>
+                </article>
+
+                <!-- 4. Volume Secundário / Sinergista (Fadiga Oculta) -->
+                <article class="bi-card">
+                    <div class="bi-card-header">
+                        <h4 class="bi-card-title">4. Volume Secundário / Sinergista</h4>
+                        <p class="bi-card-subtitle">Fadiga Oculta: (Carga × Reps) × % Secundário</p>
+                    </div>
+                    <div class="bi-local-filter">
+                        <span class="filter-tag">Filtro Local:</span>
+                        <select id="f4-session">
+                            <option value="">Sessão/Treino (Global)</option>
+                        </select>
+                        <input type="date" id="f4-date" title="Data específica (sobrepõe global)">
+                    </div>
+                    <div class="chart-wrapper doughnut-wrapper">
+                        <canvas id="chart-4-secundario"></canvas>
+                        <div id="empty-chart-4" class="chart-empty-overlay">Sem músculos secundários acionados neste filtro.</div>
+                    </div>
+                </article>
+
+                <!-- 5. Volume Terciário -->
+                <article class="bi-card">
+                    <div class="bi-card-header">
+                        <h4 class="bi-card-title">5. Volume Terciário</h4>
+                        <p class="bi-card-subtitle">Estabilizadores e Sinergistas Menores: (Carga × Reps) × % Terciário</p>
+                    </div>
+                    <div class="bi-local-filter">
+                        <span class="filter-tag">Filtro Local:</span>
+                        <select id="f5-session">
+                            <option value="">Sessão/Treino (Global)</option>
+                        </select>
+                        <input type="date" id="f5-date" title="Data específica (sobrepõe global)">
+                    </div>
+                    <div class="chart-wrapper doughnut-wrapper">
+                        <canvas id="chart-5-terciario"></canvas>
+                        <div id="empty-chart-5" class="chart-empty-overlay">Sem músculos terciários acionados neste filtro.</div>
+                    </div>
+                </article>
+
+                <!-- 6. Distribuição de Simetria (Superiores vs. Inferiores) -->
+                <article class="bi-card">
+                    <div class="bi-card-header">
+                        <h4 class="bi-card-title">6. Distribuição de Simetria</h4>
+                        <p class="bi-card-subtitle">Proporção do Volume Protagonista: Superiores vs. Inferiores</p>
+                    </div>
+                    <div class="bi-local-filter">
+                        <span class="filter-tag">Filtro Local:</span>
+                        <select id="f6-rotina">
+                            <option value="">Rotina (Usar Global)</option>
+                        </select>
+                        <input type="date" id="f6-date" title="Data específica (sobrepõe global)">
+                    </div>
+                    <div class="chart-wrapper doughnut-wrapper">
+                        <canvas id="chart-6-simetria"></canvas>
+                        <div id="empty-chart-6" class="chart-empty-overlay">Sem dados de simetria para o período.</div>
+                    </div>
+                </article>
+
+                <!-- 7. Consistência de Repetições (Queda de Rendimento) -->
+                <article class="bi-card full-width">
+                    <div class="bi-card-header">
+                        <h4 class="bi-card-title">7. Consistência de Repetições (Queda de Rendimento)</h4>
+                        <p class="bi-card-subtitle">Comparativo lado a lado: 1ª Válida vs. 2ª Válida agrupado por Data e Exercício</p>
+                    </div>
+                    <div class="bi-local-filter">
+                        <span class="filter-tag">Filtro Local:</span>
+                        <select id="f7-exercise">
+                            <option value="TODOS">Todos os Exercícios</option>
+                        </select>
+                        <input type="date" id="f7-date" title="Filtrar data específica">
+                    </div>
+                    <div class="chart-wrapper tall-wrapper">
+                        <canvas id="chart-7-consistencia"></canvas>
+                        <div id="empty-chart-7" class="chart-empty-overlay">Sem registros contendo "1ª Válida" ou "2ª Válida" para o filtro.</div>
+                    </div>
+                </article>
+
+            </div>
+        </div>
+
+        <div class="bi-export-footer">
+            <button type="button" id="btn-export-pdf" class="btn-pdf-export">📄 BAIXAR RELATÓRIO (PDF A4 - 300 DPI)</button>
+        </div>
+    </div>
+
+    <!-- INTEGRAÇÃO COM FIREBASE E MOTOR DE BI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, updateDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Registra o plugin Datalabels globalmente no Chart.js
+        if (window.Chart && window.ChartDataLabels) {
+            Chart.register(ChartDataLabels);
+        }
 
         const firebaseConfig = {
             apiKey: "AIzaSyDTyVjHdTo5vmRhqGzpyPGlLXolzu31dYo",
@@ -719,7 +1212,7 @@
             };
         }
 
-        // --- NOVO REPOSITÓRIO ROBUSTO (PLANILHA MME TRANSCRITA) ---
+        // --- REPOSITÓRIO ROBUSTO (PLANILHA MME TRANSCRITA) ---
         const exercisesRepository = [
             { nome: "Remada Articulada Fechada", musculo: "COSTAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Dorsal", pctProtagonista: 70, secundario: "Bíceps", pctSecundario: 30, terciario: null, pctTerciario: null } },
             { nome: "Remada Aberta Polia", musculo: "COSTAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Dorsal", pctProtagonista: 60, secundario: "Deltoide Posterior", pctSecundario: 25, terciario: "Bíceps", pctTerciario: 15 } },
@@ -731,12 +1224,12 @@
             { nome: "Supino Reto Halteres", musculo: "PEITO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Peitoral", pctProtagonista: 75, secundario: "Deltoide Anterior", pctSecundario: 15, terciario: "Tríceps", pctTerciario: 10 } },
             { nome: "Crossover Superior", musculo: "PEITO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Peitoral Superior", pctProtagonista: 80, secundario: "Deltoide Anterior", pctSecundario: 20, terciario: null, pctTerciario: null } },
             { nome: "Crossover Inferior", musculo: "PEITO", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Peitoral Inferior", pctProtagonista: 85, secundario: "Deltoide Anterior", pctSecundario: 15, terciario: null, pctTerciario: null } },
-            { nome: "Agachamento Búlgaro", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 60, secundario: "Glúteos", pctSecundario: 35, terciario: "Isquiotibiais", pctTerciario: 5 } },
-            { nome: "Agachamento Livre", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 60, secundario: "Glúteos", pctSecundario: 30, terciario: "Lombar", pctTerciario: 10 } },
-            { nome: "Cadeira Extensora Quadríceps Femoral", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
-            { nome: "Cadeira Extensora Unilateral", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
-            { nome: "Leg Press", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 75, secundario: "Glúteos", pctSecundario: 20, terciario: "Isquiotibiais", pctTerciario: 5 } },
-            { nome: "Hack Machine", musculo: "PERNAS (QUADRÍCEPS/GLÚTEO)", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 80, secundario: "Glúteos", pctSecundario: 20, terciario: null, pctTerciario: null } },
+            { nome: "Agachamento Búlgaro", musculo: "PERNAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 60, secundario: "Glúteos", pctSecundario: 35, terciario: "Isquiotibiais", pctTerciario: 5 } },
+            { nome: "Agachamento Livre", musculo: "PERNAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 60, secundario: "Glúteos", pctSecundario: 30, terciario: "Lombar", pctTerciario: 10 } },
+            { nome: "Cadeira Extensora Quadríceps Femoral", musculo: "PERNAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Cadeira Extensora Unilateral", musculo: "PERNAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } },
+            { nome: "Leg Press", musculo: "PERNAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 75, secundario: "Glúteos", pctSecundario: 20, terciario: "Isquiotibiais", pctTerciario: 5 } },
+            { nome: "Hack Machine", musculo: "PERNAS", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Quadríceps", pctProtagonista: 80, secundario: "Glúteos", pctSecundario: 20, terciario: null, pctTerciario: null } },
             { nome: "Mesa Flexora", musculo: "POSTERIOR DE COXA", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Isquiotibiais", pctProtagonista: 90, secundario: "Panturrilha", pctSecundario: 10, terciario: null, pctTerciario: null } },
             { nome: "Stiff", musculo: "POSTERIOR DE COXA", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Isquiotibiais", pctProtagonista: 60, secundario: "Glúteos", pctSecundario: 30, terciario: "Lombar", pctTerciario: 10 } },
             { nome: "Gêmeos em Pé", musculo: "PANTURRILHA", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Panturrilha Gastrocnêmio", pctProtagonista: 80, secundario: "Panturrilha Sóleo", pctSecundario: 20, terciario: null, pctTerciario: null } },
@@ -755,11 +1248,11 @@
             { nome: "Cadeira Abdutora", musculo: "ADUTORES/ABDUTORES", isCustom: false, criadoPor: "sistema", mme: { protagonista: "Glúteos Médio/Mínimo", pctProtagonista: 100, secundario: null, pctSecundario: null, terciario: null, pctTerciario: null } }
         ];
 
-        // Recriando o objeto para fácil consulta pelo UI antigo
         const muscleDictionary = {};
         exercisesRepository.forEach(ex => muscleDictionary[ex.nome] = ex.musculo);
 
         function obterMetadadosExercicio(nomeExercicio) {
+            if (!nomeExercicio) return null;
             return exercisesRepository.find(ex => ex.nome.toLowerCase() === nomeExercicio.toLowerCase()) || null;
         }
 
@@ -976,18 +1469,20 @@
             showToast(`"${nomeNovo}" adicionado à lista!`);
         });
 
-        // --- NAVEGAÇÃO ---
+        // --- NAVEGAÇÃO ENTRE AS 5 TELAS ---
         const screens = {
             s0: document.getElementById('screen-0'),
             s1: document.getElementById('screen-1'),
             s2: document.getElementById('screen-2'),
             s3: document.getElementById('screen-3'),
-            s4: document.getElementById('screen-4')
+            s4: document.getElementById('screen-4'),
+            s5: document.getElementById('screen-5')
         };
 
         function switchScreen(activeScreen) {
             Object.values(screens).forEach(s => s.classList.remove('active'));
             activeScreen.classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         // --- LÓGICA DE LOGIN ---
@@ -1025,6 +1520,13 @@
         });
         document.getElementById('back-to-home').addEventListener('click', () => switchScreen(screens.s1));
         document.getElementById('back-to-menu').addEventListener('click', () => switchScreen(screens.s3));
+
+        // Navegação para a TELA 5 (Dashboard)
+        document.getElementById('btn-dashboard').addEventListener('click', () => {
+            switchScreen(screens.s5);
+            carregarDadosDashboardBI();
+        });
+        document.getElementById('back-from-s5').addEventListener('click', () => switchScreen(screens.s1));
 
         // --- TELA 2: AGRUPAMENTO POR MÚSCULO ---
         const exerciseContainer = document.getElementById('exercise-container');
@@ -1122,7 +1624,6 @@
                 const objExercicio = { nome, series };
                 const meta = obterMetadadosExercicio(nome);
                 
-                // Envia a estrutura pro Firebase ao criar a rotina
                 if (meta) {
                     objExercicio.mme = meta.mme;
                     if(meta.isCustom) {
@@ -1186,7 +1687,7 @@
                 btnConcluirRotina.disabled = true;
                 btnConcluirRotina.textContent = "SALVANDO NO BANCO...";
 
-                const docRef = await addDoc(collection(db, "rotinas"), pacoteRotina);
+                await addDoc(collection(db, "rotinas"), pacoteRotina);
                 showToast("Rotina salva no Firebase com sucesso!");
 
                 sessoesTemporarias = [];
@@ -1285,7 +1786,6 @@
             
             const groups = {};
             session.exercicios.forEach(ex => {
-                const meta = obterMetadadosExercicio(ex.nome);
                 const muscle = muscleDictionary[ex.nome] || (ex.mme?.protagonista) || "OUTROS";
                 if (!groups[muscle]) groups[muscle] = [];
                 groups[muscle].push(ex);
@@ -1365,7 +1865,6 @@
                                 atualizadoEm: new Date().toISOString()
                             };
 
-                            // O coração da integração BI: Anexa MME fracionado exato de todos os exercícios!
                             const meta = obterMetadadosExercicio(ex.nome);
                             dadosExercicio.mme = meta?.mme || ex.mme || criarEstruturaMmeFallback(muscle).mme;
                             
@@ -1438,6 +1937,764 @@
         }
 
         sessionSelect.addEventListener('change', (e) => renderSession(rotinaAtivaAtual.sessoes[e.target.value]));
+
+        /* =========================================================================
+           MOTOR DO DASHBOARD DE BI (TELA 5)
+           ========================================================================= */
+        let rawTreinosExecutados = [];
+        const chartInstances = {};
+
+        // Paleta vibrante otimizada para Dark Mode
+        const BI_PALETTE = [
+            '#bb86fc', '#03dac6', '#ff7597', '#ffb74d', '#4fc3f7',
+            '#aed581', '#ba68c8', '#fff176', '#ff8a65', '#90a4ae', '#f06292'
+        ];
+
+        // Referências de Filtros Globais
+        const biGlobalStart = document.getElementById('bi-global-start');
+        const biGlobalEnd = document.getElementById('bi-global-end');
+        const biGlobalRotina = document.getElementById('bi-global-rotina');
+        const biGlobalUsuario = document.getElementById('bi-global-usuario');
+
+        // Referências de Filtros Locais (Gráficos 1 a 7)
+        const f1Muscle = document.getElementById('f1-muscle');
+        const f1Date = document.getElementById('f1-date');
+        const f2Exercise = document.getElementById('f2-exercise');
+        const f2Date = document.getElementById('f2-date');
+        const f3Session = document.getElementById('f3-session');
+        const f3Date = document.getElementById('f3-date');
+        const f4Session = document.getElementById('f4-session');
+        const f4Date = document.getElementById('f4-date');
+        const f5Session = document.getElementById('f5-session');
+        const f5Date = document.getElementById('f5-date');
+        const f6Rotina = document.getElementById('f6-rotina');
+        const f6Date = document.getElementById('f6-date');
+        const f7Exercise = document.getElementById('f7-exercise');
+        const f7Date = document.getElementById('f7-date');
+
+        // Regra de Negócio Crítica: Ignorar séries de "Reconhecimento"
+        function ehSerieValida(serieObj) {
+            if (!serieObj || !serieObj.serie) return false;
+            return serieObj.serie.trim().toLowerCase() !== 'reconhecimento';
+        }
+
+        // Classificador de Simetria (Superiores vs. Inferiores)
+        function classificarSimetria(docItem, mmeData) {
+            const textoAlvo = `${docItem.musculo || ''} ${mmeData?.protagonista || ''}`.toUpperCase();
+            const termosInferiores = [
+                'PERNA', 'QUADRÍCEPS', 'QUADRICEPS', 'GLÚTEO', 'GLUTEO',
+                'POSTERIOR', 'ISQUIOTIBIAIS', 'PANTURRILHA', 'GASTROCNÊMIO',
+                'SÓLEO', 'SOLEO', 'ADUTOR', 'ABDUTOR', 'COXA'
+            ];
+            for (const termo of termosInferiores) {
+                if (textoAlvo.includes(termo)) return 'INFERIORES';
+            }
+            return 'SUPERIORES';
+        }
+
+        function formatarDataCurta(isoDateStr) {
+            if (!isoDateStr || !isoDateStr.includes('-')) return isoDateStr || 'S/D';
+            const [ano, mes, dia] = isoDateStr.split('-');
+            return `${dia}/${mes}`;
+        }
+
+        // Busca dados na coleção treinos_executados
+        async function carregarDadosDashboardBI() {
+            try {
+                showToast("Carregando métricas do BI...");
+                const snap = await getDocs(collection(db, "treinos_executados"));
+                rawTreinosExecutados = [];
+
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    // Garante que o objeto MME exista mesmo em registros antigos
+                    const meta = obterMetadadosExercicio(data.exercicio);
+                    const mmeResolvido = data.mme || meta?.mme || criarEstruturaMmeFallback(data.musculo || "OUTROS").mme;
+                    rawTreinosExecutados.push({
+                        id: docSnap.id,
+                        ...data,
+                        mme: mmeResolvido
+                    });
+                });
+
+                popularSelectsDoDashboard();
+                atualizarTodosOsGraficos();
+            } catch (error) {
+                console.error("Erro ao carregar dados do BI:", error);
+                showToast("Erro ao buscar dados de BI no Firestore.");
+            }
+        }
+
+        function popularSelectsDoDashboard() {
+            const rotinasSet = new Set();
+            const usuariosSet = new Set();
+            const musculosSet = new Set();
+            const exerciciosSet = new Set();
+            const sessoesSet = new Set();
+
+            rawTreinosExecutados.forEach(item => {
+                if (item.nomeRotina) rotinasSet.add(item.nomeRotina.toUpperCase());
+                if (item.usuario) usuariosSet.add(item.usuario);
+                if (item.musculo) musculosSet.add(item.musculo.toUpperCase());
+                if (item.exercicio) exerciciosSet.add(item.exercicio);
+                if (item.nomeTreino) sessoesSet.add(item.nomeTreino.toUpperCase());
+            });
+
+            // Preserva seleções ou define padrão
+            preencherSelect(biGlobalRotina, Array.from(rotinasSet).sort(), "TODAS", "Todas as Rotinas");
+            
+            const defaultUser = usuarioAtivo && usuariosSet.has(usuarioAtivo) ? usuarioAtivo : "TODOS";
+            preencherSelect(biGlobalUsuario, Array.from(usuariosSet).sort(), defaultUser, "Todos os Usuários");
+
+            preencherSelect(f1Muscle, Array.from(musculosSet).sort(), "", "Grupo Muscular (Global)");
+            
+            const listaExercicios = Array.from(exerciciosSet).sort();
+            preencherSelect(f2Exercise, listaExercicios, "TODOS", "Todos os Exercícios");
+            preencherSelect(f7Exercise, listaExercicios, "TODOS", "Todos os Exercícios");
+
+            const listaSessoes = Array.from(sessoesSet).sort();
+            preencherSelect(f3Session, listaSessoes, "", "Sessão/Treino (Global)");
+            preencherSelect(f4Session, listaSessoes, "", "Sessão/Treino (Global)");
+            preencherSelect(f5Session, listaSessoes, "", "Sessão/Treino (Global)");
+
+            preencherSelect(f6Rotina, Array.from(rotinasSet).sort(), "", "Rotina (Usar Global)");
+        }
+
+        function preencherSelect(selectEl, valuesArray, defaultVal, firstLabel) {
+            const valorAtual = selectEl.value;
+            selectEl.innerHTML = `<option value="${defaultVal === 'TODOS' || defaultVal === 'TODAS' ? defaultVal : ''}">${firstLabel}</option>`;
+            valuesArray.forEach(val => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = val;
+                selectEl.appendChild(opt);
+            });
+            if (valorAtual && Array.from(selectEl.options).some(o => o.value === valorAtual)) {
+                selectEl.value = valorAtual;
+            } else if (defaultVal && Array.from(selectEl.options).some(o => o.value === defaultVal)) {
+                selectEl.value = defaultVal;
+            }
+        }
+
+        /**
+         * Filtra os documentos combinando o Filtro Global com as sobreposições do Filtro Individual
+         * Se um filtro local (ex: localDate ou localRotina) estiver preenchido, ele sobrepõe o Global.
+         */
+        function filtrarRegistros({ localDate = '', localRotina = '', localMuscle = '', localExercise = '', localSession = '' } = {}) {
+            const gStart = biGlobalStart.value;
+            const gEnd = biGlobalEnd.value;
+            const gRotina = biGlobalRotina.value;
+            const gUsuario = biGlobalUsuario.value;
+
+            return rawTreinosExecutados.filter(docItem => {
+                // 1. Filtro de Usuário
+                if (gUsuario && gUsuario !== 'TODOS') {
+                    if ((docItem.usuario || '').toLowerCase() !== gUsuario.toLowerCase()) return false;
+                }
+
+                // 2. Filtro de Rotina (Local sobrepõe Global)
+                const rotinaAlvo = localRotina || (gRotina !== 'TODAS' ? gRotina : '');
+                if (rotinaAlvo) {
+                    if ((docItem.nomeRotina || '').toUpperCase() !== rotinaAlvo.toUpperCase()) return false;
+                }
+
+                // 3. Filtro de Data (Local sobrepõe o período Global)
+                const dataDoc = docItem.dataExecucao || '';
+                if (localDate) {
+                    if (dataDoc !== localDate) return false;
+                } else {
+                    if (gStart && dataDoc < gStart) return false;
+                    if (gEnd && dataDoc > gEnd) return false;
+                }
+
+                // 4. Filtros específicos do Card
+                if (localMuscle && (docItem.musculo || '').toUpperCase() !== localMuscle.toUpperCase()) {
+                    return false;
+                }
+                if (localExercise && localExercise !== 'TODOS' && (docItem.exercicio || '').toLowerCase() !== localExercise.toLowerCase()) {
+                    return false;
+                }
+                if (localSession && (docItem.nomeTreino || '').toUpperCase() !== localSession.toUpperCase()) {
+                    return false;
+                }
+
+                return true;
+            });
+        }
+
+        function alternarEmptyState(emptyId, isEmpty) {
+            const el = document.getElementById(emptyId);
+            if (el) el.classList.toggle('visible', isEmpty);
+        }
+
+        function destruirGraficoSeExistir(key) {
+            if (chartInstances[key]) {
+                chartInstances[key].destroy();
+                delete chartInstances[key];
+            }
+        }
+
+        // --- CONFIGURAÇÃO PADRÃO PARA GRÁFICOS DE ROSCA (REGRAS DE UI: SEM LEGENDA + DATALABELS AO LADO) ---
+        function criarConfigRosca(labels, valores, sufixoUnidade = '%') {
+            const total = valores.reduce((acc, v) => acc + v, 0);
+            return {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: labels.map((_, i) => BI_PALETTE[i % BI_PALETTE.length]),
+                        borderColor: '#1e1e1e',
+                        borderWidth: 2,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '58%',
+                    layout: {
+                        padding: { top: 32, bottom: 32, left: 42, right: 42 }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // Regra de UI: Sem legenda padrão
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => {
+                                    const val = ctx.raw || 0;
+                                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                                    return ` ${ctx.label}: ${Math.round(val).toLocaleString('pt-BR')} kg (${pct}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            color: '#e0e0e0',
+                            anchor: 'end',
+                            align: 'end',
+                            offset: 4,
+                            clamp: true,
+                            font: {
+                                weight: 'bold',
+                                size: 11
+                            },
+                            formatter: (value, ctx) => {
+                                if (!total || value <= 0) return null;
+                                const pct = ((value / total) * 100).toFixed(1);
+                                const nome = ctx.chart.data.labels[ctx.dataIndex];
+                                if (sufixoUnidade === 'kg_pct') {
+                                    return `${nome}\n${Math.round(value)}kg (${pct}%)`;
+                                }
+                                return `${nome}\n${pct}%`;
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        // =========================================================================
+        // 1. VOLUME DE TREINO VÁLIDO (ESFORÇO BRUTO)
+        // =========================================================================
+        function renderizarGrafico1Volume() {
+            const dados = filtrarRegistros({
+                localMuscle: f1Muscle.value,
+                localDate: f1Date.value
+            });
+
+            const volumePorData = {};
+            let volumeTotal = 0;
+            let totalSeriesValidas = 0;
+
+            dados.forEach(docItem => {
+                const dataKey = docItem.dataExecucao || 'Sem Data';
+                if (!Array.isArray(docItem.series)) return;
+
+                docItem.series.forEach(s => {
+                    if (!ehSerieValida(s)) return;
+                    const vol = (Number(s.kg) || 0) * (Number(s.reps) || 0);
+                    volumeTotal += vol;
+                    totalSeriesValidas++;
+                    volumePorData[dataKey] = (volumePorData[dataKey] || 0) + vol;
+                });
+            });
+
+            document.getElementById('kpi-vol-valido').textContent = `${Math.round(volumeTotal).toLocaleString('pt-BR')} kg`;
+            document.getElementById('kpi-series-validas').textContent = totalSeriesValidas;
+
+            const datasOrdenadas = Object.keys(volumePorData).sort();
+            const valores = datasOrdenadas.map(d => volumePorData[d]);
+
+            alternarEmptyState('empty-chart-1', datasOrdenadas.length === 0);
+            destruirGraficoSeExistir('c1');
+
+            if (datasOrdenadas.length === 0) return;
+
+            const ctx = document.getElementById('chart-1-volume').getContext('2d');
+            chartInstances['c1'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: datasOrdenadas.map(formatarDataCurta),
+                    datasets: [{
+                        label: 'Volume Válido (kg)',
+                        data: valores,
+                        backgroundColor: '#bb86fc',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            color: '#e0e0e0',
+                            anchor: 'end',
+                            align: 'top',
+                            font: { weight: 'bold', size: 10 },
+                            formatter: (val) => `${Math.round(val)}kg`
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#a0a0a0' }, grid: { color: '#262626' } },
+                        y: {
+                            beginAtZero: true,
+                            grace: '15%',
+                            ticks: { color: '#a0a0a0' },
+                            grid: { color: '#262626' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // =========================================================================
+        // 2. CARGA MÁXIMA (PICO DE FORÇA)
+        // =========================================================================
+        function renderizarGrafico2CargaMaxima() {
+            const dados = filtrarRegistros({
+                localExercise: f2Exercise.value,
+                localDate: f2Date.value
+            });
+
+            const picoPorData = {};
+            let maiorCargaGlobal = 0;
+            let exercicioDoPico = '---';
+
+            dados.forEach(docItem => {
+                const dataKey = docItem.dataExecucao || 'Sem Data';
+                if (!Array.isArray(docItem.series)) return;
+
+                docItem.series.forEach(s => {
+                    if (!ehSerieValida(s)) return;
+                    const carga = Number(s.kg) || 0;
+                    if (carga > maiorCargaGlobal) {
+                        maiorCargaGlobal = carga;
+                        exercicioDoPico = docItem.exercicio || '---';
+                    }
+                    if (!picoPorData[dataKey] || carga > picoPorData[dataKey]) {
+                        picoPorData[dataKey] = carga;
+                    }
+                });
+            });
+
+            document.getElementById('kpi-carga-max').textContent = `${maiorCargaGlobal} kg`;
+            document.getElementById('kpi-carga-ex').textContent = exercicioDoPico;
+
+            const datasOrdenadas = Object.keys(picoPorData).sort();
+            const valores = datasOrdenadas.map(d => picoPorData[d]);
+
+            alternarEmptyState('empty-chart-2', datasOrdenadas.length === 0);
+            destruirGraficoSeExistir('c2');
+
+            if (datasOrdenadas.length === 0) return;
+
+            const ctx = document.getElementById('chart-2-maxload').getContext('2d');
+            chartInstances['c2'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: datasOrdenadas.map(formatarDataCurta),
+                    datasets: [{
+                        label: 'Pico de Carga (kg)',
+                        data: valores,
+                        borderColor: '#03dac6',
+                        backgroundColor: 'rgba(3, 218, 198, 0.2)',
+                        tension: 0.25,
+                        fill: true,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#03dac6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            color: '#03dac6',
+                            anchor: 'end',
+                            align: 'top',
+                            font: { weight: 'bold', size: 11 },
+                            formatter: (val) => `${val}kg`
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#a0a0a0' }, grid: { color: '#262626' } },
+                        y: {
+                            beginAtZero: true,
+                            grace: '18%',
+                            ticks: { color: '#a0a0a0' },
+                            grid: { color: '#262626' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // =========================================================================
+        // 3. VOLUME PROTAGONISTA (TENSÃO MECÂNICA DIRETA)
+        // =========================================================================
+        function renderizarGrafico3Protagonista() {
+            const dados = filtrarRegistros({
+                localSession: f3Session.value,
+                localDate: f3Date.value
+            });
+
+            const mapaProtagonista = {};
+
+            dados.forEach(docItem => {
+                if (!Array.isArray(docItem.series)) return;
+                const mme = docItem.mme || criarEstruturaMmeFallback(docItem.musculo || 'OUTROS').mme;
+                const musculoProt = mme.protagonista || docItem.musculo || 'Outros';
+                const pctProt = Number(mme.pctProtagonista) || 100;
+
+                docItem.series.forEach(s => {
+                    if (!ehSerieValida(s)) return;
+                    const volBruto = (Number(s.kg) || 0) * (Number(s.reps) || 0);
+                    const volProt = volBruto * (pctProt / 100);
+                    if (volProt > 0) {
+                        mapaProtagonista[musculoProt] = (mapaProtagonista[musculoProt] || 0) + volProt;
+                    }
+                });
+            });
+
+            const labels = Object.keys(mapaProtagonista);
+            const valores = labels.map(k => mapaProtagonista[k]);
+
+            alternarEmptyState('empty-chart-3', labels.length === 0);
+            destruirGraficoSeExistir('c3');
+
+            if (labels.length === 0) return;
+
+            const ctx = document.getElementById('chart-3-protagonista').getContext('2d');
+            chartInstances['c3'] = new Chart(ctx, criarConfigRosca(labels, valores, 'pct'));
+        }
+
+        // =========================================================================
+        // 4. VOLUME SECUNDÁRIO / SINERGISTA (FADIGA OCULTA)
+        // =========================================================================
+        function renderizarGrafico4Secundario() {
+            const dados = filtrarRegistros({
+                localSession: f4Session.value,
+                localDate: f4Date.value
+            });
+
+            const mapaSecundario = {};
+
+            dados.forEach(docItem => {
+                if (!Array.isArray(docItem.series)) return;
+                const mme = docItem.mme;
+                if (!mme || !mme.secundario || !mme.pctSecundario) return;
+
+                const musculoSec = mme.secundario;
+                const pctSec = Number(mme.pctSecundario) || 0;
+                if (pctSec <= 0) return;
+
+                docItem.series.forEach(s => {
+                    if (!ehSerieValida(s)) return;
+                    const volBruto = (Number(s.kg) || 0) * (Number(s.reps) || 0);
+                    const volSec = volBruto * (pctSec / 100);
+                    if (volSec > 0) {
+                        mapaSecundario[musculoSec] = (mapaSecundario[musculoSec] || 0) + volSec;
+                    }
+                });
+            });
+
+            const labels = Object.keys(mapaSecundario);
+            const valores = labels.map(k => mapaSecundario[k]);
+
+            alternarEmptyState('empty-chart-4', labels.length === 0);
+            destruirGraficoSeExistir('c4');
+
+            if (labels.length === 0) return;
+
+            const ctx = document.getElementById('chart-4-secundario').getContext('2d');
+            chartInstances['c4'] = new Chart(ctx, criarConfigRosca(labels, valores, 'kg_pct'));
+        }
+
+        // =========================================================================
+        // 5. VOLUME TERCIÁRIO
+        // =========================================================================
+        function renderizarGrafico5Terciario() {
+            const dados = filtrarRegistros({
+                localSession: f5Session.value,
+                localDate: f5Date.value
+            });
+
+            const mapaTerciario = {};
+
+            dados.forEach(docItem => {
+                if (!Array.isArray(docItem.series)) return;
+                const mme = docItem.mme;
+                if (!mme || !mme.terciario || !mme.pctTerciario) return;
+
+                const musculoTerc = mme.terciario;
+                const pctTerc = Number(mme.pctTerciario) || 0;
+                if (pctTerc <= 0) return;
+
+                docItem.series.forEach(s => {
+                    if (!ehSerieValida(s)) return;
+                    const volBruto = (Number(s.kg) || 0) * (Number(s.reps) || 0);
+                    const volTerc = volBruto * (pctTerc / 100);
+                    if (volTerc > 0) {
+                        mapaTerciario[musculoTerc] = (mapaTerciario[musculoTerc] || 0) + volTerc;
+                    }
+                });
+            });
+
+            const labels = Object.keys(mapaTerciario);
+            const valores = labels.map(k => mapaTerciario[k]);
+
+            alternarEmptyState('empty-chart-5', labels.length === 0);
+            destruirGraficoSeExistir('c5');
+
+            if (labels.length === 0) return;
+
+            const ctx = document.getElementById('chart-5-terciario').getContext('2d');
+            chartInstances['c5'] = new Chart(ctx, criarConfigRosca(labels, valores, 'kg_pct'));
+        }
+
+        // =========================================================================
+        // 6. DISTRIBUIÇÃO DE SIMETRIA (SUPERIORES VS. INFERIORES)
+        // =========================================================================
+        function renderizarGrafico6Simetria() {
+            const dados = filtrarRegistros({
+                localRotina: f6Rotina.value,
+                localDate: f6Date.value
+            });
+
+            const simetria = { SUPERIORES: 0, INFERIORES: 0 };
+
+            dados.forEach(docItem => {
+                if (!Array.isArray(docItem.series)) return;
+                const mme = docItem.mme || criarEstruturaMmeFallback(docItem.musculo || 'OUTROS').mme;
+                const pctProt = Number(mme.pctProtagonista) || 100;
+                const categoria = classificarSimetria(docItem, mme);
+
+                docItem.series.forEach(s => {
+                    if (!ehSerieValida(s)) return;
+                    const volBruto = (Number(s.kg) || 0) * (Number(s.reps) || 0);
+                    const volProt = volBruto * (pctProt / 100);
+                    simetria[categoria] += volProt;
+                });
+            });
+
+            const totalSimetria = simetria.SUPERIORES + simetria.INFERIORES;
+            alternarEmptyState('empty-chart-6', totalSimetria <= 0);
+            destruirGraficoSeExistir('c6');
+
+            if (totalSimetria <= 0) return;
+
+            const labels = ['SUPERIORES', 'INFERIORES'];
+            const valores = [simetria.SUPERIORES, simetria.INFERIORES];
+
+            const ctx = document.getElementById('chart-6-simetria').getContext('2d');
+            chartInstances['c6'] = new Chart(ctx, criarConfigRosca(labels, valores, 'pct'));
+        }
+
+        // =========================================================================
+        // 7. CONSISTÊNCIA DE REPETIÇÕES (1ª VÁLIDA VS. 2ª VÁLIDA)
+        // =========================================================================
+        function renderizarGrafico7Consistencia() {
+            const dados = filtrarRegistros({
+                localExercise: f7Exercise.value,
+                localDate: f7Date.value
+            });
+
+            // Ordena cronologicamente
+            const registrosOrdenados = [...dados].sort((a, b) => (a.dataExecucao || '').localeCompare(b.dataExecucao || ''));
+
+            const labels = [];
+            const reps1Valida = [];
+            const reps2Valida = [];
+
+            registrosOrdenados.forEach(docItem => {
+                if (!Array.isArray(docItem.series)) return;
+
+                const s1 = docItem.series.find(s => (s.serie || '').trim().toLowerCase() === '1ª válida');
+                const s2 = docItem.series.find(s => (s.serie || '').trim().toLowerCase() === '2ª válida');
+
+                if (s1 || s2) {
+                    const dataCurta = formatarDataCurta(docItem.dataExecucao);
+                    const nomeExCurto = (docItem.exercicio || 'Exercício').slice(0, 18);
+                    labels.push(`${dataCurta} - ${nomeExCurto}`);
+                    reps1Valida.push(s1 ? Number(s1.reps) || 0 : 0);
+                    reps2Valida.push(s2 ? Number(s2.reps) || 0 : 0);
+                }
+            });
+
+            alternarEmptyState('empty-chart-7', labels.length === 0);
+            destruirGraficoSeExistir('c7');
+
+            if (labels.length === 0) return;
+
+            const ctx = document.getElementById('chart-7-consistencia').getContext('2d');
+            chartInstances['c7'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '1ª Válida (Reps)',
+                            data: reps1Valida,
+                            backgroundColor: '#bb86fc',
+                            borderRadius: 4
+                        },
+                        {
+                            label: '2ª Válida (Reps)',
+                            data: reps2Valida,
+                            backgroundColor: '#03dac6',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: '#e0e0e0' }
+                        },
+                        datalabels: {
+                            color: '#e0e0e0',
+                            anchor: 'end',
+                            align: 'top',
+                            font: { weight: 'bold', size: 10 },
+                            formatter: (val) => val > 0 ? val : ''
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#a0a0a0', maxRotation: 35, minRotation: 0, font: { size: 10 } },
+                            grid: { color: '#262626' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grace: '18%',
+                            ticks: { color: '#a0a0a0', stepSize: 2 },
+                            grid: { color: '#262626' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function atualizarTodosOsGraficos() {
+            renderizarGrafico1Volume();
+            renderizarGrafico2CargaMaxima();
+            renderizarGrafico3Protagonista();
+            renderizarGrafico4Secundario();
+            renderizarGrafico5Terciario();
+            renderizarGrafico6Simetria();
+            renderizarGrafico7Consistencia();
+        }
+
+        // Eventos do Filtro Global
+        [biGlobalStart, biGlobalEnd, biGlobalRotina, biGlobalUsuario].forEach(el => {
+            el.addEventListener('change', atualizarTodosOsGraficos);
+        });
+
+        document.getElementById('btn-reset-global-filter').addEventListener('click', () => {
+            biGlobalStart.value = '';
+            biGlobalEnd.value = '';
+            biGlobalRotina.value = 'TODAS';
+            biGlobalUsuario.value = 'TODOS';
+            atualizarTodosOsGraficos();
+        });
+
+        document.getElementById('btn-refresh-bi').addEventListener('click', carregarDadosDashboardBI);
+
+        // Eventos dos Filtros Individuais (Cada um atualiza apenas o seu gráfico correspondente)
+        f1Muscle.addEventListener('change', renderizarGrafico1Volume);
+        f1Date.addEventListener('change', renderizarGrafico1Volume);
+
+        f2Exercise.addEventListener('change', renderizarGrafico2CargaMaxima);
+        f2Date.addEventListener('change', renderizarGrafico2CargaMaxima);
+
+        f3Session.addEventListener('change', renderizarGrafico3Protagonista);
+        f3Date.addEventListener('change', renderizarGrafico3Protagonista);
+
+        f4Session.addEventListener('change', renderizarGrafico4Secundario);
+        f4Date.addEventListener('change', renderizarGrafico4Secundario);
+
+        f5Session.addEventListener('change', renderizarGrafico5Terciario);
+        f5Date.addEventListener('change', renderizarGrafico5Terciario);
+
+        f6Rotina.addEventListener('change', renderizarGrafico6Simetria);
+        f6Date.addEventListener('change', renderizarGrafico6Simetria);
+
+        f7Exercise.addEventListener('change', renderizarGrafico7Consistencia);
+        f7Date.addEventListener('change', renderizarGrafico7Consistencia);
+
+        // =========================================================================
+        // EXPORTAÇÃO DE RELATÓRIO PDF (A4 - 300 DPI)
+        // =========================================================================
+        const btnExportPdf = document.getElementById('btn-export-pdf');
+        btnExportPdf.addEventListener('click', async () => {
+            const printableArea = document.getElementById('bi-printable-area');
+            if (!window.html2pdf) {
+                showToast("Biblioteca de PDF não carregada.");
+                return;
+            }
+
+            try {
+                btnExportPdf.disabled = true;
+                btnExportPdf.textContent = "GERANDO PDF (300 DPI)... AGUARDE";
+                printableArea.classList.add('pdf-export-mode');
+
+                const dataHoje = new Date().toISOString().slice(0, 10);
+                // Para folha A4 (210mm x 297mm) a 300 DPI (~2480 x 3508 px), usamos scale: 3.125 sobre a base de 96 DPI
+                const opt = {
+                    margin: [8, 8, 8, 8],
+                    filename: `Relatorio_BI_Treinos_${usuarioAtivo || 'Geral'}_${dataHoje}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: {
+                        scale: 3.125, // Resolução de 300 DPI real
+                        useCORS: true,
+                        backgroundColor: '#121212',
+                        logging: false
+                    },
+                    jsPDF: {
+                        unit: 'mm',
+                        format: 'a4',
+                        orientation: 'portrait'
+                    },
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                };
+
+                await window.html2pdf().set(opt).from(printableArea).save();
+                showToast("Relatório PDF A4 (300 DPI) baixado com sucesso!");
+            } catch (err) {
+                console.error("Erro ao exportar PDF:", err);
+                showToast("Erro ao gerar o PDF.");
+            } finally {
+                printableArea.classList.remove('pdf-export-mode');
+                btnExportPdf.disabled = false;
+                btnExportPdf.textContent = "📄 BAIXAR RELATÓRIO (PDF A4 - 300 DPI)";
+            }
+        });
     </script>
 </body>
 </html>
