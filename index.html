@@ -200,11 +200,58 @@
             border: 1px solid var(--text-secondary);
         }
 
+        /* ---- ESTILOS ADICIONAIS TELA 2 & FEEDBACK ---- */
+        .exercise-selector { margin-bottom: 24px; }
+        .exercise-selector select {
+            width: 100%; background: var(--surface-color); border: 1px solid var(--border-color);
+            color: var(--accent-color); padding: 14px; border-radius: var(--border-radius);
+            font-size: 1.05rem; font-weight: bold; cursor: pointer;
+        }
+        #exercise-container { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+        .exercise-card {
+            background: var(--surface-color); border: 1px solid var(--accent-color);
+            border-radius: var(--border-radius); padding: 16px; display: flex; flex-direction: column; gap: 12px;
+        }
+        .exercise-card-title {
+            text-align: center; font-size: 1.15rem; color: var(--accent-color);
+            padding-bottom: 8px; border-bottom: 1px solid var(--border-color);
+        }
+        .set-row {
+            background: var(--bg-color); padding: 10px; border-radius: 6px;
+            text-align: center; font-weight: 600; color: var(--text-primary);
+        }
+        .card-controls { display: flex; justify-content: flex-end; gap: 12px; margin-top: 4px; }
+        .btn-control {
+            background: transparent; border: 1px solid var(--text-primary); color: var(--text-primary);
+            width: 34px; height: 34px; border-radius: 50%; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .form-actions { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; padding-bottom: 40px; }
+        .btn-secondary {
+            background: var(--surface-highlight); color: var(--text-primary); border: 1px solid var(--border-color);
+            padding: 16px; border-radius: var(--border-radius); font-weight: 600; cursor: pointer; text-transform: uppercase;
+        }
+        .btn-primary {
+            background: var(--accent-color); color: #000; border: none;
+            padding: 16px; border-radius: var(--border-radius); font-weight: 700; cursor: pointer; text-transform: uppercase;
+        }
+        /* Toast de notificação sem usar alert() */
+        #toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--accent-color); color: #000; padding: 12px 24px; border-radius: 8px;
+            font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.5); opacity: 0;
+            pointer-events: none; transition: opacity 0.3s ease; z-index: 1000; text-align: center;
+        }
+        #toast.show { opacity: 1; }
+
         /* Utilitários */
         .nav-back { color: var(--text-secondary); cursor: pointer; margin-bottom: 24px; display: inline-block; font-size: 0.9rem; }
     </style>
 </head>
 <body>
+
+    <!-- Notificação Toast -->
+    <div id="toast">Salvo com sucesso!</div>
 
     <!-- TELA 1: Página Inicial -->
     <div id="screen-1" class="screen active">
@@ -213,14 +260,54 @@
         <button id="btn-cronograma" class="btn-main">CRONOGRAMA</button>
     </div>
 
-    <!-- TELA 2: (Omitida visualmente para brevidade, mas a lógica está preservada se precisar) -->
+    <!-- TELA 2: Cadastro de Rotina (Completa) -->
+    <div id="screen-2" class="screen">
+        <div class="nav-back" id="back-from-s2">← Cancelar e Voltar</div>
+        <header class="header-form">
+            <div class="input-group">
+                <label for="input-nome">NOME DA ROTINA:</label>
+                <input type="text" id="input-nome" placeholder="Ex: Full Body">
+            </div>
+            <div class="input-group">
+                <label for="select-dia">DATA REFERÊNCIA:</label>
+                <select id="select-dia">
+                    <option value="SEGUNDA">SEGUNDA</option>
+                    <option value="TERÇA">TERÇA</option>
+                    <option value="QUARTA">QUARTA</option>
+                    <option value="QUINTA">QUINTA</option>
+                    <option value="SEXTA">SEXTA</option>
+                    <option value="SÁBADO">SÁBADO</option>
+                    <option value="DOMINGO">DOMINGO</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="input-treino">NOME DO TREINO:</label>
+                <input type="text" id="input-treino" placeholder="Ex: SESSÃO 1">
+            </div>
+        </header>
+
+        <div class="exercise-selector">
+            <select id="dropdown-add-exercise">
+                <option value="" disabled selected>+ Escolher Exercício...</option>
+            </select>
+        </div>
+
+        <div id="exercise-container"></div>
+
+        <div class="form-actions">
+            <button type="button" id="btn-salvar-dia" class="btn-secondary">Salvar e Adicionar Outro Dia</button>
+            <button type="button" id="btn-concluir-rotina" class="btn-primary">Concluir Rotina</button>
+        </div>
+    </div>
 
     <!-- TELA 3: Menu do Cronograma -->
     <div id="screen-3" class="screen">
         <div class="nav-back" id="back-to-home">← Voltar</div>
         <h2 class="screen-title">Suas Rotinas</h2>
-        <!-- Botão gerado para a rotina Mockada -->
-        <button class="btn-main" id="btn-open-mock">FULL BODY</button>
+        <!-- Lista de rotinas vindas do Firebase + Mock -->
+        <div id="routines-list" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+            <button class="btn-main" id="btn-open-mock">FULL BODY (EXEMPLO)</button>
+        </div>
     </div>
 
     <!-- TELA 4: Execução do Treino -->
@@ -249,8 +336,39 @@
         <div id="exec-container"></div>
     </div>
 
-    <script>
-        // --- DICIONÁRIO DE MÚSCULOS ---
+    <!-- ================================================================= -->
+    <!-- INTEGRAÇÃO COM FIREBASE FIRESTORE (SDK Modular via CDN)           -->
+    <!-- ================================================================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // =================================================================
+        // INSIRA SUAS CHAVES DO FIREBASE AQUI (Já preenchido com seu bloco)
+        // =================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDTyVjHdTo5vmRhqGzpyPGlLXolzu31dYo",
+            authDomain: "painel-fotografico-galpao.firebaseapp.com",
+            projectId: "painel-fotografico-galpao",
+            storageBucket: "painel-fotografico-galpao.firebasestorage.app",
+            messagingSenderId: "521603564212",
+            appId: "1:521603564212:web:e4585543f470e214b54de1",
+            measurementId: "G-0QX19DYWT5"
+        };
+
+        // Inicializa o Firebase e o banco de dados Firestore
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Função utilitária de aviso visual (substitui alert)
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // --- DICIONÁRIO DE MÚSCULOS E LISTA DE EXERCÍCIOS ---
         const muscleDictionary = {
             "Remada Articulada Fechada": "COSTAS",
             "Remada Aberta Polia": "COSTAS",
@@ -286,9 +404,18 @@
             "Cadeira Abdutora": "ADUTORES/ABDUTORES"
         };
 
-        // --- DADOS MOCKADOS (Simulando uma rotina salva na Tela 2) ---
+        // Popular dropdown da Tela 2 com os exercícios exclusivos
+        const dropdownAddExercise = document.getElementById('dropdown-add-exercise');
+        Object.keys(muscleDictionary).forEach(exName => {
+            const opt = document.createElement('option');
+            opt.value = exName;
+            opt.textContent = exName;
+            dropdownAddExercise.appendChild(opt);
+        });
+
+        // --- DADOS MOCKADOS (Mantidos como exemplo rápido) ---
         const mockRoutineData = {
-            nomeRotina: "FULL BODY",
+            nomeRotina: "FULL BODY (EXEMPLO)",
             sessoes: [
                 {
                     nomeSessao: "SESSÃO 1",
@@ -305,24 +432,23 @@
                     diaSessao: "QUINTA",
                     exercicios: [
                         { nome: "Leg Press", series: ["Reconhecimento", "1ª Válida", "2ª Válida", "3ª Válida"] },
-                        { nome: "Remada Articulada Fechada", series: ["Reconhecimento", "1ª Válida", "2ª Válida"] },
-                        { nome: "Rosca Direta", series: ["Reconhecimento", "1ª Válida"] },
-                        { nome: "Tríceps Testa", series: ["Reconhecimento", "1ª Válida"] }
+                        { nome: "Remada Articulada Fechada", series: ["Reconhecimento", "1ª Válida", "2ª Válida"] }
                     ]
                 }
             ]
         };
 
-        // --- GERAÇÃO DE DROPDOWNS PARA OS INPUTS ---
+        // --- GERAÇÃO DE DROPDOWNS PARA OS INPUTS (1-250kg e 1-25 Reps) ---
         let weightOptionsHTML = '';
         for (let i = 1; i <= 250; i++) weightOptionsHTML += `<option value="${i}">${i}</option>`;
         
         let repOptionsHTML = '';
         for (let i = 1; i <= 25; i++) repOptionsHTML += `<option value="${i}">${i}</option>`;
 
-        // --- NAVEGAÇÃO BÁSICA ---
+        // --- NAVEGAÇÃO ENTRE TELAS ---
         const screens = {
             s1: document.getElementById('screen-1'),
+            s2: document.getElementById('screen-2'),
             s3: document.getElementById('screen-3'),
             s4: document.getElementById('screen-4')
         };
@@ -332,25 +458,202 @@
             activeScreen.classList.add('active');
         }
 
-        document.getElementById('btn-cronograma').addEventListener('click', () => switchScreen(screens.s3));
+        document.getElementById('btn-nova-rotina').addEventListener('click', () => switchScreen(screens.s2));
+        document.getElementById('back-from-s2').addEventListener('click', () => switchScreen(screens.s1));
+        document.getElementById('btn-cronograma').addEventListener('click', () => {
+            carregarRotinasDoFirebase();
+            switchScreen(screens.s3);
+        });
         document.getElementById('back-to-home').addEventListener('click', () => switchScreen(screens.s1));
         document.getElementById('back-to-menu').addEventListener('click', () => switchScreen(screens.s3));
 
-        // --- LÓGICA DA TELA 4: EXECUÇÃO ---
+        // =================================================================
+        // LÓGICA DA TELA 2: CADASTRO DO MOLDE E GRAVAÇÃO NA COLEÇÃO "rotinas"
+        // =================================================================
+        const exerciseContainer = document.getElementById('exercise-container');
+        const inputNomeRotina = document.getElementById('input-nome');
+        const selectDiaRef = document.getElementById('select-dia');
+        const inputNomeTreino = document.getElementById('input-treino');
+        
+        let sessoesTemporarias = [];
+
+        // Adicionar Quadro de Exercício na Tela 2
+        dropdownAddExercise.addEventListener('change', (e) => {
+            const exerciseName = e.target.value;
+            if (!exerciseName) return;
+
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            card.dataset.exerciseName = exerciseName;
+            
+            let validSetsCount = 0;
+
+            card.innerHTML = `
+                <h3 class="exercise-card-title">${exerciseName}</h3>
+                <div class="sets-wrapper" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="set-row">Reconhecimento</div>
+                    <div class="valid-sets-container" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+                <div class="card-controls">
+                    <button type="button" class="btn-control btn-minus">-</button>
+                    <button type="button" class="btn-control btn-plus">+</button>
+                </div>
+            `;
+
+            const validSetsContainer = card.querySelector('.valid-sets-container');
+            const btnPlus = card.querySelector('.btn-plus');
+            const btnMinus = card.querySelector('.btn-minus');
+
+            btnPlus.addEventListener('click', () => {
+                validSetsCount++;
+                const newRow = document.createElement('div');
+                newRow.className = 'set-row valid-set';
+                newRow.textContent = `${validSetsCount}ª Válida`;
+                validSetsContainer.appendChild(newRow);
+            });
+
+            btnMinus.addEventListener('click', () => {
+                if (validSetsCount > 0) {
+                    validSetsContainer.lastElementChild.remove();
+                    validSetsCount--;
+                }
+            });
+
+            exerciseContainer.appendChild(card);
+            dropdownAddExercise.value = '';
+        });
+
+        // Função auxiliar para capturar os dados do dia atual na Tela 2
+        function capturarDiaAtualTela2() {
+            const cards = exerciseContainer.querySelectorAll('.exercise-card');
+            if (cards.length === 0) return null;
+
+            const exerciciosDoDia = [];
+            cards.forEach(card => {
+                const nome = card.dataset.exerciseName;
+                const series = [];
+                card.querySelectorAll('.set-row').forEach(row => {
+                    series.push(row.textContent.trim());
+                });
+                exerciciosDoDia.push({ nome, series });
+            });
+
+            return {
+                nomeSessao: inputNomeTreino.value.trim() || `SESSÃO ${sessoesTemporarias.length + 1}`,
+                diaSessao: selectDiaRef.value,
+                exercicios: exerciciosDoDia
+            };
+        }
+
+        // Botão: Salvar e Adicionar Outro Dia
+        document.getElementById('btn-salvar-dia').addEventListener('click', () => {
+            if (!inputNomeRotina.value.trim()) {
+                showToast("Preencha o NOME DA ROTINA!");
+                return;
+            }
+            const diaCapturado = capturarDiaAtualTela2();
+            if (!diaCapturado) {
+                showToast("Adicione pelo menos 1 exercício!");
+                return;
+            }
+
+            sessoesTemporarias.push(diaCapturado);
+            
+            // Limpa apenas os exercícios e o nome do treino (mantém o Nome da Rotina)
+            exerciseContainer.innerHTML = '';
+            inputNomeTreino.value = '';
+            showToast(`Dia (${diaCapturado.diaSessao}) salvo na memória!`);
+        });
+
+        // OBJETIVO 1: Botão "Concluir Rotina" -> Salva na coleção "rotinas" do Firestore
+        const btnConcluirRotina = document.getElementById('btn-concluir-rotina');
+        btnConcluirRotina.addEventListener('click', async () => {
+            const nomeRotina = inputNomeRotina.value.trim();
+            if (!nomeRotina) {
+                showToast("Preencha o NOME DA ROTINA!");
+                return;
+            }
+
+            // Se houver exercícios na tela atual que ainda não foram adicionados pelo botão secundário, captura agora
+            const diaAtual = capturarDiaAtualTela2();
+            if (diaAtual) {
+                sessoesTemporarias.push(diaAtual);
+            }
+
+            if (sessoesTemporarias.length === 0) {
+                showToast("Adicione pelo menos 1 dia com exercícios!");
+                return;
+            }
+
+            const pacoteRotina = {
+                nomeRotina: nomeRotina.toUpperCase(),
+                sessoes: sessoesTemporarias,
+                criadoEm: new Date().toISOString()
+            };
+
+            try {
+                btnConcluirRotina.disabled = true;
+                btnConcluirRotina.textContent = "SALVANDO NO BANCO...";
+
+                // Grava no Firestore na coleção "rotinas"
+                const docRef = await addDoc(collection(db, "rotinas"), pacoteRotina);
+                console.log("Rotina salva no Firestore com ID:", docRef.id);
+                showToast("Rotina salva no Firebase com sucesso!");
+
+                // Reseta todo o formulário e memória temporária
+                sessoesTemporarias = [];
+                inputNomeRotina.value = '';
+                inputNomeTreino.value = '';
+                exerciseContainer.innerHTML = '';
+
+                // Redireciona para a Tela 1
+                switchScreen(screens.s1);
+            } catch (error) {
+                console.error("Erro ao salvar rotina no Firebase:", error);
+                showToast("Erro ao salvar no Firebase. Verifique o console.");
+            } finally {
+                btnConcluirRotina.disabled = false;
+                btnConcluirRotina.textContent = "Concluir Rotina";
+            }
+        });
+
+        // --- CARREGAR ROTINAS DO FIREBASE NA TELA 3 ---
+        const routinesListContainer = document.getElementById('routines-list');
+        async function carregarRotinasDoFirebase() {
+            // Mantém o botão de exemplo e carrega as rotinas reais do banco abaixo dele
+            routinesListContainer.innerHTML = `<button class="btn-main" id="btn-open-mock">FULL BODY (EXEMPLO)</button>`;
+            document.getElementById('btn-open-mock').addEventListener('click', () => abrirRotinaNaTela4(mockRoutineData));
+
+            try {
+                const querySnapshot = await getDocs(collection(db, "rotinas"));
+                querySnapshot.forEach((docSnap) => {
+                    const dadosRotina = docSnap.data();
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-main';
+                    btn.textContent = dadosRotina.nomeRotina;
+                    btn.addEventListener('click', () => abrirRotinaNaTela4(dadosRotina));
+                    routinesListContainer.appendChild(btn);
+                });
+            } catch (error) {
+                console.error("Erro ao buscar rotinas:", error);
+            }
+        }
+
+        // =================================================================
+        // LÓGICA DA TELA 4: EXECUÇÃO E GRAVAÇÃO EM "treinos_executados"
+        // =================================================================
         const dayRefHeader = document.getElementById('exec-day-ref');
         const dateInput = document.getElementById('exec-date');
         const sessionSelect = document.getElementById('exec-session-select');
         const execContainer = document.getElementById('exec-container');
         const diasDaSemana = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
 
-        // Estado para armazenar os exercícios salvos durante o treino na Tela 4
-        let treinoExecutadoEstado = {};
+        let rotinaAtivaAtual = mockRoutineData;
 
         // 1. Atualizar Dia da Semana automaticamente ao mudar a Data
         dateInput.addEventListener('change', (e) => {
             const val = e.target.value;
             if(!val) return;
-            // Split para evitar problemas de fuso horário que o JS Date costuma ter ao fazer parse de string "YYYY-MM-DD"
             const parts = val.split('-'); 
             const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
             dayRefHeader.textContent = diasDaSemana[dateObj.getDay()];
@@ -366,12 +669,10 @@
             dayRefHeader.textContent = diasDaSemana[hoje.getDay()];
         }
 
-        // 3. Renderizar uma Sessão (Agrupando e criando os cards)
+        // 3. Renderizar uma Sessão (Agrupando e conectando cada Card ao Firestore)
         function renderSession(session) {
-            execContainer.innerHTML = ''; // Limpa o container
-            treinoExecutadoEstado = {}; // Reseta o estado da sessão atual
+            execContainer.innerHTML = '';
             
-            // Agrupar exercícios pelo Dicionário
             const groups = {};
             session.exercicios.forEach(ex => {
                 const muscle = muscleDictionary[ex.nome] || "OUTROS";
@@ -379,20 +680,13 @@
                 groups[muscle].push(ex);
             });
 
-            // Gerar o HTML agrupado
             for (const [muscle, exercises] of Object.entries(groups)) {
-                
                 const groupDiv = document.createElement('div');
                 groupDiv.className = 'muscle-group';
-                
-                // Título do Músculo
                 groupDiv.innerHTML = `<h3 class="muscle-title">${muscle}</h3>`;
                 
-                // Carrossel
                 const carousel = document.createElement('div');
                 carousel.className = 'carousel';
-                
-                // Definir se é card único para ocupar 100% ou carrossel (88%)
                 const cardClass = exercises.length === 1 ? 'carousel-card single-card' : 'carousel-card';
 
                 exercises.forEach(ex => {
@@ -424,16 +718,16 @@
                         </div>
                     `;
 
-                    // Lógica isolada de Salvar / Corrigir para este card específico
+                    // OBJETIVOS 2 e 3: Salvar (addDoc) e Atualizar após Corrigir (updateDoc)
                     const btnAction = card.querySelector('.btn-card-action');
                     const selects = card.querySelectorAll('select');
                     const setRows = card.querySelectorAll('.exec-set-row');
 
-                    btnAction.addEventListener('click', () => {
+                    btnAction.addEventListener('click', async () => {
                         const isSaved = card.classList.contains('card-salvo');
 
                         if (!isSaved) {
-                            // AÇÃO DE SALVAR -> Transiciona para Estado 2 (Salvo)
+                            // Captura as cargas e repetições selecionadas nas séries
                             const seriesExecutadas = [];
                             setRows.forEach(row => {
                                 const nomeSerie = row.getAttribute('data-serie');
@@ -442,28 +736,59 @@
                                 seriesExecutadas.push({ serie: nomeSerie, kg, reps });
                             });
 
-                            // Salva no objeto de estado do treino executado
-                            treinoExecutadoEstado[ex.nome] = {
+                            // Monta o documento com todos os campos solicitados
+                            const dadosExercicio = {
+                                nomeRotina: rotinaAtivaAtual.nomeRotina,
+                                nomeTreino: session.nomeSessao,
                                 dataExecucao: dateInput.value,
-                                sessao: session.nomeSessao,
-                                series: seriesExecutadas
+                                diaSemana: dayRefHeader.textContent,
+                                musculo: muscle,
+                                exercicio: ex.nome,
+                                series: seriesExecutadas,
+                                atualizadoEm: new Date().toISOString()
                             };
 
-                            // Aplica o feedback visual e trava os selects
-                            card.classList.add('card-salvo');
-                            selects.forEach(s => s.disabled = true);
-                            btnAction.textContent = 'CORRIGIR';
-                            btnAction.classList.add('btn-corrigir');
+                            try {
+                                btnAction.disabled = true;
+                                btnAction.textContent = "SALVANDO...";
 
-                            console.log(`[SALVO] ${ex.nome}:`, treinoExecutadoEstado[ex.nome]);
+                                // Verifica se este card já foi salvo antes nesta sessão (possui ID do Firestore)
+                                const existingDocId = card.dataset.firestoreId;
+
+                                if (!existingDocId) {
+                                    // PRIMEIRA VEZ SALVANDO -> Cria novo documento (addDoc)
+                                    const docRef = await addDoc(collection(db, "treinos_executados"), dadosExercicio);
+                                    card.dataset.firestoreId = docRef.id; // Guarda o ID no próprio card HTML
+                                    console.log(`[CRIADO NO FIREBASE] ID: ${docRef.id}`, dadosExercicio);
+                                    showToast(`${ex.nome} registrado!`);
+                                } else {
+                                    // VEIO DE UM "CORRIGIR" -> Atualiza o documento existente (updateDoc)
+                                    const docRef = doc(db, "treinos_executados", existingDocId);
+                                    await updateDoc(docRef, dadosExercicio);
+                                    console.log(`[ATUALIZADO NO FIREBASE] ID: ${existingDocId}`, dadosExercicio);
+                                    showToast(`${ex.nome} atualizado!`);
+                                }
+
+                                // Transiciona para o Estado 2 (Salvo / Opaco / Travado)
+                                card.classList.add('card-salvo');
+                                selects.forEach(s => s.disabled = true);
+                                btnAction.textContent = 'CORRIGIR';
+                                btnAction.classList.add('btn-corrigir');
+
+                            } catch (error) {
+                                console.error("Erro ao gravar exercício no Firestore:", error);
+                                showToast("Erro ao salvar no Firebase!");
+                                btnAction.textContent = 'SALVAR';
+                            } finally {
+                                btnAction.disabled = false;
+                            }
+
                         } else {
-                            // AÇÃO DE CORRIGIR -> Retorna ao Estado 1 (Ativo)
+                            // AÇÃO DE CORRIGIR -> Retorna ao Estado 1 (Ativo) mantendo o dataset.firestoreId intacto
                             card.classList.remove('card-salvo');
                             selects.forEach(s => s.disabled = false);
                             btnAction.textContent = 'SALVAR';
                             btnAction.classList.remove('btn-corrigir');
-
-                            console.log(`[EM EDIÇÃO] ${ex.nome} desbloqueado para correção.`);
                         }
                     });
 
@@ -475,34 +800,34 @@
             }
         }
 
-        // 4. Iniciar rotina mockada ao clicar no botão da Tela 3
-        document.getElementById('btn-open-mock').addEventListener('click', () => {
+        // 4. Função para abrir qualquer rotina (Mockada ou vinda do Firebase) na Tela 4
+        function abrirRotinaNaTela4(rotina) {
+            rotinaAtivaAtual = rotina;
             switchScreen(screens.s4);
             
-            document.getElementById('exec-routine-name').textContent = mockRoutineData.nomeRotina;
+            document.getElementById('exec-routine-name').textContent = rotina.nomeRotina;
             setTodayDate();
 
-            // Popular select de sessões
             sessionSelect.innerHTML = '';
-            mockRoutineData.sessoes.forEach((sessao, index) => {
+            rotina.sessoes.forEach((sessao, index) => {
                 const opt = document.createElement('option');
                 opt.value = index;
                 opt.textContent = sessao.nomeSessao;
                 sessionSelect.appendChild(opt);
             });
 
-            // Renderiza a primeira sessão inicialmente
-            renderSession(mockRoutineData.sessoes[0]);
+            renderSession(rotina.sessoes[0]);
+        }
+
+        document.getElementById('btn-open-mock').addEventListener('click', () => {
+            abrirRotinaNaTela4(mockRoutineData);
         });
 
         // 5. Mudar de sessão pelo Select
         sessionSelect.addEventListener('change', (e) => {
             const index = e.target.value;
-            renderSession(mockRoutineData.sessoes[index]);
-            // Opcional: Atualizar a data baseada no dia planejado? 
-            // O requisito diz que a data muda o dia, não que a sessão força uma data. Então mantemos livre.
+            renderSession(rotinaAtivaAtual.sessoes[index]);
         });
-
     </script>
 </body>
 </html>
