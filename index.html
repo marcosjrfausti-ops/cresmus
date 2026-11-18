@@ -943,7 +943,7 @@
         <div class="login-card">
             <div class="input-group">
                 <label for="login-user">E-MAIL:</label>
-                <input type="text" id="login-user" placeholder="Digite seu e-mail">
+                <input type="email" id="login-user" placeholder="Digite seu e-mail">
             </div>
             <div class="input-group">
                 <label for="login-pass">SENHA:</label>
@@ -1080,7 +1080,7 @@
                     <div class="bi-filter-item">
                         <label for="bi-global-usuario">Usuário:</label>
                         <select id="bi-global-usuario">
-                            <option value="TODOS">Todos os Usuários</option>
+                            <!-- Populated in JS -->
                         </select>
                     </div>
                 </div>
@@ -1269,10 +1269,11 @@
         <div id="edit-sessions-list" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
     </div>
 
-    <!-- INTEGRAÇÃO COM FIREBASE E MOTOR DE BI -->
+    <!-- INTEGRAÇÃO COM FIREBASE, AUTH E MOTOR DE BI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, updateDoc, doc, getDocs, getDoc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         // Registra o plugin Datalabels globalmente no Chart.js
         if (window.Chart && window.ChartDataLabels) {
@@ -1291,7 +1292,10 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        let usuarioAtivo = "";
+        const auth = getAuth(app); // INICIALIZANDO O FIREBASE AUTH
+        
+        let usuarioAtivo = ""; // Agora armazenará o UID do usuário para segurança real
+        let usuarioEmail = ""; // Armazenará o email para exibir na tela
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
@@ -1359,8 +1363,12 @@
         }
 
         async function carregarExerciciosCustomizados() {
+            if (!usuarioAtivo) return;
             try {
-                const snap = await getDocs(collection(db, "exercicios_customizados"));
+                // ISOLAMENTO DE DADOS: Puxa apenas customizados criados por este UID
+                const q = query(collection(db, "exercicios_customizados"), where("criadoPor", "==", usuarioAtivo));
+                const snap = await getDocs(q);
+                
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
                     if (data.nome && data.musculo) {
@@ -1383,6 +1391,126 @@
                 console.error("Erro ao carregar exercícios customizados:", err);
             }
         }
+
+        // --- NAVEGAÇÃO ENTRE AS TELAS ---
+        const screens = {
+            s0: document.getElementById('screen-0'),
+            s1: document.getElementById('screen-1'),
+            s2: document.getElementById('screen-2'),
+            s3: document.getElementById('screen-3'),
+            s4: document.getElementById('screen-4'),
+            s5: document.getElementById('screen-5'),
+            s6: document.getElementById('screen-6'),
+            s7: document.getElementById('screen-7')
+        };
+
+        function switchScreen(activeScreen) {
+            Object.values(screens).forEach(s => s.classList.remove('active'));
+            activeScreen.classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- LÓGICA DE LOGIN CLÁSSICO E CADASTRO AGORA COM FIREBASE AUTH ---
+        const inputLoginUser = document.getElementById('login-user');
+        const inputLoginPass = document.getElementById('login-pass');
+        const displayUsername = document.getElementById('display-username');
+        const toggleAuthMode = document.getElementById('toggle-auth-mode');
+        const btnEntrar = document.getElementById('btn-entrar');
+        const authTitle = document.getElementById('auth-title');
+        
+        let isLoginMode = true;
+
+        toggleAuthMode.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+            authTitle.textContent = isLoginMode ? 'Acesso ao Tracker' : 'Criar Nova Conta';
+            btnEntrar.textContent = isLoginMode ? 'ENTRAR' : 'CRIAR CONTA';
+            toggleAuthMode.textContent = isLoginMode ? 'Não tem uma conta? Crie aqui.' : 'Já tem uma conta? Faça login.';
+        });
+
+        // PERSISTÊNCIA DE SESSÃO DO FIREBASE (Lembrar Login)
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                usuarioAtivo = user.uid; // Salva o UID (Seguro, único e inalterável)
+                usuarioEmail = user.email;
+                displayUsername.textContent = usuarioEmail;
+                
+                // Carrega exercícios após garantir que temos a UID
+                carregarExerciciosCustomizados();
+                
+                if (screens.s0.classList.contains('active')) {
+                    switchScreen(screens.s1);
+                }
+            } else {
+                usuarioAtivo = "";
+                usuarioEmail = "";
+                if (!screens.s0.classList.contains('active')) {
+                    switchScreen(screens.s0);
+                }
+            }
+        });
+
+        btnEntrar.addEventListener('click', async () => {
+            const emailVal = inputLoginUser.value.trim();
+            const passVal = inputLoginPass.value.trim();
+
+            if (!emailVal || !passVal) {
+                showToast("Preencha e-mail e senha!");
+                return;
+            }
+
+            btnEntrar.disabled = true;
+            btnEntrar.textContent = "AGUARDE...";
+            
+            try {
+                if (isLoginMode) {
+                    const userCredential = await signInWithEmailAndPassword(auth, emailVal, passVal);
+                    usuarioAtivo = userCredential.user.uid;
+                    usuarioEmail = userCredential.user.email;
+                    displayUsername.textContent = usuarioEmail;
+                    showToast(`Bem-vindo de volta!`);
+                    switchScreen(screens.s1);
+                } else {
+                    const userCredential = await createUserWithEmailAndPassword(auth, emailVal, passVal);
+                    usuarioAtivo = userCredential.user.uid;
+                    usuarioEmail = userCredential.user.email;
+                    displayUsername.textContent = usuarioEmail;
+                    showToast(`Conta criada com sucesso!`);
+                    switchScreen(screens.s1);
+                }
+            } catch (error) {
+                console.error("Erro na autenticação:", error);
+                const errCode = error.code;
+                if (errCode === 'auth/invalid-credential' || errCode === 'auth/wrong-password' || errCode === 'auth/user-not-found') {
+                    showToast("Credenciais inválidas!");
+                } else if (errCode === 'auth/email-already-in-use') {
+                    showToast("Este e-mail já está em uso!");
+                } else if (errCode === 'auth/weak-password') {
+                    showToast("A senha deve ter pelo menos 6 caracteres.");
+                } else if (errCode === 'auth/invalid-email') {
+                    showToast("Formato de e-mail inválido.");
+                } else {
+                    showToast("Erro ao autenticar. Tente novamente.");
+                }
+            } finally {
+                btnEntrar.disabled = false;
+                btnEntrar.textContent = isLoginMode ? 'ENTRAR' : 'CRIAR CONTA';
+            }
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            try {
+                await signOut(auth); // Desloga com segurança via Google Auth
+                usuarioAtivo = "";
+                usuarioEmail = "";
+                inputLoginUser.value = "";
+                inputLoginPass.value = "";
+                resetarEstadoTela2();
+                switchScreen(screens.s0);
+            } catch(error) {
+                showToast("Erro ao sair.");
+            }
+        });
 
         // --- BOTTOM SHEET DE NÚMEROS ---
         const numberPickerOverlay = document.getElementById('number-picker-overlay');
@@ -1440,24 +1568,6 @@
             if (e.target === numberPickerOverlay) closeNumberPicker();
         });
 
-        // --- NAVEGAÇÃO ENTRE AS TELAS ---
-        const screens = {
-            s0: document.getElementById('screen-0'),
-            s1: document.getElementById('screen-1'),
-            s2: document.getElementById('screen-2'),
-            s3: document.getElementById('screen-3'),
-            s4: document.getElementById('screen-4'),
-            s5: document.getElementById('screen-5'),
-            s6: document.getElementById('screen-6'),
-            s7: document.getElementById('screen-7')
-        };
-
-        function switchScreen(activeScreen) {
-            Object.values(screens).forEach(s => s.classList.remove('active'));
-            activeScreen.classList.add('active');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
         // --- DROPDOWN CUSTOMIZADO (TELA 2) ---
         const customDropdown = document.getElementById('custom-exercise-dropdown');
         const dropdownTrigger = document.getElementById('dropdown-trigger');
@@ -1512,9 +1622,6 @@
             });
         }
 
-        renderDropdownList();
-        carregarExerciciosCustomizados();
-
         // --- MODAL DE ADICIONAR NOVO EXERCÍCIO ---
         const modalNewExercise = document.getElementById('modal-new-exercise');
         const inputNewExName = document.getElementById('new-ex-name');
@@ -1551,7 +1658,7 @@
             }
 
             const estruturaMme = criarEstruturaMmeFallback(musculoNovo);
-            const autor = usuarioAtivo || "anonimo";
+            const autor = usuarioAtivo; // Agora atrela rigidamente ao UID
 
             const novoExercicioFirestore = {
                 nome: nomeNovo,
@@ -1600,90 +1707,6 @@
             }
 
             showToast(`"${nomeNovo}" adicionado com sucesso!`);
-        });
-
-        // --- LÓGICA DE LOGIN CLÁSSICO E CADASTRO ---
-        const inputLoginUser = document.getElementById('login-user');
-        const inputLoginPass = document.getElementById('login-pass');
-        const displayUsername = document.getElementById('display-username');
-        const toggleAuthMode = document.getElementById('toggle-auth-mode');
-        const btnEntrar = document.getElementById('btn-entrar');
-        const authTitle = document.getElementById('auth-title');
-        
-        let isLoginMode = true;
-
-        toggleAuthMode.addEventListener('click', (e) => {
-            e.preventDefault();
-            isLoginMode = !isLoginMode;
-            authTitle.textContent = isLoginMode ? 'Acesso ao Tracker' : 'Criar Nova Conta';
-            btnEntrar.textContent = isLoginMode ? 'ENTRAR' : 'CRIAR CONTA';
-            toggleAuthMode.textContent = isLoginMode ? 'Não tem uma conta? Crie aqui.' : 'Já tem uma conta? Faça login.';
-        });
-
-        btnEntrar.addEventListener('click', async () => {
-            const userVal = inputLoginUser.value.trim();
-            const passVal = inputLoginPass.value.trim();
-
-            if (!userVal || !passVal) {
-                showToast("Preencha usuário e senha!");
-                return;
-            }
-
-            btnEntrar.disabled = true;
-            btnEntrar.textContent = "AGUARDE...";
-            
-            // Tratamento case-insensitive para não repetir ID
-            const userIdLowerCase = userVal.toLowerCase();
-            const userDocRef = doc(db, "usuarios", userIdLowerCase);
-
-            try {
-                const docSnap = await getDoc(userDocRef);
-
-                if (isLoginMode) {
-                    if (docSnap.exists()) {
-                        const userData = docSnap.data();
-                        if (userData.senha === passVal) {
-                            usuarioAtivo = userData.username; // Usa o formato original de digitação
-                            displayUsername.textContent = usuarioAtivo;
-                            showToast(`Bem-vindo de volta, ${usuarioAtivo}!`);
-                            switchScreen(screens.s1);
-                        } else {
-                            showToast("Senha incorreta!");
-                        }
-                    } else {
-                        showToast("Usuário não encontrado!");
-                    }
-                } else {
-                    // Modo Criar Conta
-                    if (docSnap.exists()) {
-                        showToast("Usuário já existe! Escolha outro.");
-                    } else {
-                        await setDoc(userDocRef, {
-                            username: userVal,
-                            senha: passVal,
-                            criadoEm: new Date().toISOString()
-                        });
-                        usuarioAtivo = userVal;
-                        displayUsername.textContent = usuarioAtivo;
-                        showToast(`Conta criada! Bem-vindo, ${usuarioAtivo}!`);
-                        switchScreen(screens.s1);
-                    }
-                }
-            } catch (error) {
-                console.error("Erro na autenticação:", error);
-                showToast("Erro ao processar autenticação no Firebase.");
-            } finally {
-                btnEntrar.disabled = false;
-                btnEntrar.textContent = isLoginMode ? 'ENTRAR' : 'CRIAR CONTA';
-            }
-        });
-
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            usuarioAtivo = "";
-            inputLoginUser.value = "";
-            inputLoginPass.value = "";
-            resetarEstadoTela2();
-            switchScreen(screens.s0);
         });
 
         // --- ESTADO DE EDIÇÃO E CRIAÇÃO DE ROTINAS (TELA 2, 6 e 7) ---
@@ -1772,41 +1795,24 @@
             editRoutinesList.innerHTML = `<p class="empty-msg">Buscando suas rotinas...</p>`;
 
             try {
-                const querySnapshot = await getDocs(collection(db, "rotinas"));
+                // ISOLAMENTO DE DADOS: Puxa só as rotinas cadastradas por este UID
+                const rotinasRef = collection(db, "rotinas");
+                const q = query(rotinasRef, where("usuario", "==", usuarioAtivo));
+                const querySnapshot = await getDocs(q);
+                
                 editRoutinesList.innerHTML = '';
 
                 if (querySnapshot.empty) {
-                    editRoutinesList.innerHTML = `<p class="empty-msg">Nenhuma rotina cadastrada no banco ainda.</p>`;
+                    editRoutinesList.innerHTML = `<p class="empty-msg">Nenhuma rotina encontrada para o seu perfil.</p>`;
                     return;
                 }
-
-                const rotinasDoUsuario = [];
-                const todasAsRotinas = [];
 
                 querySnapshot.forEach((docSnap) => {
-                    const item = { id: docSnap.id, data: docSnap.data() };
-                    todasAsRotinas.push(item);
-                    if (
-                        !usuarioAtivo ||
-                        !item.data.usuario ||
-                        item.data.usuario.trim().toLowerCase() === usuarioAtivo.trim().toLowerCase()
-                    ) {
-                        rotinasDoUsuario.push(item);
-                    }
-                });
-
-                const listaFinal = rotinasDoUsuario.length > 0 ? rotinasDoUsuario : todasAsRotinas;
-
-                if (listaFinal.length === 0) {
-                    editRoutinesList.innerHTML = `<p class="empty-msg">Nenhuma rotina encontrada para este perfil.</p>`;
-                    return;
-                }
-
-                listaFinal.forEach(({ id, data }) => {
+                    const data = docSnap.data();
                     const btn = document.createElement('button');
                     btn.className = 'btn-main';
                     btn.textContent = data.nomeRotina || 'ROTINA SEM NOME';
-                    btn.addEventListener('click', () => abrirSelecaoDeTreinosTela7(id, data));
+                    btn.addEventListener('click', () => abrirSelecaoDeTreinosTela7(docSnap.id, data));
                     editRoutinesList.appendChild(btn);
                 });
             } catch (error) {
@@ -2002,7 +2008,7 @@
                 if (meta) {
                     objExercicio.mme = meta.mme;
                     if(meta.isCustom) {
-                        objExercicio.criadoPor = usuarioAtivo || meta.criadoPor || "anonimo";
+                        objExercicio.criadoPor = meta.criadoPor || usuarioAtivo;
                         objExercicio.pendenteRevisaoMME = true;
                     }
                 }
@@ -2115,7 +2121,7 @@
             }
 
             const pacoteRotina = {
-                usuario: usuarioAtivo,
+                usuario: usuarioAtivo, // Salva estritamente vinculado ao UID
                 nomeRotina: nomeRotina.toUpperCase(),
                 sessoes: sessoesTemporarias,
                 criadoEm: new Date().toISOString()
@@ -2145,11 +2151,14 @@
             routinesListContainer.innerHTML = `<p class="empty-msg">Buscando rotinas na base...</p>`;
 
             try {
-                const querySnapshot = await getDocs(collection(db, "rotinas"));
+                // ISOLAMENTO DE DADOS: Puxa só as rotinas cadastradas por este UID
+                const q = query(collection(db, "rotinas"), where("usuario", "==", usuarioAtivo));
+                const querySnapshot = await getDocs(q);
+                
                 routinesListContainer.innerHTML = '';
 
                 if (querySnapshot.empty) {
-                    routinesListContainer.innerHTML = `<p class="empty-msg">Nenhuma rotina cadastrada no banco ainda.</p>`;
+                    routinesListContainer.innerHTML = `<p class="empty-msg">Nenhuma rotina cadastrada para você ainda.</p>`;
                     return;
                 }
 
@@ -2180,6 +2189,7 @@
             if (!rotinaAtivaAtual || !dateInput.value) return;
 
             try {
+                // ISOLAMENTO DE DADOS já estava correto mas agora usa UID
                 const treinosRef = collection(db, "treinos_executados");
                 const q = query(
                     treinosRef,
@@ -2364,7 +2374,7 @@
                             });
 
                             const dadosExercicio = {
-                                usuario: usuarioAtivo,
+                                usuario: usuarioAtivo, // Garante que o treino gravado é desse UID
                                 nomeRotina: rotinaAtivaAtual.nomeRotina,
                                 nomeTreino: session.nomeSessao,
                                 diaProgramadoSessao: session.diaSessao,
@@ -2380,7 +2390,7 @@
                             dadosExercicio.mme = meta?.mme || ex.mme || criarEstruturaMmeFallback(muscle).mme;
                             
                             if (meta && meta.isCustom) {
-                                dadosExercicio.criadoPor = ex.criadoPor || meta.criadoPor || usuarioAtivo || "anonimo";
+                                dadosExercicio.criadoPor = ex.criadoPor || meta.criadoPor || usuarioAtivo;
                                 dadosExercicio.pendenteRevisaoMME = ex.pendenteRevisaoMME !== undefined ? ex.pendenteRevisaoMME : true;
                             }
 
@@ -2467,7 +2477,7 @@
         const biGlobalStart = document.getElementById('bi-global-start');
         const biGlobalEnd = document.getElementById('bi-global-end');
         const biGlobalRotina = document.getElementById('bi-global-rotina');
-        const biGlobalUsuario = document.getElementById('bi-global-usuario');
+        const biGlobalUsuario = document.getElementById('bi-global-usuario'); // Agora mostra só o email do usuário ativo
 
         const f1Muscle = document.getElementById('f1-muscle');
         const f1Date = document.getElementById('f1-date');
@@ -2517,7 +2527,10 @@
         async function carregarDadosDashboardBI() {
             try {
                 showToast("Carregando métricas do BI...");
-                const snap = await getDocs(collection(db, "treinos_executados"));
+                
+                // ISOLAMENTO DE DADOS DO BI: Puxa apenas dados deste usuário logado
+                const q = query(collection(db, "treinos_executados"), where("usuario", "==", usuarioAtivo));
+                const snap = await getDocs(q);
                 rawTreinosExecutados = [];
 
                 snap.forEach(docSnap => {
@@ -2541,14 +2554,12 @@
 
         function popularSelectsDoDashboard() {
             const rotinasSet = new Set();
-            const usuariosSet = new Set();
             const musculosSet = new Set();
             const exerciciosSet = new Set();
             const sessoesSet = new Set();
 
             rawTreinosExecutados.forEach(item => {
                 if (item.nomeRotina) rotinasSet.add(item.nomeRotina.toUpperCase());
-                if (item.usuario) usuariosSet.add(item.usuario);
                 if (item.musculo) musculosSet.add(item.musculo.toUpperCase());
                 if (item.exercicio) exerciciosSet.add(item.exercicio);
                 if (item.nomeTreino) sessoesSet.add(item.nomeTreino.toUpperCase());
@@ -2556,8 +2567,8 @@
 
             preencherSelect(biGlobalRotina, Array.from(rotinasSet).sort(), "TODAS", "Todas as Rotinas");
             
-            const defaultUser = usuarioAtivo && usuariosSet.has(usuarioAtivo) ? usuarioAtivo : "TODOS";
-            preencherSelect(biGlobalUsuario, Array.from(usuariosSet).sort(), defaultUser, "Todos os Usuários");
+            // O dropdown de usuário agora apenas exibe o próprio usuário, blindando os outros!
+            preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
 
             preencherSelect(f1Muscle, Array.from(musculosSet).sort(), "", "Todos os Grupos Musculares");
             
@@ -2596,13 +2607,8 @@
             const gStart = biGlobalStart.value;
             const gEnd = biGlobalEnd.value;
             const gRotina = biGlobalRotina.value;
-            const gUsuario = biGlobalUsuario.value;
 
             return rawTreinosExecutados.filter(docItem => {
-                if (gUsuario && gUsuario !== 'TODOS') {
-                    if ((docItem.usuario || '').toLowerCase() !== gUsuario.toLowerCase()) return false;
-                }
-
                 const rotinaAlvo = localRotina || (gRotina !== 'TODAS' ? gRotina : '');
                 if (rotinaAlvo) {
                     if ((docItem.nomeRotina || '').toUpperCase() !== rotinaAlvo.toUpperCase()) return false;
@@ -3174,7 +3180,7 @@
             renderizarGrafico7Consistencia();
         }
 
-        [biGlobalStart, biGlobalEnd, biGlobalRotina, biGlobalUsuario].forEach(el => {
+        [biGlobalStart, biGlobalEnd, biGlobalRotina].forEach(el => {
             el.addEventListener('change', atualizarTodosOsGraficos);
         });
 
@@ -3182,7 +3188,6 @@
             biGlobalStart.value = '';
             biGlobalEnd.value = '';
             biGlobalRotina.value = 'TODAS';
-            biGlobalUsuario.value = 'TODOS';
             atualizarTodosOsGraficos();
         });
 
@@ -3224,7 +3229,7 @@
                 const dataHoje = new Date().toISOString().slice(0, 10);
                 const opt = {
                     margin: [8, 8, 8, 8],
-                    filename: `Relatorio_BI_Treinos_${usuarioAtivo || 'Geral'}_${dataHoje}.pdf`,
+                    filename: `Relatorio_BI_Treinos_${usuarioEmail}_${dataHoje}.pdf`,
                     image: { type: 'jpeg', quality: 0.98 },
                     html2canvas: {
                         scale: 3.125,
