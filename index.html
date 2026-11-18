@@ -103,6 +103,38 @@
             align-items: center;
             gap: 16px;
         }
+        #screen-1 {
+            position: relative;
+            padding-top: 56px;
+        }
+        /* Botão Circular "+" na Tela 1 (Canto Superior Direito) */
+        .btn-add-global-ex {
+            position: absolute;
+            top: 8px;
+            right: 0;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--surface-color);
+            border: 1.5px solid var(--accent-color);
+            color: var(--accent-color);
+            font-size: 1.6rem;
+            font-weight: 600;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+            transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+            z-index: 10;
+        }
+        .btn-add-global-ex:hover {
+            background: var(--accent-color);
+            color: #000000;
+            transform: scale(1.08);
+        }
+
         .login-card {
             width: 100%;
             background: var(--surface-color);
@@ -907,6 +939,7 @@
 
     <!-- TELA 1: Home -->
     <div id="screen-1" class="screen">
+        <button type="button" id="btn-add-global-ex" class="btn-add-global-ex" title="Adicionar Novo Exercício">+</button>
         <div class="user-badge">Perfil ativo: <strong id="display-username">---</strong></div>
         <button id="btn-nova-rotina" class="btn-main">+ NOVA ROTINA</button>
         <button id="btn-alterar-rotina" class="btn-main">ALTERAR ROTINA</button>
@@ -1220,7 +1253,7 @@
     <!-- INTEGRAÇÃO COM FIREBASE E MOTOR DE BI -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Registra o plugin Datalabels globalmente no Chart.js
         if (window.Chart && window.ChartDataLabels) {
@@ -1388,6 +1421,24 @@
             if (e.target === numberPickerOverlay) closeNumberPicker();
         });
 
+        // --- NAVEGAÇÃO ENTRE AS TELAS ---
+        const screens = {
+            s0: document.getElementById('screen-0'),
+            s1: document.getElementById('screen-1'),
+            s2: document.getElementById('screen-2'),
+            s3: document.getElementById('screen-3'),
+            s4: document.getElementById('screen-4'),
+            s5: document.getElementById('screen-5'),
+            s6: document.getElementById('screen-6'),
+            s7: document.getElementById('screen-7')
+        };
+
+        function switchScreen(activeScreen) {
+            Object.values(screens).forEach(s => s.classList.remove('active'));
+            activeScreen.classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         // --- DROPDOWN CUSTOMIZADO (TELA 2) ---
         const customDropdown = document.getElementById('custom-exercise-dropdown');
         const dropdownTrigger = document.getElementById('dropdown-trigger');
@@ -1445,13 +1496,22 @@
         renderDropdownList();
         carregarExerciciosCustomizados();
 
-        // --- MODAL DE ADICIONAR NOVO EXERCÍCIO ---
+        // --- MODAL DE ADICIONAR NOVO EXERCÍCIO (ACESSÍVEL PELA TELA 1 E TELA 2) ---
         const modalNewExercise = document.getElementById('modal-new-exercise');
         const inputNewExName = document.getElementById('new-ex-name');
         const selectNewExMuscle = document.getElementById('new-ex-muscle');
         const btnCancelNewEx = document.getElementById('btn-cancel-new-ex');
         const btnSaveNewEx = document.getElementById('btn-save-new-ex');
+        const btnAddGlobalEx = document.getElementById('btn-add-global-ex');
 
+        // Requisito 1: Abertura do modal pelo botão "+" na TELA 1
+        btnAddGlobalEx.addEventListener('click', () => {
+            inputNewExName.value = '';
+            modalNewExercise.classList.add('open');
+            setTimeout(() => inputNewExName.focus(), 50);
+        });
+
+        // Abertura do modal pelo dropdown da TELA 2
         btnOpenAddExModal.addEventListener('click', () => {
             inputNewExName.value = dropdownSearchInput.value.trim();
             toggleDropdown(false);
@@ -1515,27 +1575,16 @@
             modalNewExercise.classList.remove('open');
             inputNewExName.value = '';
 
-            adicionarCardExercicioTela2(nomeNovo);
-            showToast(`"${nomeNovo}" adicionado à lista!`);
+            // Requisito 1: Verifica em qual tela o usuário está antes de injetar card na Tela 2
+            const isOnScreen1 = screens.s1.classList.contains('active');
+            const isOnScreen2 = screens.s2.classList.contains('active');
+
+            if (!isOnScreen1 && isOnScreen2) {
+                adicionarCardExercicioTela2(nomeNovo);
+            }
+
+            showToast(`"${nomeNovo}" adicionado com sucesso!`);
         });
-
-        // --- NAVEGAÇÃO ENTRE AS TELAS ---
-        const screens = {
-            s0: document.getElementById('screen-0'),
-            s1: document.getElementById('screen-1'),
-            s2: document.getElementById('screen-2'),
-            s3: document.getElementById('screen-3'),
-            s4: document.getElementById('screen-4'),
-            s5: document.getElementById('screen-5'),
-            s6: document.getElementById('screen-6'),
-            s7: document.getElementById('screen-7')
-        };
-
-        function switchScreen(activeScreen) {
-            Object.values(screens).forEach(s => s.classList.remove('active'));
-            activeScreen.classList.add('active');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
 
         // --- LÓGICA DE LOGIN ---
         const inputLoginUser = document.getElementById('login-user');
@@ -1680,7 +1729,6 @@
                     }
                 });
 
-                // Caso o usuário tenha rotinas no seu nome, prioriza elas; se não houver nenhuma, exibe todas do banco
                 const listaFinal = rotinasDoUsuario.length > 0 ? rotinasDoUsuario : todasAsRotinas;
 
                 if (listaFinal.length === 0) {
@@ -1707,7 +1755,6 @@
 
         function abrirSelecaoDeTreinosTela7(docId, dadosRotina) {
             editRoutineDocId = docId;
-            // Clona profundamente para evitar mutações acidentais caso o usuário cancele
             editRoutineObj = JSON.parse(JSON.stringify(dadosRotina));
 
             s7RoutineTitle.textContent = editRoutineObj.nomeRotina || "Treinos da Rotina";
@@ -1729,7 +1776,6 @@
                 });
             }
 
-            // Botão extra para adicionar um novo treino (sessão) dentro da rotina existente
             const btnNovoTreinoNaRotina = document.createElement('button');
             btnNovoTreinoNaRotina.className = 'btn-main btn-secondary-action';
             btnNovoTreinoNaRotina.style.marginTop = '8px';
@@ -1839,7 +1885,6 @@
                 validSetsContainer.appendChild(newRow);
             }
 
-            // Se vier do banco de dados na edição, renderiza as séries válidas salvas
             if (Array.isArray(preloadedSeries) && preloadedSeries.length > 0) {
                 preloadedSeries.forEach(sNome => {
                     if (String(sNome).trim().toLowerCase() !== 'reconhecimento') {
@@ -1859,7 +1904,6 @@
                 }
             });
 
-            // Botão "X" para excluir o exercício do DOM
             btnRemoveCard.addEventListener('click', () => {
                 card.remove();
                 atualizarLayoutCarrossel(carousel, groupDiv);
@@ -1929,7 +1973,6 @@
                 } else {
                     editRoutineObj.sessoes.push(diaCapturado);
                 }
-                // Prepara para adicionar uma nova sessão extra na mesma rotina em edição
                 editSessionIndex = editRoutineObj.sessoes.length;
                 exerciseContainer.innerHTML = '';
                 inputNomeTreino.value = '';
@@ -2058,7 +2101,7 @@
             }
         }
 
-        // --- TELA 4: EXECUÇÃO E ENVIO DO MME FRACIONADO ---
+        // --- TELA 4: EXECUÇÃO, ENVIO DO MME FRACIONADO E RECUPERAÇÃO DE HISTÓRICO DO DIA ---
         const dayRefHeader = document.getElementById('exec-day-ref');
         const dateInput = document.getElementById('exec-date');
         const sessionSelect = document.getElementById('exec-session-select');
@@ -2067,7 +2110,89 @@
 
         let rotinaAtivaAtual = null;
 
-        function sincronizarSessaoPeloDia(diaDaSemanaStr) {
+        // Requisito 2: Função assíncrona que busca no Firestore os exercícios já executados no dia e hidrata a Tela 4
+        async function recuperarDadosExecutadosNoDia() {
+            if (!rotinaAtivaAtual || !dateInput.value) return;
+
+            try {
+                const treinosRef = collection(db, "treinos_executados");
+                const q = query(
+                    treinosRef,
+                    where("usuario", "==", usuarioAtivo),
+                    where("nomeRotina", "==", rotinaAtivaAtual.nomeRotina),
+                    where("dataExecucao", "==", dateInput.value)
+                );
+
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) return;
+
+                // Mapa de exercícios salvos indexado pelo nome do exercício (normalizado)
+                const mapaSalvos = {};
+                querySnapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.exercicio) {
+                        mapaSalvos[data.exercicio.trim().toLowerCase()] = {
+                            id: docSnap.id,
+                            ...data
+                        };
+                    }
+                });
+
+                // Varre os cards renderizados na Tela 4 e cruza os nomes
+                const cardsNoDOM = execContainer.querySelectorAll('.carousel-card');
+                cardsNoDOM.forEach(card => {
+                    const tituloEl = card.querySelector('.exec-card-title');
+                    const nomeExCard = (card.dataset.exerciseName || (tituloEl ? tituloEl.textContent : '')).trim().toLowerCase();
+
+                    const registroSalvo = mapaSalvos[nomeExCard];
+                    if (!registroSalvo) return;
+
+                    // Vincula o ID do documento do Firestore ao card para habilitar updateDoc se clicar em CORRIGIR
+                    card.dataset.firestoreId = registroSalvo.id;
+
+                    // Atualiza cada série correspondente (Reconhecimento, 1ª Válida, 2ª Válida, etc.)
+                    if (Array.isArray(registroSalvo.series)) {
+                        const setRows = card.querySelectorAll('.exec-set-row');
+                        setRows.forEach(row => {
+                            const serieLabel = (row.getAttribute('data-serie') || '').trim().toLowerCase();
+                            const serieEncontrada = registroSalvo.series.find(
+                                s => (s.serie || '').trim().toLowerCase() === serieLabel
+                            );
+
+                            if (serieEncontrada) {
+                                const btnKg = row.querySelector('.select-kg');
+                                const btnReps = row.querySelector('.select-reps');
+
+                                if (btnKg && serieEncontrada.kg !== undefined) {
+                                    btnKg.dataset.value = serieEncontrada.kg;
+                                    btnKg.textContent = serieEncontrada.kg;
+                                }
+                                if (btnReps && serieEncontrada.reps !== undefined) {
+                                    btnReps.dataset.value = serieEncontrada.reps;
+                                    btnReps.textContent = serieEncontrada.reps;
+                                }
+                            }
+                        });
+                    }
+
+                    // Aplica o estado visual de card salvo ("CORRIGIR")
+                    card.classList.add('card-salvo');
+                    card.querySelectorAll('.num-picker-btn').forEach(btn => {
+                        btn.disabled = true;
+                    });
+
+                    const btnAction = card.querySelector('.btn-card-action');
+                    if (btnAction) {
+                        btnAction.textContent = 'CORRIGIR';
+                        btnAction.classList.add('btn-corrigir');
+                    }
+                });
+            } catch (error) {
+                console.error("Erro ao recuperar treinos executados na data:", error);
+            }
+        }
+
+        async function sincronizarSessaoPeloDia(diaDaSemanaStr) {
             if (!rotinaAtivaAtual || !rotinaAtivaAtual.sessoes) return;
 
             const indexEncontrado = rotinaAtivaAtual.sessoes.findIndex(
@@ -2076,14 +2201,14 @@
 
             if (indexEncontrado !== -1) {
                 sessionSelect.value = indexEncontrado;
-                renderSession(rotinaAtivaAtual.sessoes[indexEncontrado]);
+                await renderSession(rotinaAtivaAtual.sessoes[indexEncontrado]);
             } else {
                 const currentIdx = sessionSelect.value || 0;
-                renderSession(rotinaAtivaAtual.sessoes[currentIdx]);
+                await renderSession(rotinaAtivaAtual.sessoes[currentIdx]);
             }
         }
 
-        dateInput.addEventListener('change', (e) => {
+        dateInput.addEventListener('change', async (e) => {
             const val = e.target.value;
             if (!val) return;
             const parts = val.split('-'); 
@@ -2091,7 +2216,7 @@
             const novoDiaSemana = diasDaSemana[dateObj.getDay()];
             
             dayRefHeader.textContent = novoDiaSemana;
-            sincronizarSessaoPeloDia(novoDiaSemana);
+            await sincronizarSessaoPeloDia(novoDiaSemana);
         });
 
         function setTodayDate() {
@@ -2105,7 +2230,7 @@
             return diaSemanaHoje;
         }
 
-        function renderSession(session) {
+        async function renderSession(session) {
             execContainer.innerHTML = '';
             if (!session || !session.exercicios) return;
             
@@ -2128,6 +2253,7 @@
                 exercises.forEach(ex => {
                     const card = document.createElement('div');
                     card.className = cardClass;
+                    card.dataset.exerciseName = ex.nome;
 
                     let setsHTML = '';
                     ex.series.forEach(serie => {
@@ -2241,9 +2367,12 @@
                 groupDiv.appendChild(carousel);
                 execContainer.appendChild(groupDiv);
             }
+
+            // Requisito 2: Após montar os cards da sessão no DOM, busca e preenche os dados salvos na data
+            await recuperarDadosExecutadosNoDia();
         }
 
-        function abrirRotinaNaTela4(rotina) {
+        async function abrirRotinaNaTela4(rotina) {
             rotinaAtivaAtual = rotina;
             switchScreen(screens.s4);
             
@@ -2258,10 +2387,12 @@
                 sessionSelect.appendChild(opt);
             });
 
-            sincronizarSessaoPeloDia(diaHoje);
+            await sincronizarSessaoPeloDia(diaHoje);
         }
 
-        sessionSelect.addEventListener('change', (e) => renderSession(rotinaAtivaAtual.sessoes[e.target.value]));
+        sessionSelect.addEventListener('change', async (e) => {
+            await renderSession(rotinaAtivaAtual.sessoes[e.target.value]);
+        });
 
         /* =========================================================================
            MOTOR DO DASHBOARD DE BI (TELA 5)
