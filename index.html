@@ -1390,36 +1390,57 @@
         const muscleDictionary = {};
         exercisesRepository.forEach(ex => muscleDictionary[ex.nome] = ex.musculo);
 
+        function normalizarTexto(texto) {
+            return String(texto || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim();
+        }
+
         function obterMetadadosExercicio(nomeExercicio) {
             if (!nomeExercicio) return null;
-            return exercisesRepository.find(ex => ex.nome.toLowerCase() === nomeExercicio.toLowerCase()) || null;
+            const alvo = normalizarTexto(nomeExercicio);
+            return exercisesRepository.find(ex => normalizarTexto(ex.nome) === alvo) || null;
         }
 
         async function carregarExerciciosCustomizados() {
             if (!usuarioAtivo) return;
             try {
-                // ISOLAMENTO DE DADOS: Puxa apenas customizados criados por este UID
-                const q = query(collection(db, "exercicios_customizados"), where("criadoPor", "==", usuarioAtivo));
-                const snap = await getDocs(q);
-                
+                let snap;
+                try {
+                    // Busca todos os exercícios customizados (inclui registros antigos com "Marcos" e os novos com UID)
+                    snap = await getDocs(collection(db, "exercicios_customizados"));
+                } catch (permErr) {
+                    // Fallback caso as regras do Firestore restrinjam leitura apenas ao UID
+                    const q = query(collection(db, "exercicios_customizados"), where("criadoPor", "==", usuarioAtivo));
+                    snap = await getDocs(q);
+                }
+
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
                     if (data.nome && data.musculo) {
-                        muscleDictionary[data.nome] = data.musculo;
-                        const jaExiste = exercisesRepository.some(ex => ex.nome.toLowerCase() === data.nome.toLowerCase());
+                        const nomeLimpo = data.nome.trim();
+                        muscleDictionary[nomeLimpo] = data.musculo;
+
+                        const jaExiste = exercisesRepository.some(
+                            ex => normalizarTexto(ex.nome) === normalizarTexto(nomeLimpo)
+                        );
+
                         if (!jaExiste) {
                             exercisesRepository.push({
-                                nome: data.nome,
+                                nome: nomeLimpo,
                                 musculo: data.musculo,
                                 criadoPor: data.criadoPor || "desconhecido",
                                 pendenteRevisaoMME: data.pendenteRevisaoMME !== undefined ? data.pendenteRevisaoMME : true,
-                                mme: data.mmeFallback?.mme || criarEstruturaMmeFallback(data.musculo).mme,
+                                mme: data.mmeFallback?.mme || data.mme || criarEstruturaMmeFallback(data.musculo).mme,
                                 isCustom: true
                             });
                         }
                     }
                 });
-                renderDropdownList(dropdownSearchInput.value);
+
+                renderDropdownList(dropdownSearchInput ? dropdownSearchInput.value : '');
             } catch (err) {
                 console.error("Erro ao carregar exercícios customizados:", err);
             }
@@ -1708,9 +1729,16 @@
 
         function renderDropdownList(filterText = '') {
             dropdownExerciseList.innerHTML = '';
-            const termo = filterText.trim().toLowerCase();
+            const termoNormalizado = normalizarTexto(filterText);
+            const palavrasBusca = termoNormalizado ? termoNormalizado.split(/\s+/) : [];
 
-            const filtrados = Object.keys(muscleDictionary).filter(exName => exName.toLowerCase().includes(termo));
+            const filtrados = Object.keys(muscleDictionary)
+                .filter(exName => {
+                    if (palavrasBusca.length === 0) return true;
+                    const textoAlvo = normalizarTexto(`${exName} ${muscleDictionary[exName] || ''}`);
+                    return palavrasBusca.every(palavra => textoAlvo.includes(palavra));
+                })
+                .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
             if (filtrados.length === 0) {
                 const emptyLi = document.createElement('li');
@@ -1723,7 +1751,7 @@
             filtrados.forEach(exName => {
                 const li = document.createElement('li');
                 li.className = 'dropdown-option-item';
-                li.textContent = exName; 
+                li.textContent = exName;
                 li.addEventListener('click', () => {
                     adicionarCardExercicioTela2(exName);
                     toggleDropdown(false);
