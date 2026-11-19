@@ -2261,6 +2261,10 @@
                 console.error("Erro ao recuperar treinos executados na data:", error);
             }
         }
+            function exibirEstadoVazioTela4(diaDaSemanaStr) {
+            sessionSelect.value = '';
+            execContainer.innerHTML = `<p class="empty-msg">Nenhum treino programado para ${diaDaSemanaStr}. Selecione uma sessão acima se quiser treinar hoje.</p>`;
+        }
 
         async function sincronizarSessaoPeloDia(diaDaSemanaStr) {
             if (!rotinaAtivaAtual || !rotinaAtivaAtual.sessoes) return;
@@ -2273,8 +2277,37 @@
                 sessionSelect.value = indexEncontrado;
                 await renderSession(rotinaAtivaAtual.sessoes[indexEncontrado]);
             } else {
-                const currentIdx = sessionSelect.value || 0;
-                await renderSession(rotinaAtivaAtual.sessoes[currentIdx]);
+                // Limpa imediatamente nos dias sem treino programado
+                exibirEstadoVazioTela4(diaDaSemanaStr);
+
+                // Verifica se já houve algum treino avulso salvo nesta data
+                const dataConsultada = dateInput.value;
+                if (!dataConsultada) return;
+
+                try {
+                    const q = query(
+                        collection(db, "treinos_executados"),
+                        where("usuario", "==", usuarioAtivo),
+                        where("nomeRotina", "==", rotinaAtivaAtual.nomeRotina),
+                        where("dataExecucao", "==", dataConsultada)
+                    );
+                    const snap = await getDocs(q);
+
+                    if (snap.empty || dateInput.value !== dataConsultada) return;
+
+                    const primeiroRegistro = snap.docs[0].data();
+                    const idxExecutado = rotinaAtivaAtual.sessoes.findIndex(s =>
+                        s.nomeSessao === primeiroRegistro.nomeTreino &&
+                        (!primeiroRegistro.diaProgramadoSessao || s.diaSessao === primeiroRegistro.diaProgramadoSessao)
+                    );
+
+                    if (idxExecutado !== -1) {
+                        sessionSelect.value = idxExecutado;
+                        await renderSession(rotinaAtivaAtual.sessoes[idxExecutado]);
+                    }
+                } catch (error) {
+                    console.error("Erro ao verificar treino avulso na data:", error);
+                }
             }
         }
 
@@ -2448,7 +2481,7 @@
             document.getElementById('exec-routine-name').textContent = rotina.nomeRotina;
             const diaHoje = setTodayDate();
 
-            sessionSelect.innerHTML = '';
+            sessionSelect.innerHTML = '<option value="">-- Selecionar sessão para treinar --</option>';
             rotina.sessoes.forEach((sessao, index) => {
                 const opt = document.createElement('option');
                 opt.value = index;
@@ -2460,6 +2493,10 @@
         }
 
         sessionSelect.addEventListener('change', async (e) => {
+            if (e.target.value === '') {
+                exibirEstadoVazioTela4(dayRefHeader.textContent);
+                return;
+            }
             await renderSession(rotinaAtivaAtual.sessoes[e.target.value]);
         });
 
