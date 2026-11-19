@@ -459,12 +459,12 @@
             border: 1px solid var(--text-secondary);
         }
 
-        /* ---- BOTTOM SHEET CUSTOMIZADO DE NÚMEROS ---- */
+        /* ---- BOTTOM SHEET CUSTOMIZADO DE NÚMEROS (TECLADO CLÁSSICO) ---- */
         .bottom-sheet-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.72);
             z-index: 900;
             align-items: flex-end;
             justify-content: center;
@@ -474,8 +474,8 @@
         }
         .bottom-sheet {
             width: 100%;
-            max-width: 600px;
-            max-height: 50vh;
+            max-width: 420px;
+            max-height: 85vh;
             background: var(--surface-color);
             border-top: 2px solid var(--accent-color);
             border-radius: 16px 16px 0 0;
@@ -524,42 +524,73 @@
         }
         .number-grid-container {
             padding: 16px;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .keypad-display {
+            background: var(--bg-color);
+            border: 1px solid var(--accent-color);
+            border-radius: 10px;
+            padding: 14px 18px;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--secondary-accent);
+            text-align: right;
+            letter-spacing: 2px;
+            min-height: 62px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .keypad-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 10px;
         }
-        .number-grid-container::-webkit-scrollbar {
-            width: 6px;
-        }
-        .number-grid-container::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 3px;
-        }
-        .num-square-btn {
-            aspect-ratio: 1 / 1;
-            background: var(--surface-color);
+        .keypad-btn {
+            height: 56px;
+            background: var(--bg-color);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
             border-radius: 10px;
-            font-size: 1.15rem;
+            font-size: 1.35rem;
             font-weight: 700;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease;
+            transition: transform 0.08s ease, background-color 0.15s ease, border-color 0.15s ease;
             user-select: none;
         }
-        .num-square-btn:hover {
+        .keypad-btn:hover {
             background: var(--surface-highlight);
             border-color: var(--accent-color);
         }
-        .num-square-btn.selected {
+        .keypad-btn:active {
+            transform: scale(0.96);
+        }
+        .keypad-btn.keypad-action {
+            font-size: 1.05rem;
+            color: var(--danger-color);
+            border-color: rgba(207, 102, 121, 0.45);
+        }
+        .keypad-confirm-btn {
+            width: 100%;
             background: var(--accent-color);
             color: #000000;
-            border-color: var(--accent-color);
-            transform: scale(1.03);
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: filter 0.15s ease;
+        }
+        .keypad-confirm-btn:hover {
+            filter: brightness(1.1);
         }
 
         /* ---- ESTILOS ADICIONAIS TELA 2, BOTÃO EXCLUIR CARD & FEEDBACK ---- */
@@ -1514,56 +1545,133 @@
             }
         });
 
-        // --- BOTTOM SHEET DE NÚMEROS ---
+        // --- BOTTOM SHEET DE NÚMEROS (TECLADO CLÁSSICO 1-9 E 0) ---
         const numberPickerOverlay = document.getElementById('number-picker-overlay');
         const numberPickerTitle = document.getElementById('number-picker-title');
         const numberPickerClose = document.getElementById('number-picker-close');
         const numberPickerGrid = document.getElementById('number-picker-grid');
 
         let activeNumberTriggerBtn = null;
+        let keypadValue = '0';
+        let replaceOnNextDigit = true;
+        let keypadDisplayEl = null;
+
+        function atualizarVisorTeclado() {
+            if (keypadDisplayEl) {
+                keypadDisplayEl.textContent = keypadValue;
+            }
+        }
+
+        function inserirDigitoTeclado(digito) {
+            if (replaceOnNextDigit) {
+                keypadValue = digito;
+                replaceOnNextDigit = false;
+            } else {
+                if (keypadValue === '0') {
+                    keypadValue = digito;
+                } else if (keypadValue.length < 4) {
+                    keypadValue += digito;
+                }
+            }
+            atualizarVisorTeclado();
+        }
+
+        function apagarUltimoDigitoTeclado() {
+            replaceOnNextDigit = false;
+            keypadValue = keypadValue.length > 1 ? keypadValue.slice(0, -1) : '0';
+            if (keypadValue === '0') replaceOnNextDigit = true;
+            atualizarVisorTeclado();
+        }
+
+        function limparTeclado() {
+            keypadValue = '0';
+            replaceOnNextDigit = true;
+            atualizarVisorTeclado();
+        }
+
+        function confirmarTeclado() {
+            if (!activeNumberTriggerBtn) return;
+            const valorFinal = Number(keypadValue) || 0;
+            activeNumberTriggerBtn.dataset.value = valorFinal;
+            activeNumberTriggerBtn.textContent = valorFinal;
+            closeNumberPicker();
+        }
 
         function openNumberPicker(triggerBtn, maxNumber, titleText) {
             if (triggerBtn.disabled) return;
             activeNumberTriggerBtn = triggerBtn;
-            const currentValue = Number(triggerBtn.dataset.value || 1);
+            keypadValue = String(triggerBtn.dataset.value ?? '0');
+            replaceOnNextDigit = true;
 
             numberPickerTitle.textContent = titleText;
             numberPickerGrid.innerHTML = '';
 
-            const fragment = document.createDocumentFragment();
-            let selectedSquare = null;
+            // Visor numérico
+            keypadDisplayEl = document.createElement('div');
+            keypadDisplayEl.className = 'keypad-display';
+            keypadDisplayEl.textContent = keypadValue;
+            numberPickerGrid.appendChild(keypadDisplayEl);
 
-            for (let i = 1; i <= maxNumber; i++) {
-                const sqBtn = document.createElement('button');
-                sqBtn.type = 'button';
-                sqBtn.className = 'num-square-btn';
-                if (i === currentValue) {
-                    sqBtn.classList.add('selected');
-                    selectedSquare = sqBtn;
+            // Grade clássica: 1-9, C, 0, Apagar
+            const gridEl = document.createElement('div');
+            gridEl.className = 'keypad-grid';
+
+            const teclas = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'];
+            teclas.forEach(tecla => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'keypad-btn';
+                btn.textContent = tecla;
+
+                if (tecla === 'C' || tecla === '⌫') {
+                    btn.classList.add('keypad-action');
                 }
-                sqBtn.textContent = i;
 
-                sqBtn.addEventListener('click', () => {
-                    activeNumberTriggerBtn.dataset.value = i;
-                    activeNumberTriggerBtn.textContent = i;
-                    closeNumberPicker();
+                btn.addEventListener('click', () => {
+                    if (tecla === 'C') limparTeclado();
+                    else if (tecla === '⌫') apagarUltimoDigitoTeclado();
+                    else inserirDigitoTeclado(tecla);
                 });
 
-                fragment.appendChild(sqBtn);
-            }
+                gridEl.appendChild(btn);
+            });
 
-            numberPickerGrid.appendChild(fragment);
+            numberPickerGrid.appendChild(gridEl);
+
+            // Botão Confirmar
+            const confirmBtn = document.createElement('button');
+            confirmBtn.type = 'button';
+            confirmBtn.className = 'keypad-confirm-btn';
+            confirmBtn.textContent = 'CONFIRMAR';
+            confirmBtn.addEventListener('click', confirmarTeclado);
+            numberPickerGrid.appendChild(confirmBtn);
+
             numberPickerOverlay.classList.add('open');
-
-            if (selectedSquare) {
-                setTimeout(() => selectedSquare.scrollIntoView({ block: 'center', behavior: 'instant' }), 10);
-            }
         }
 
         function closeNumberPicker() {
             numberPickerOverlay.classList.remove('open');
             activeNumberTriggerBtn = null;
+            keypadDisplayEl = null;
         }
+
+        // Permite também digitar pelo teclado físico no PC
+        document.addEventListener('keydown', (e) => {
+            if (!numberPickerOverlay.classList.contains('open')) return;
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                inserirDigitoTeclado(e.key);
+            } else if (e.key === 'Backspace') {
+                e.preventDefault();
+                apagarUltimoDigitoTeclado();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmarTeclado();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                closeNumberPicker();
+            }
+        });
 
         numberPickerClose.addEventListener('click', closeNumberPicker);
         numberPickerOverlay.addEventListener('click', (e) => {
@@ -2855,6 +2963,8 @@
 
             if (!temDados) return;
 
+            const maxVal = Math.max(...valores, 1);
+
             const ctx = document.getElementById('chart-1-volume').getContext('2d');
             chartInstances['c1'] = new Chart(ctx, {
                 type: 'radar',
@@ -2877,7 +2987,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     layout: {
-                        padding: { top: 18, bottom: 18, left: 20, right: 20 }
+                        padding: { top: 22, bottom: 22, left: 26, right: 26 }
                     },
                     plugins: {
                         legend: { display: false },
@@ -2888,24 +2998,29 @@
                         },
                         datalabels: {
                             color: '#03dac6',
-                            backgroundColor: 'rgba(18, 18, 18, 0.85)',
+                            backgroundColor: 'rgba(18, 18, 18, 0.88)',
                             borderRadius: 4,
-                            padding: { top: 2, bottom: 2, left: 5, right: 5 },
+                            padding: { top: 3, bottom: 3, left: 6, right: 6 },
                             anchor: 'end',
                             align: 'end',
-                            offset: 4,
-                            font: { weight: 'bold', size: 10 },
+                            offset: 6,
+                            // >>> ALTERE AQUI O TAMANHO DOS VALORES NO RADAR (ex: 12, 13, 14, 15) <<<
+                            font: { weight: 'bold', size: 13 },
                             formatter: (val) => val > 0 ? `${val.toLocaleString('pt-BR')}kg` : '0'
                         }
                     },
                     scales: {
                         r: {
                             beginAtZero: true,
+                            // Folga de 30% no raio máximo para o valor nunca cobrir o nome do eixo
+                            max: Math.ceil(maxVal * 1.3),
                             grid: { color: 'rgba(255, 255, 255, 0.12)' },
                             angleLines: { color: 'rgba(255, 255, 255, 0.15)' },
                             pointLabels: {
                                 color: '#e0e0e0',
-                                font: { size: 12, weight: 'bold' }
+                                padding: 14,
+                                // >>> ALTERE AQUI O TAMANHO DOS NOMES (Costas, Peito, Braço, Quadríceps) <<<
+                                font: { size: 13, weight: 'bold' }
                             },
                             ticks: {
                                 display: false
