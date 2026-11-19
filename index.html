@@ -1088,10 +1088,23 @@
                 <input type="date" id="exec-date" class="date-input">
             </div>
             <select id="exec-session-select" class="session-select"></select>
-        </div>
 
-        <div id="exec-container"></div>
-    </div>
+            <!-- NOVO: Seletor de exercício extra na Tela 4 -->
+            <div class="exercise-selector" id="exec-exercise-dropdown" style="margin-bottom: 0;">
+                <div class="custom-dropdown-trigger" id="exec-dropdown-trigger">
+                    <span>+ Escolher Exercício...</span>
+                    <span class="arrow">▼</span>
+                </div>
+                <div class="custom-dropdown-menu" id="exec-dropdown-menu">
+                    <div class="dropdown-search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="exec-dropdown-search-input" placeholder="Pesquisar exercício..." autocomplete="off">
+                    </div>
+                    <div class="dropdown-add-fixed" id="btn-open-add-ex-modal-s4">[+ Adicionar Exercício]</div>
+                    <ul class="dropdown-options-list" id="exec-dropdown-exercise-list"></ul>
+                </div>
+            </div>
+        </div>
 
     <!-- TELA 5: Dashboard de BI -->
     <div id="screen-5" class="screen">
@@ -1463,6 +1476,7 @@
                 });
 
                 renderDropdownList(dropdownSearchInput ? dropdownSearchInput.value : '');
+                renderDropdownListTela4(execDropdownSearchInput ? execDropdownSearchInput.value : ''); // <-- ADICIONE ESTA LINHA
             } catch (err) {
                 console.error("Erro ao carregar exercícios customizados:", err);
             }
@@ -1856,20 +1870,25 @@
             }
 
             renderDropdownList();
+            renderDropdownListTela4(); // <-- ADICIONADO
             modalNewExercise.classList.remove('open');
             inputNewExName.value = '';
 
             const isOnScreen1 = screens.s1.classList.contains('active');
             const isOnScreen2 = screens.s2.classList.contains('active');
+            const isOnScreen4 = screens.s4.classList.contains('active'); // <-- ADICIONADO
 
             if (!isOnScreen1 && isOnScreen2) {
                 adicionarCardExercicioTela2(nomeNovo);
+            } else if (isOnScreen4) { // <-- ADICIONADO
+                adicionarExercicioExtraTela4(nomeNovo); // <-- ADICIONADO
             }
 
             showToast(`"${nomeNovo}" adicionado com sucesso!`);
         });
 
-        // --- ESTADO DE EDIÇÃO E CRIAÇÃO DE ROTINAS (TELA 2, 6 e 7) ---
+        // --- ESTADO DE EDIÇÃO E CRIAÇÃO DE ROTINAS (TELA 2, 6 e 7) --
+        
         const exerciseContainer = document.getElementById('exercise-container');
         const inputNomeRotina = document.getElementById('input-nome');
         const selectDiaRef = document.getElementById('select-dia');
@@ -2336,16 +2355,94 @@
             }
         }
 
-        // --- TELA 4: EXECUÇÃO E HISTÓRICO DO DIA ---
+// --- TELA 4: EXECUÇÃO E HISTÓRICO DO DIA ---
         const dayRefHeader = document.getElementById('exec-day-ref');
         const dateInput = document.getElementById('exec-date');
         const sessionSelect = document.getElementById('exec-session-select');
         const execContainer = document.getElementById('exec-container');
         const diasDaSemana = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
 
+        // Dropdown customizado de exercícios da Tela 4
+        const execCustomDropdown = document.getElementById('exec-exercise-dropdown');
+        const execDropdownTrigger = document.getElementById('exec-dropdown-trigger');
+        const execDropdownMenu = document.getElementById('exec-dropdown-menu');
+        const execDropdownSearchInput = document.getElementById('exec-dropdown-search-input');
+        const execDropdownExerciseList = document.getElementById('exec-dropdown-exercise-list');
+        const btnOpenAddExModalS4 = document.getElementById('btn-open-add-ex-modal-s4');
+
         let rotinaAtivaAtual = null;
 
-function criarLinhaSerieExecucao(serieLabel, kgInicial = 1, repsInicial = 1) {
+        function toggleDropdownTela4(forceState) {
+            const isOpen = typeof forceState === 'boolean' ? forceState : !execDropdownMenu.classList.contains('open');
+            execDropdownMenu.classList.toggle('open', isOpen);
+            execDropdownTrigger.classList.toggle('open', isOpen);
+
+            if (isOpen) {
+                execDropdownSearchInput.value = '';
+                renderDropdownListTela4('');
+                setTimeout(() => execDropdownSearchInput.focus(), 50);
+            }
+        }
+
+        execDropdownTrigger.addEventListener('click', () => toggleDropdownTela4());
+
+        document.addEventListener('click', (e) => {
+            if (!execCustomDropdown.contains(e.target)) toggleDropdownTela4(false);
+        });
+
+        execDropdownSearchInput.addEventListener('input', (e) => renderDropdownListTela4(e.target.value));
+
+        btnOpenAddExModalS4.addEventListener('click', () => {
+            inputNewExName.value = execDropdownSearchInput.value.trim();
+            toggleDropdownTela4(false);
+            modalNewExercise.classList.add('open');
+            setTimeout(() => inputNewExName.focus(), 50);
+        });
+
+        function renderDropdownListTela4(filterText = '') {
+            execDropdownExerciseList.innerHTML = '';
+            const termoNormalizado = normalizarTexto(filterText);
+            const palavrasBusca = termoNormalizado ? termoNormalizado.split(/\s+/) : [];
+
+            const filtrados = Object.keys(muscleDictionary)
+                .filter(exName => {
+                    if (palavrasBusca.length === 0) return true;
+                    const textoAlvo = normalizarTexto(`${exName} ${muscleDictionary[exName] || ''}`);
+                    return palavrasBusca.every(palavra => textoAlvo.includes(palavra));
+                })
+                .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+            if (filtrados.length === 0) {
+                const emptyLi = document.createElement('li');
+                emptyLi.className = 'dropdown-empty-state';
+                emptyLi.textContent = 'Nenhum exercício encontrado.';
+                execDropdownExerciseList.appendChild(emptyLi);
+                return;
+            }
+
+            filtrados.forEach(exName => {
+                const li = document.createElement('li');
+                li.className = 'dropdown-option-item';
+                li.textContent = exName;
+                li.addEventListener('click', () => {
+                    adicionarExercicioExtraTela4(exName);
+                    toggleDropdownTela4(false);
+                });
+                execDropdownExerciseList.appendChild(li);
+            });
+        }
+
+        function obterSessaoAtualTela4() {
+            if (rotinaAtivaAtual && sessionSelect.value !== '' && rotinaAtivaAtual.sessoes?.[sessionSelect.value]) {
+                return rotinaAtivaAtual.sessoes[sessionSelect.value];
+            }
+            return {
+                nomeSessao: 'TREINO EXTRA',
+                diaSessao: dayRefHeader.textContent || ''
+            };
+        }
+
+        function criarLinhaSerieExecucao(serieLabel, kgInicial = 1, repsInicial = 1) {
             const row = document.createElement('div');
             row.className = 'exec-set-row';
             row.setAttribute('data-serie', serieLabel);
@@ -2367,6 +2464,208 @@ function criarLinhaSerieExecucao(serieLabel, kgInicial = 1, repsInicial = 1) {
             });
 
             return row;
+        }
+
+        function criarCardExercicioTela4(ex, session, autoScroll = false) {
+            const emptyMsg = execContainer.querySelector('.empty-msg');
+            if (emptyMsg) emptyMsg.remove();
+
+            const muscle = muscleDictionary[ex.nome] || (ex.mme?.protagonista) || "OUTROS";
+
+            let groupDiv = Array.from(execContainer.querySelectorAll('.muscle-group')).find(
+                div => div.dataset.muscleGroup === muscle
+            );
+
+            let carousel;
+            if (!groupDiv) {
+                groupDiv = document.createElement('div');
+                groupDiv.className = 'muscle-group';
+                groupDiv.dataset.muscleGroup = muscle;
+                groupDiv.innerHTML = `<h3 class="muscle-title">${muscle}</h3>`;
+
+                carousel = document.createElement('div');
+                carousel.className = 'carousel';
+                groupDiv.appendChild(carousel);
+                execContainer.appendChild(groupDiv);
+            } else {
+                carousel = groupDiv.querySelector('.carousel');
+            }
+
+            const card = document.createElement('div');
+            card.className = 'carousel-card';
+            card.dataset.exerciseName = ex.nome;
+
+            card.innerHTML = `
+                <button type="button" class="btn-remove-card" title="Remover exercício deste treino">✕</button>
+                <h4 class="exec-card-title">${ex.nome}</h4>
+                <div class="exec-sets-wrapper" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                <div class="card-controls">
+                    <button type="button" class="btn-control btn-minus" title="Remover última série válida">-</button>
+                    <button type="button" class="btn-control btn-plus" title="Adicionar série válida">+</button>
+                </div>
+                <div class="card-footer">
+                    <button type="button" class="btn-card-action">SALVAR</button>
+                </div>
+            `;
+
+            const setsWrapper = card.querySelector('.exec-sets-wrapper');
+            const btnPlus = card.querySelector('.btn-plus');
+            const btnMinus = card.querySelector('.btn-minus');
+            const btnRemoveCard = card.querySelector('.btn-remove-card');
+            const btnAction = card.querySelector('.btn-card-action');
+
+            const seriesIniciais = Array.isArray(ex.series) && ex.series.length > 0
+                ? ex.series
+                : ['Reconhecimento', '1ª Válida'];
+
+            seriesIniciais.forEach(serie => {
+                setsWrapper.appendChild(criarLinhaSerieExecucao(serie, 1, 1));
+            });
+
+            btnPlus.addEventListener('click', () => {
+                const validCount = Array.from(setsWrapper.querySelectorAll('.exec-set-row')).filter(
+                    row => (row.getAttribute('data-serie') || '').trim().toLowerCase() !== 'reconhecimento'
+                ).length;
+                setsWrapper.appendChild(criarLinhaSerieExecucao(`${validCount + 1}ª Válida`, 1, 1));
+            });
+
+            btnMinus.addEventListener('click', () => {
+                const validRows = Array.from(setsWrapper.querySelectorAll('.exec-set-row')).filter(
+                    row => (row.getAttribute('data-serie') || '').trim().toLowerCase() !== 'reconhecimento'
+                );
+                if (validRows.length > 0) {
+                    validRows[validRows.length - 1].remove();
+                }
+            });
+
+            btnRemoveCard.addEventListener('click', () => {
+                card.remove();
+                atualizarLayoutCarrossel(carousel, groupDiv);
+                if (execContainer.querySelectorAll('.carousel-card').length === 0) {
+                    execContainer.innerHTML = `<p class="empty-msg">Todos os exercícios foram removidos desta execução. Selecione a sessão novamente acima se quiser restaurá-los.</p>`;
+                }
+                showToast(`"${ex.nome}" removido apenas deste treino!`);
+            });
+
+            btnAction.addEventListener('click', async () => {
+                const isSaved = card.classList.contains('card-salvo');
+
+                if (!isSaved) {
+                    const currentRows = card.querySelectorAll('.exec-set-row');
+                    const seriesExecutadas = [];
+                    currentRows.forEach(row => {
+                        const nomeSerie = row.getAttribute('data-serie');
+                        const kg = Number(row.querySelector('.select-kg').dataset.value);
+                        const reps = Number(row.querySelector('.select-reps').dataset.value);
+                        seriesExecutadas.push({ serie: nomeSerie, kg, reps });
+                    });
+
+                    const sessaoParaSalvar = session || obterSessaoAtualTela4();
+                    const dadosExercicio = {
+                        usuario: usuarioAtivo,
+                        nomeRotina: rotinaAtivaAtual.nomeRotina,
+                        nomeTreino: sessaoParaSalvar.nomeSessao,
+                        diaProgramadoSessao: sessaoParaSalvar.diaSessao,
+                        dataExecucao: dateInput.value,
+                        diaSemana: dayRefHeader.textContent,
+                        musculo: muscle,
+                        exercicio: ex.nome,
+                        series: seriesExecutadas,
+                        atualizadoEm: new Date().toISOString()
+                    };
+
+                    const meta = obterMetadadosExercicio(ex.nome);
+                    dadosExercicio.mme = meta?.mme || ex.mme || criarEstruturaMmeFallback(muscle).mme;
+
+                    if (meta && meta.isCustom) {
+                        dadosExercicio.criadoPor = ex.criadoPor || meta.criadoPor || usuarioAtivo;
+                        dadosExercicio.pendenteRevisaoMME = ex.pendenteRevisaoMME !== undefined ? ex.pendenteRevisaoMME : true;
+                    }
+
+                    try {
+                        btnAction.disabled = true;
+                        btnAction.textContent = "SALVANDO...";
+
+                        const existingDocId = card.dataset.firestoreId;
+
+                        if (!existingDocId) {
+                            const docRef = await addDoc(collection(db, "treinos_executados"), dadosExercicio);
+                            card.dataset.firestoreId = docRef.id;
+                            showToast(`${ex.nome} registrado!`);
+                        } else {
+                            const docRef = doc(db, "treinos_executados", existingDocId);
+                            await updateDoc(docRef, dadosExercicio);
+                            showToast(`${ex.nome} atualizado!`);
+                        }
+
+                        card.classList.add('card-salvo');
+                        card.querySelectorAll('.num-picker-btn, .btn-control, .btn-remove-card').forEach(b => b.disabled = true);
+                        btnAction.textContent = 'CORRIGIR';
+                        btnAction.classList.add('btn-corrigir');
+
+                    } catch (error) {
+                        console.error("Erro ao gravar exercício no Firestore:", error);
+                        showToast("Erro ao salvar no Firebase!");
+                        btnAction.textContent = 'SALVAR';
+                    } finally {
+                        btnAction.disabled = false;
+                    }
+
+                } else {
+                    card.classList.remove('card-salvo');
+                    card.querySelectorAll('.num-picker-btn, .btn-control, .btn-remove-card').forEach(b => b.disabled = false);
+                    btnAction.textContent = 'SALVAR';
+                    btnAction.classList.remove('btn-corrigir');
+                }
+            });
+
+            carousel.appendChild(card);
+            atualizarLayoutCarrossel(carousel, groupDiv);
+
+            if (autoScroll) {
+                setTimeout(() => {
+                    card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }, 50);
+            }
+
+            return card;
+        }
+
+        function adicionarExercicioExtraTela4(exerciseName) {
+            if (!exerciseName) return;
+            const sessaoAtual = obterSessaoAtualTela4();
+            criarCardExercicioTela4({ nome: exerciseName, series: ['Reconhecimento', '1ª Válida'] }, sessaoAtual, true);
+            showToast(`"${exerciseName}" adicionado ao treino!`);
+        }
+
+        function aplicarEstadoSalvoNoCard(card, registroSalvo) {
+            card.dataset.firestoreId = registroSalvo.id;
+
+            if (Array.isArray(registroSalvo.series) && registroSalvo.series.length > 0) {
+                const setsWrapper = card.querySelector('.exec-sets-wrapper');
+                if (setsWrapper) {
+                    setsWrapper.innerHTML = '';
+                    registroSalvo.series.forEach(s => {
+                        const row = criarLinhaSerieExecucao(
+                            s.serie || 'Série',
+                            s.kg !== undefined ? s.kg : 1,
+                            s.reps !== undefined ? s.reps : 1
+                        );
+                        setsWrapper.appendChild(row);
+                    });
+                }
+            }
+
+            card.classList.add('card-salvo');
+            card.querySelectorAll('.num-picker-btn, .btn-control, .btn-remove-card').forEach(btn => {
+                btn.disabled = true;
+            });
+
+            const btnAction = card.querySelector('.btn-card-action');
+            if (btnAction) {
+                btnAction.textContent = 'CORRIGIR';
+                btnAction.classList.add('btn-corrigir');
+            }
         }
 
         async function recuperarDadosExecutadosNoDia() {
@@ -2395,50 +2694,49 @@ function criarLinhaSerieExecucao(serieLabel, kgInicial = 1, repsInicial = 1) {
                     }
                 });
 
+                const exerciciosJaNoDOM = new Set();
                 const cardsNoDOM = execContainer.querySelectorAll('.carousel-card');
+
                 cardsNoDOM.forEach(card => {
                     const tituloEl = card.querySelector('.exec-card-title');
                     const nomeExCard = (card.dataset.exerciseName || (tituloEl ? tituloEl.textContent : '')).trim().toLowerCase();
+                    exerciciosJaNoDOM.add(nomeExCard);
 
                     const registroSalvo = mapaSalvos[nomeExCard];
-                    if (!registroSalvo) return;
-
-                    card.dataset.firestoreId = registroSalvo.id;
-
-                    // Reconstrói exatamente as séries executadas naquele dia (mesmo se adicionou/removeu séries)
-                    if (Array.isArray(registroSalvo.series) && registroSalvo.series.length > 0) {
-                        const setsWrapper = card.querySelector('.exec-sets-wrapper');
-                        if (setsWrapper) {
-                            setsWrapper.innerHTML = '';
-                            registroSalvo.series.forEach(s => {
-                                const row = criarLinhaSerieExecucao(
-                                    s.serie || 'Série',
-                                    s.kg !== undefined ? s.kg : 1,
-                                    s.reps !== undefined ? s.reps : 1
-                                );
-                                setsWrapper.appendChild(row);
-                            });
-                        }
+                    if (registroSalvo) {
+                        aplicarEstadoSalvoNoCard(card, registroSalvo);
                     }
+                });
 
-                    card.classList.add('card-salvo');
-                    card.querySelectorAll('.num-picker-btn, .btn-control, .btn-remove-card').forEach(btn => {
-                        btn.disabled = true;
-                    });
-
-                    const btnAction = card.querySelector('.btn-card-action');
-                    if (btnAction) {
-                        btnAction.textContent = 'CORRIGIR';
-                        btnAction.classList.add('btn-corrigir');
+                // Recarrega também exercícios EXTRAS salvos nessa data que não estavam na rotina original
+                const sessaoAtual = obterSessaoAtualTela4();
+                Object.entries(mapaSalvos).forEach(([chaveNome, registroSalvo]) => {
+                    if (exerciciosJaNoDOM.has(chaveNome)) return;
+                    if (
+                        sessionSelect.value === '' ||
+                        !registroSalvo.nomeTreino ||
+                        registroSalvo.nomeTreino === sessaoAtual.nomeSessao
+                    ) {
+                        const cardExtra = criarCardExercicioTela4(
+                            {
+                                nome: registroSalvo.exercicio,
+                                mme: registroSalvo.mme,
+                                series: ['Reconhecimento']
+                            },
+                            sessaoAtual,
+                            false
+                        );
+                        aplicarEstadoSalvoNoCard(cardExtra, registroSalvo);
                     }
                 });
             } catch (error) {
                 console.error("Erro ao recuperar treinos executados na data:", error);
             }
         }
-            function exibirEstadoVazioTela4(diaDaSemanaStr) {
+
+        function exibirEstadoVazioTela4(diaDaSemanaStr) {
             sessionSelect.value = '';
-            execContainer.innerHTML = `<p class="empty-msg">Nenhum treino programado para ${diaDaSemanaStr}. Selecione uma sessão acima se quiser treinar hoje.</p>`;
+            execContainer.innerHTML = `<p class="empty-msg">Nenhum treino programado para ${diaDaSemanaStr}. Selecione uma sessão acima ou adicione um exercício avulso.</p>`;
         }
 
         async function sincronizarSessaoPeloDia(diaDaSemanaStr) {
@@ -2452,10 +2750,8 @@ function criarLinhaSerieExecucao(serieLabel, kgInicial = 1, repsInicial = 1) {
                 sessionSelect.value = indexEncontrado;
                 await renderSession(rotinaAtivaAtual.sessoes[indexEncontrado]);
             } else {
-                // Limpa imediatamente nos dias sem treino programado
                 exibirEstadoVazioTela4(diaDaSemanaStr);
 
-                // Verifica se já houve algum treino avulso salvo nesta data
                 const dataConsultada = dateInput.value;
                 if (!dataConsultada) return;
 
@@ -2479,6 +2775,8 @@ function criarLinhaSerieExecucao(serieLabel, kgInicial = 1, repsInicial = 1) {
                     if (idxExecutado !== -1) {
                         sessionSelect.value = idxExecutado;
                         await renderSession(rotinaAtivaAtual.sessoes[idxExecutado]);
+                    } else {
+                        await recuperarDadosExecutadosNoDia();
                     }
                 } catch (error) {
                     console.error("Erro ao verificar treino avulso na data:", error);
@@ -2489,10 +2787,10 @@ function criarLinhaSerieExecucao(serieLabel, kgInicial = 1, repsInicial = 1) {
         dateInput.addEventListener('change', async (e) => {
             const val = e.target.value;
             if (!val) return;
-            const parts = val.split('-'); 
+            const parts = val.split('-');
             const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
             const novoDiaSemana = diasDaSemana[dateObj.getDay()];
-            
+
             dayRefHeader.textContent = novoDiaSemana;
             await sincronizarSessaoPeloDia(novoDiaSemana);
         });
@@ -2511,153 +2809,10 @@ function criarLinhaSerieExecucao(serieLabel, kgInicial = 1, repsInicial = 1) {
         async function renderSession(session) {
             execContainer.innerHTML = '';
             if (!session || !session.exercicios) return;
-            
-            const groups = {};
+
             session.exercicios.forEach(ex => {
-                const muscle = muscleDictionary[ex.nome] || (ex.mme?.protagonista) || "OUTROS";
-                if (!groups[muscle]) groups[muscle] = [];
-                groups[muscle].push(ex);
+                criarCardExercicioTela4(ex, session, false);
             });
-
-            for (const [muscle, exercises] of Object.entries(groups)) {
-                const groupDiv = document.createElement('div');
-                groupDiv.className = 'muscle-group';
-                groupDiv.innerHTML = `<h3 class="muscle-title">${muscle}</h3>`;
-                
-                const carousel = document.createElement('div');
-                carousel.className = 'carousel';
-                const cardClass = exercises.length === 1 ? 'carousel-card single-card' : 'carousel-card';
-
-                exercises.forEach(ex => {
-                    const card = document.createElement('div');
-                    card.className = cardClass;
-                    card.dataset.exerciseName = ex.nome;
-
-                    card.innerHTML = `
-                        <button type="button" class="btn-remove-card" title="Remover exercício deste treino">✕</button>
-                        <h4 class="exec-card-title">${ex.nome}</h4>
-                        <div class="exec-sets-wrapper" style="display: flex; flex-direction: column; gap: 12px;"></div>
-                        <div class="card-controls">
-                            <button type="button" class="btn-control btn-minus" title="Remover última série válida">-</button>
-                            <button type="button" class="btn-control btn-plus" title="Adicionar série válida">+</button>
-                        </div>
-                        <div class="card-footer">
-                            <button type="button" class="btn-card-action">SALVAR</button>
-                        </div>
-                    `;
-
-                    const setsWrapper = card.querySelector('.exec-sets-wrapper');
-                    const btnPlus = card.querySelector('.btn-plus');
-                    const btnMinus = card.querySelector('.btn-minus');
-                    const btnRemoveCard = card.querySelector('.btn-remove-card');
-                    const btnAction = card.querySelector('.btn-card-action');
-
-                    ex.series.forEach(serie => {
-                        setsWrapper.appendChild(criarLinhaSerieExecucao(serie, 1, 1));
-                    });
-
-                    btnPlus.addEventListener('click', () => {
-                        const validCount = Array.from(setsWrapper.querySelectorAll('.exec-set-row')).filter(
-                            row => (row.getAttribute('data-serie') || '').trim().toLowerCase() !== 'reconhecimento'
-                        ).length;
-                        setsWrapper.appendChild(criarLinhaSerieExecucao(`${validCount + 1}ª Válida`, 1, 1));
-                    });
-
-                    btnMinus.addEventListener('click', () => {
-                        const validRows = Array.from(setsWrapper.querySelectorAll('.exec-set-row')).filter(
-                            row => (row.getAttribute('data-serie') || '').trim().toLowerCase() !== 'reconhecimento'
-                        );
-                        if (validRows.length > 0) {
-                            validRows[validRows.length - 1].remove();
-                        }
-                    });
-
-                    btnRemoveCard.addEventListener('click', () => {
-                        card.remove();
-                        atualizarLayoutCarrossel(carousel, groupDiv);
-                        if (execContainer.querySelectorAll('.carousel-card').length === 0) {
-                            execContainer.innerHTML = `<p class="empty-msg">Todos os exercícios foram removidos desta execução. Selecione a sessão novamente acima se quiser restaurá-los.</p>`;
-                        }
-                        showToast(`"${ex.nome}" removido apenas deste treino!`);
-                    });
-
-                    btnAction.addEventListener('click', async () => {
-                        const isSaved = card.classList.contains('card-salvo');
-
-                        if (!isSaved) {
-                            const currentRows = card.querySelectorAll('.exec-set-row');
-                            const seriesExecutadas = [];
-                            currentRows.forEach(row => {
-                                const nomeSerie = row.getAttribute('data-serie');
-                                const kg = Number(row.querySelector('.select-kg').dataset.value);
-                                const reps = Number(row.querySelector('.select-reps').dataset.value);
-                                seriesExecutadas.push({ serie: nomeSerie, kg, reps });
-                            });
-
-                            const dadosExercicio = {
-                                usuario: usuarioAtivo,
-                                nomeRotina: rotinaAtivaAtual.nomeRotina,
-                                nomeTreino: session.nomeSessao,
-                                diaProgramadoSessao: session.diaSessao,
-                                dataExecucao: dateInput.value,
-                                diaSemana: dayRefHeader.textContent,
-                                musculo: muscle,
-                                exercicio: ex.nome,
-                                series: seriesExecutadas,
-                                atualizadoEm: new Date().toISOString()
-                            };
-
-                            const meta = obterMetadadosExercicio(ex.nome);
-                            dadosExercicio.mme = meta?.mme || ex.mme || criarEstruturaMmeFallback(muscle).mme;
-                            
-                            if (meta && meta.isCustom) {
-                                dadosExercicio.criadoPor = ex.criadoPor || meta.criadoPor || usuarioAtivo;
-                                dadosExercicio.pendenteRevisaoMME = ex.pendenteRevisaoMME !== undefined ? ex.pendenteRevisaoMME : true;
-                            }
-
-                            try {
-                                btnAction.disabled = true;
-                                btnAction.textContent = "SALVANDO...";
-
-                                const existingDocId = card.dataset.firestoreId;
-
-                                if (!existingDocId) {
-                                    const docRef = await addDoc(collection(db, "treinos_executados"), dadosExercicio);
-                                    card.dataset.firestoreId = docRef.id;
-                                    showToast(`${ex.nome} registrado!`);
-                                } else {
-                                    const docRef = doc(db, "treinos_executados", existingDocId);
-                                    await updateDoc(docRef, dadosExercicio);
-                                    showToast(`${ex.nome} atualizado!`);
-                                }
-
-                                card.classList.add('card-salvo');
-                                card.querySelectorAll('.num-picker-btn, .btn-control, .btn-remove-card').forEach(b => b.disabled = true);
-                                btnAction.textContent = 'CORRIGIR';
-                                btnAction.classList.add('btn-corrigir');
-
-                            } catch (error) {
-                                console.error("Erro ao gravar exercício no Firestore:", error);
-                                showToast("Erro ao salvar no Firebase!");
-                                btnAction.textContent = 'SALVAR';
-                            } finally {
-                                btnAction.disabled = false;
-                            }
-
-                        } else {
-                            card.classList.remove('card-salvo');
-                            card.querySelectorAll('.num-picker-btn, .btn-control, .btn-remove-card').forEach(b => b.disabled = false);
-                            btnAction.textContent = 'SALVAR';
-                            btnAction.classList.remove('btn-corrigir');
-                        }
-                    });
-
-                    carousel.appendChild(card);
-                });
-
-                groupDiv.appendChild(carousel);
-                execContainer.appendChild(groupDiv);
-            }
 
             await recuperarDadosExecutadosNoDia();
         }
@@ -2665,9 +2820,10 @@ function criarLinhaSerieExecucao(serieLabel, kgInicial = 1, repsInicial = 1) {
         async function abrirRotinaNaTela4(rotina) {
             rotinaAtivaAtual = rotina;
             switchScreen(screens.s4);
-            
+
             document.getElementById('exec-routine-name').textContent = rotina.nomeRotina;
             const diaHoje = setTodayDate();
+            renderDropdownListTela4('');
 
             sessionSelect.innerHTML = '<option value="">-- Selecionar sessão para treinar --</option>';
             rotina.sessoes.forEach((sessao, index) => {
