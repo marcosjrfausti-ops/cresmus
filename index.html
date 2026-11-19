@@ -389,7 +389,22 @@
         
         .carousel-card.single-card { flex: 0 0 100%; }
 
-        .exec-card-title { font-size: 1.2rem; color: var(--accent-color); text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;}
+        exec-card-title {
+            font-size: 1.2rem;
+            color: var(--accent-color);
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 28px 12px 28px;
+        }
+        #exec-container .card-footer {
+            margin-top: 0;
+        }
+        .btn-control:disabled,
+        .btn-remove-card:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
 
         .exec-set-row {
             display: flex; flex-direction: column; align-items: center; gap: 12px;
@@ -2330,11 +2345,34 @@
 
         let rotinaAtivaAtual = null;
 
+function criarLinhaSerieExecucao(serieLabel, kgInicial = 1, repsInicial = 1) {
+            const row = document.createElement('div');
+            row.className = 'exec-set-row';
+            row.setAttribute('data-serie', serieLabel);
+            row.innerHTML = `
+                <span class="exec-set-label">${serieLabel}</span>
+                <div class="exec-set-inputs">
+                    <button type="button" class="num-picker-btn select-kg" data-value="${kgInicial}">${kgInicial}</button>
+                    <span class="exec-suffix">kg x</span>
+                    <button type="button" class="num-picker-btn select-reps" data-value="${repsInicial}">${repsInicial}</button>
+                    <span class="exec-suffix">Reps</span>
+                </div>
+            `;
+
+            row.querySelector('.select-kg').addEventListener('click', (e) => {
+                openNumberPicker(e.currentTarget, 250, 'Selecionar Carga (kg)');
+            });
+            row.querySelector('.select-reps').addEventListener('click', (e) => {
+                openNumberPicker(e.currentTarget, 25, 'Selecionar Repetições');
+            });
+
+            return row;
+        }
+
         async function recuperarDadosExecutadosNoDia() {
             if (!rotinaAtivaAtual || !dateInput.value) return;
 
             try {
-                // ISOLAMENTO DE DADOS já estava correto mas agora usa UID
                 const treinosRef = collection(db, "treinos_executados");
                 const q = query(
                     treinosRef,
@@ -2367,32 +2405,24 @@
 
                     card.dataset.firestoreId = registroSalvo.id;
 
-                    if (Array.isArray(registroSalvo.series)) {
-                        const setRows = card.querySelectorAll('.exec-set-row');
-                        setRows.forEach(row => {
-                            const serieLabel = (row.getAttribute('data-serie') || '').trim().toLowerCase();
-                            const serieEncontrada = registroSalvo.series.find(
-                                s => (s.serie || '').trim().toLowerCase() === serieLabel
-                            );
-
-                            if (serieEncontrada) {
-                                const btnKg = row.querySelector('.select-kg');
-                                const btnReps = row.querySelector('.select-reps');
-
-                                if (btnKg && serieEncontrada.kg !== undefined) {
-                                    btnKg.dataset.value = serieEncontrada.kg;
-                                    btnKg.textContent = serieEncontrada.kg;
-                                }
-                                if (btnReps && serieEncontrada.reps !== undefined) {
-                                    btnReps.dataset.value = serieEncontrada.reps;
-                                    btnReps.textContent = serieEncontrada.reps;
-                                }
-                            }
-                        });
+                    // Reconstrói exatamente as séries executadas naquele dia (mesmo se adicionou/removeu séries)
+                    if (Array.isArray(registroSalvo.series) && registroSalvo.series.length > 0) {
+                        const setsWrapper = card.querySelector('.exec-sets-wrapper');
+                        if (setsWrapper) {
+                            setsWrapper.innerHTML = '';
+                            registroSalvo.series.forEach(s => {
+                                const row = criarLinhaSerieExecucao(
+                                    s.serie || 'Série',
+                                    s.kg !== undefined ? s.kg : 1,
+                                    s.reps !== undefined ? s.reps : 1
+                                );
+                                setsWrapper.appendChild(row);
+                            });
+                        }
                     }
 
                     card.classList.add('card-salvo');
-                    card.querySelectorAll('.num-picker-btn').forEach(btn => {
+                    card.querySelectorAll('.num-picker-btn, .btn-control, .btn-remove-card').forEach(btn => {
                         btn.disabled = true;
                     });
 
@@ -2503,48 +2533,61 @@
                     card.className = cardClass;
                     card.dataset.exerciseName = ex.nome;
 
-                    let setsHTML = '';
-                    ex.series.forEach(serie => {
-                        setsHTML += `
-                            <div class="exec-set-row" data-serie="${serie}">
-                                <span class="exec-set-label">${serie}</span>
-                                <div class="exec-set-inputs">
-                                    <button type="button" class="num-picker-btn select-kg" data-value="1">1</button>
-                                    <span class="exec-suffix">kg x</span>
-                                    <button type="button" class="num-picker-btn select-reps" data-value="1">1</button>
-                                    <span class="exec-suffix">Reps</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-
                     card.innerHTML = `
+                        <button type="button" class="btn-remove-card" title="Remover exercício deste treino">✕</button>
                         <h4 class="exec-card-title">${ex.nome}</h4>
-                        <div class="exec-sets-wrapper" style="display: flex; flex-direction: column; gap: 12px;">
-                            ${setsHTML}
+                        <div class="exec-sets-wrapper" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                        <div class="card-controls">
+                            <button type="button" class="btn-control btn-minus" title="Remover última série válida">-</button>
+                            <button type="button" class="btn-control btn-plus" title="Adicionar série válida">+</button>
                         </div>
                         <div class="card-footer">
                             <button type="button" class="btn-card-action">SALVAR</button>
                         </div>
                     `;
 
-                    card.querySelectorAll('.select-kg').forEach(btnKg => {
-                        btnKg.addEventListener('click', () => openNumberPicker(btnKg, 250, 'Selecionar Carga (kg)'));
-                    });
-                    card.querySelectorAll('.select-reps').forEach(btnReps => {
-                        btnReps.addEventListener('click', () => openNumberPicker(btnReps, 25, 'Selecionar Repetições'));
+                    const setsWrapper = card.querySelector('.exec-sets-wrapper');
+                    const btnPlus = card.querySelector('.btn-plus');
+                    const btnMinus = card.querySelector('.btn-minus');
+                    const btnRemoveCard = card.querySelector('.btn-remove-card');
+                    const btnAction = card.querySelector('.btn-card-action');
+
+                    ex.series.forEach(serie => {
+                        setsWrapper.appendChild(criarLinhaSerieExecucao(serie, 1, 1));
                     });
 
-                    const btnAction = card.querySelector('.btn-card-action');
-                    const pickerBtns = card.querySelectorAll('.num-picker-btn');
-                    const setRows = card.querySelectorAll('.exec-set-row');
+                    btnPlus.addEventListener('click', () => {
+                        const validCount = Array.from(setsWrapper.querySelectorAll('.exec-set-row')).filter(
+                            row => (row.getAttribute('data-serie') || '').trim().toLowerCase() !== 'reconhecimento'
+                        ).length;
+                        setsWrapper.appendChild(criarLinhaSerieExecucao(`${validCount + 1}ª Válida`, 1, 1));
+                    });
+
+                    btnMinus.addEventListener('click', () => {
+                        const validRows = Array.from(setsWrapper.querySelectorAll('.exec-set-row')).filter(
+                            row => (row.getAttribute('data-serie') || '').trim().toLowerCase() !== 'reconhecimento'
+                        );
+                        if (validRows.length > 0) {
+                            validRows[validRows.length - 1].remove();
+                        }
+                    });
+
+                    btnRemoveCard.addEventListener('click', () => {
+                        card.remove();
+                        atualizarLayoutCarrossel(carousel, groupDiv);
+                        if (execContainer.querySelectorAll('.carousel-card').length === 0) {
+                            execContainer.innerHTML = `<p class="empty-msg">Todos os exercícios foram removidos desta execução. Selecione a sessão novamente acima se quiser restaurá-los.</p>`;
+                        }
+                        showToast(`"${ex.nome}" removido apenas deste treino!`);
+                    });
 
                     btnAction.addEventListener('click', async () => {
                         const isSaved = card.classList.contains('card-salvo');
 
                         if (!isSaved) {
+                            const currentRows = card.querySelectorAll('.exec-set-row');
                             const seriesExecutadas = [];
-                            setRows.forEach(row => {
+                            currentRows.forEach(row => {
                                 const nomeSerie = row.getAttribute('data-serie');
                                 const kg = Number(row.querySelector('.select-kg').dataset.value);
                                 const reps = Number(row.querySelector('.select-reps').dataset.value);
@@ -2552,7 +2595,7 @@
                             });
 
                             const dadosExercicio = {
-                                usuario: usuarioAtivo, // Garante que o treino gravado é desse UID
+                                usuario: usuarioAtivo,
                                 nomeRotina: rotinaAtivaAtual.nomeRotina,
                                 nomeTreino: session.nomeSessao,
                                 diaProgramadoSessao: session.diaSessao,
@@ -2589,7 +2632,7 @@
                                 }
 
                                 card.classList.add('card-salvo');
-                                pickerBtns.forEach(b => b.disabled = true);
+                                card.querySelectorAll('.num-picker-btn, .btn-control, .btn-remove-card').forEach(b => b.disabled = true);
                                 btnAction.textContent = 'CORRIGIR';
                                 btnAction.classList.add('btn-corrigir');
 
@@ -2603,7 +2646,7 @@
 
                         } else {
                             card.classList.remove('card-salvo');
-                            pickerBtns.forEach(b => b.disabled = false);
+                            card.querySelectorAll('.num-picker-btn, .btn-control, .btn-remove-card').forEach(b => b.disabled = false);
                             btnAction.textContent = 'SALVAR';
                             btnAction.classList.remove('btn-corrigir');
                         }
