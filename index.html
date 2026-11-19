@@ -1089,24 +1089,26 @@
             <!-- Grid dos 7 Gráficos -->
             <div class="bi-charts-grid">
 
-                <!-- 1. Volume de Treino Válido (Esforço Bruto) -->
+                <!-- 1. Volume-Carga por Grupo (Radar) -->
                 <article class="bi-card">
                     <div class="bi-card-header">
                         <div class="bi-card-title-row">
-                            <h4 class="bi-card-title">1. Volume de Treino Válido (Esforço Bruto)</h4>
+                            <h4 class="bi-card-title">1. Volume-Carga</h4>
                         </div>
-                        <p class="bi-card-subtitle">Soma de (Carga × Repetições) de todas as séries válidas por data</p>
+                        <p class="bi-card-subtitle">Volume-Carga = Σ(Carga × Repetições) das séries válidas</p>
                     </div>
                     <div class="bi-local-filter">
                         <span class="filter-tag">Filtro Local:</span>
-                        <select id="f1-muscle">
-                            <option value="">Todos os Grupos Musculares</option>
+                        <select id="f1-rotina">
+                            <option value="">Rotina (Usar Global)</option>
                         </select>
-                        <input type="date" id="f1-date" title="Sobrepõe a data global">
+                        <select id="f1-session">
+                            <option value="">Todos os Treinos</option>
+                        </select>
                     </div>
                     <div class="bi-kpi-banner">
                         <div class="bi-kpi-box">
-                            <span class="bi-kpi-label">Volume Total Válido</span>
+                            <span class="bi-kpi-label">Volume-Carga Total</span>
                             <span class="bi-kpi-value accent" id="kpi-vol-valido">0 kg</span>
                         </div>
                         <div class="bi-kpi-box">
@@ -1114,9 +1116,9 @@
                             <span class="bi-kpi-value" id="kpi-series-validas">0</span>
                         </div>
                     </div>
-                    <div class="chart-wrapper">
+                    <div class="chart-wrapper doughnut-wrapper">
                         <canvas id="chart-1-volume"></canvas>
-                        <div id="empty-chart-1" class="chart-empty-overlay">Sem séries válidas para o período selecionado.</div>
+                        <div id="empty-chart-1" class="chart-empty-overlay">Sem séries válidas para os 4 grupos neste filtro.</div>
                     </div>
                 </article>
 
@@ -2516,8 +2518,8 @@
         const biGlobalRotina = document.getElementById('bi-global-rotina');
         const biGlobalUsuario = document.getElementById('bi-global-usuario'); // Agora mostra só o email do usuário ativo
 
-        const f1Muscle = document.getElementById('f1-muscle');
-        const f1Date = document.getElementById('f1-date');
+        const f1Rotina = document.getElementById('f1-rotina');
+        const f1Session = document.getElementById('f1-session');
         const f2Exercise = document.getElementById('f2-exercise');
         const f3Session = document.getElementById('f3-session');
         const f3Date = document.getElementById('f3-date');
@@ -2607,7 +2609,8 @@
             // O dropdown de usuário agora apenas exibe o próprio usuário, blindando os outros!
             preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
 
-            preencherSelect(f1Muscle, Array.from(musculosSet).sort(), "", "Todos os Grupos Musculares");
+            preencherSelect(f1Rotina, Array.from(rotinasSet).sort(), "", "Rotina (Usar Global)");
+            atualizarSessoesF1();
             
             const listaExercicios = Array.from(exerciciosSet).sort();
             const defaultEx2 = f2Exercise.value || (listaExercicios.length > 0 ? listaExercicios[0] : "");
@@ -2746,78 +2749,167 @@
             };
         }
 
-        function renderizarGrafico1Volume() {
-            const dados = filtrarRegistros({
-                localMuscle: f1Muscle.value,
-                localDate: f1Date.value
+        function atualizarSessoesF1() {
+            const rotinaAlvo = f1Rotina.value || (biGlobalRotina.value !== 'TODAS' ? biGlobalRotina.value : '');
+            const sessoesFiltradas = new Set();
+
+            rawTreinosExecutados.forEach(item => {
+                if (rotinaAlvo && (item.nomeRotina || '').toUpperCase() !== rotinaAlvo.toUpperCase()) return;
+                if (item.nomeTreino) sessoesFiltradas.add(item.nomeTreino.toUpperCase());
             });
 
-            const volumePorData = {};
+            preencherSelect(f1Session, Array.from(sessoesFiltradas).sort(), "", "Todos os Treinos");
+        }
+
+        function classificarEixoRadar1(docItem) {
+            const musculo = (docItem.musculo || '').trim().toUpperCase();
+            const nomeEx = (docItem.exercicio || '').trim().toLowerCase();
+            const prot = (docItem.mme?.protagonista || '').trim().toLowerCase();
+
+            // 1. Braço (ombro, elevação lateral, tríceps, roscas/bíceps, antebraço)
+            if (
+                ['OMBRO', 'TRÍCEPS', 'TRICEPS', 'BÍCEPS', 'BICEPS', 'ANTEBRAÇO', 'ANTEBRACO'].includes(musculo) ||
+                nomeEx.includes('tríceps') || nomeEx.includes('triceps') ||
+                nomeEx.includes('rosca') || nomeEx.includes('bíceps') || nomeEx.includes('biceps') ||
+                nomeEx.includes('elevação lateral') || nomeEx.includes('elevacao lateral') ||
+                nomeEx.includes('ombro') || nomeEx.includes('desenvolvimento') || nomeEx.includes('punho')
+            ) {
+                return 'Braço';
+            }
+
+            // 2. Peito (supinos, crossover, peck deck, crucifixo)
+            if (
+                musculo === 'PEITO' || prot.includes('peitoral') ||
+                nomeEx.includes('supino') || nomeEx.includes('crossover') ||
+                nomeEx.includes('peck deck') || nomeEx.includes('crucifixo') || nomeEx.includes('voador')
+            ) {
+                return 'Peito';
+            }
+
+            // 3. Costas (puxadas, remadas, pulley)
+            if (
+                musculo === 'COSTAS' || prot.includes('dorsal') ||
+                nomeEx.includes('puxada') || nomeEx.includes('remada') ||
+                nomeEx.includes('pulley') || nomeEx.includes('barra fixa')
+            ) {
+                return 'Costas';
+            }
+
+            // 4. Quadríceps (exclui glúteo, panturrilha, posterior de coxa e adutores/abdutores)
+            const gruposExcluidosPerna = ['POSTERIOR DE COXA', 'PANTURRILHA', 'ADUTORES/ABDUTORES', 'GLÚTEOS', 'GLUTEOS'];
+            const termosExcluidos = ['glúteo', 'gluteo', 'panturrilha', 'gêmeos', 'gemeos', 'pélvica', 'pelvica', 'flexora', 'stiff', 'adutor', 'abdutor', 'isquiotibiais'];
+
+            if (
+                gruposExcluidosPerna.includes(musculo) ||
+                termosExcluidos.some(t => nomeEx.includes(t) || prot.includes(t))
+            ) {
+                return null;
+            }
+
+            if (
+                prot.includes('quadríceps') || prot.includes('quadriceps') ||
+                musculo === 'PERNAS' ||
+                nomeEx.includes('extensora') || nomeEx.includes('agachamento') ||
+                nomeEx.includes('leg press') || nomeEx.includes('hack') ||
+                nomeEx.includes('quadríceps') || nomeEx.includes('quadriceps')
+            ) {
+                return 'Quadríceps';
+            }
+
+            return null;
+        }
+
+        function renderizarGrafico1Volume() {
+            const dados = filtrarRegistros({
+                localRotina: f1Rotina.value,
+                localSession: f1Session.value
+            });
+
+            const eixos = ['Costas', 'Peito', 'Braço', 'Quadríceps'];
+            const volumePorEixo = { Costas: 0, Peito: 0, Braço: 0, Quadríceps: 0 };
             let volumeTotal = 0;
             let totalSeriesValidas = 0;
 
             dados.forEach(docItem => {
-                const dataKey = docItem.dataExecucao || 'Sem Data';
                 if (!Array.isArray(docItem.series)) return;
+                const eixo = classificarEixoRadar1(docItem);
+                if (!eixo) return;
 
                 docItem.series.forEach(s => {
                     if (!ehSerieValida(s)) return;
                     const vol = (Number(s.kg) || 0) * (Number(s.reps) || 0);
+                    volumePorEixo[eixo] += vol;
                     volumeTotal += vol;
                     totalSeriesValidas++;
-                    volumePorData[dataKey] = (volumePorData[dataKey] || 0) + vol;
                 });
             });
 
             document.getElementById('kpi-vol-valido').textContent = `${Math.round(volumeTotal).toLocaleString('pt-BR')} kg`;
             document.getElementById('kpi-series-validas').textContent = totalSeriesValidas;
 
-            const datasOrdenadas = Object.keys(volumePorData).sort();
-            const valores = datasOrdenadas.map(d => volumePorData[d]);
+            const valores = eixos.map(e => Math.round(volumePorEixo[e]));
+            const temDados = volumeTotal > 0;
 
-            alternarEmptyState('empty-chart-1', datasOrdenadas.length === 0);
+            alternarEmptyState('empty-chart-1', !temDados);
             destruirGraficoSeExistir('c1');
 
-            if (datasOrdenadas.length === 0) return;
+            if (!temDados) return;
 
             const ctx = document.getElementById('chart-1-volume').getContext('2d');
             chartInstances['c1'] = new Chart(ctx, {
-                type: 'bar',
+                type: 'radar',
                 data: {
-                    labels: datasOrdenadas.map(formatarDataCurta),
+                    labels: eixos,
                     datasets: [{
-                        label: 'Volume Válido (kg)',
+                        label: 'Volume-Carga (kg)',
                         data: valores,
-                        backgroundColor: '#bb86fc',
-                        borderRadius: 6
+                        backgroundColor: 'rgba(187, 134, 252, 0.28)',
+                        borderColor: '#bb86fc',
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#03dac6',
+                        pointBorderColor: '#121212',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     layout: {
-                        padding: { top: 24 }
+                        padding: { top: 18, bottom: 18, left: 20, right: 20 }
                     },
                     plugins: {
                         legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` ${ctx.label}: ${Number(ctx.raw).toLocaleString('pt-BR')} kg`
+                            }
+                        },
                         datalabels: {
-                            color: '#e0e0e0',
+                            color: '#03dac6',
+                            backgroundColor: 'rgba(18, 18, 18, 0.85)',
+                            borderRadius: 4,
+                            padding: { top: 2, bottom: 2, left: 5, right: 5 },
                             anchor: 'end',
-                            align: 'top',
-                            font: { weight: 'bold', size: 11 },
-                            formatter: (val) => `${Math.round(val)}kg`
+                            align: 'end',
+                            offset: 4,
+                            font: { weight: 'bold', size: 10 },
+                            formatter: (val) => val > 0 ? `${val.toLocaleString('pt-BR')}kg` : '0'
                         }
                     },
                     scales: {
-                        x: {
-                            ticks: { color: '#a0a0a0' },
-                            grid: { display: false },
-                            border: { color: '#333333' }
-                        },
-                        y: {
-                            display: false,
+                        r: {
                             beginAtZero: true,
-                            grace: '20%'
+                            grid: { color: 'rgba(255, 255, 255, 0.12)' },
+                            angleLines: { color: 'rgba(255, 255, 255, 0.15)' },
+                            pointLabels: {
+                                color: '#e0e0e0',
+                                font: { size: 12, weight: 'bold' }
+                            },
+                            ticks: {
+                                display: false
+                            }
                         }
                     }
                 }
@@ -3208,6 +3300,7 @@
         }
 
         function atualizarTodosOsGraficos() {
+            atualizarSessoesF1();
             renderizarGrafico1Volume();
             renderizarGrafico2ForcaResistencia();
             renderizarGrafico3Protagonista();
@@ -3230,8 +3323,11 @@
 
         document.getElementById('btn-refresh-bi').addEventListener('click', carregarDadosDashboardBI);
 
-        f1Muscle.addEventListener('change', renderizarGrafico1Volume);
-        f1Date.addEventListener('change', renderizarGrafico1Volume);
+        f1Rotina.addEventListener('change', () => {
+            atualizarSessoesF1();
+            renderizarGrafico1Volume();
+        });
+        f1Session.addEventListener('change', renderizarGrafico1Volume);
 
         f2Exercise.addEventListener('change', renderizarGrafico2ForcaResistencia);
 
