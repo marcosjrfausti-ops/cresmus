@@ -2791,7 +2791,7 @@
         }
 
         function aplicarFiltrosGlobaisBI() {
-            ddadosDashboardFiltrados = filtrarRegistrosGlobais();
+            dadosDashboardFiltrados = filtrarRegistrosGlobais();
             atualizarGraficoE1RM();
         }
 
@@ -2953,8 +2953,8 @@
                 const seriesValidas = porData.get(dataIso);
                 let escolhida = null;
 
-                if (criterioSerieE1RM === 'primeira') {
-                    escolhida = seriesValidas.find(s => normalizarTexto(s.serie).startsWith('1a')) || seriesValidas[0];
+               f (criterioSerieE1RM === 'primeira') {
+                    escolhida = seriesValidas.find(s => /^1[ªa]/.test(normalizarTexto(s.serie))) || seriesValidas[0];
                 } else {
                     escolhida = seriesValidas.reduce((melhor, atual) => {
                         const e1rmAtual = calcularEpley(Number(atual.kg), Number(atual.reps));
