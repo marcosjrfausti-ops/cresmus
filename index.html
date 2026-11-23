@@ -1109,7 +1109,7 @@
                     Delta (%) = Índice − 100
                 </div>
                 <ul>
-                    <li><strong>Ponto de partida igual (Base 100):</strong> o primeiro período com registro válido de cada grupo dentro do recorte filtrado equivale a <strong>100</strong>. A linha tracejada marca esse ponto inicial.</li>
+                    <li><strong>Ponto de partida igual (Base 100 sem efeito mix):</strong> cada exercício é normalizado individualmente para <strong>100</strong> em seu primeiro período válido no recorte filtrado, e o índice do grupo no período é a <strong>média dos índices</strong> dos exercícios executados naquela semana/mês — evitando quedas artificiais quando um exercício mais pesado não é feito.</li>
                     <li><strong>VC / Série (padrão):</strong> calcula <em>Σ(Carga × Reps) / Qtd. Séries Válidas</em> do grupo no período, evitando quedas artificiais em semanas com menos treinos.</li>
                     <li><strong>e1RM Médio (1ª Série):</strong> média do 1RM estimado (Epley) considerando a 1ª série válida dos exercícios do grupo no período.</li>
                     <li><strong>Períodos sem treino:</strong> se um grupo ficar sem registro em uma semana/mês intermediário, a linha conecta os pontos adjacentes sem cair para zero.</li>
@@ -1525,13 +1525,14 @@
                         );
 
                         if (!jaExiste) {
-                            muscleDictionary[nomeLimpo] = data.musculo;
+                            const musculoClassificado = classificarGrupoMuscularExercicio(nomeLimpo, data.musculo);
+                            muscleDictionary[nomeLimpo] = musculoClassificado;
                             exercisesRepository.push({
                                 nome: nomeLimpo,
-                                musculo: data.musculo,
+                                musculo: musculoClassificado,
                                 criadoPor: data.criadoPor || "desconhecido",
                                 pendenteRevisaoMME: data.pendenteRevisaoMME !== undefined ? data.pendenteRevisaoMME : true,
-                                mme: data.mmeFallback?.mme || data.mme || criarEstruturaMmeFallback(data.musculo).mme,
+                                mme: data.mmeFallback?.mme || data.mme || criarEstruturaMmeFallback(musculoClassificado).mme,
                                 isCustom: true
                             });
                         }
@@ -2968,13 +2969,15 @@
                 const snap = await getDocs(q);
                 rawTreinosExecutados = [];
 
-                snap.forEach(docSnap => {
+               snap.forEach(docSnap => {
                     const data = docSnap.data();
                     const meta = obterMetadadosExercicio(data.exercicio);
-                    const mmeResolvido = meta?.mme || data.mme || criarEstruturaMmeFallback(data.musculo || "OUTROS").mme;
+                    const musculoNormalizado = classificarGrupoMuscularExercicio(data.exercicio, data.musculo);
+                    const mmeResolvido = meta?.mme || data.mme || criarEstruturaMmeFallback(musculoNormalizado).mme;
                     rawTreinosExecutados.push({
                         id: docSnap.id,
                         ...data,
+                        musculo: musculoNormalizado,
                         mme: mmeResolvido
                     });
                 });
@@ -3350,7 +3353,7 @@
         let chartBase100Instance = null;
 
         const PALETA_GRUPOS_BASE100 = {
-            'COSTAS': '#bb86fc',
+            'COSTAS': '#A855F7',
             'PEITO': '#03dac6',
             'PERNAS': '#ffb74d',
             'OMBRO': '#ff6b81',
@@ -3358,14 +3361,14 @@
             'TRÍCEPS': '#aed581',
             'POSTERIOR DE COXA': '#ffd54f',
             'PANTURRILHA': '#f06292',
-            'ANTEBRAÇO': '#9575cd',
+            'ANTEBRAÇO': '#06B6D4',
             'ADUTORES/ABDUTORES': '#4db6ac',
             'ABDÔMEN': '#ff8a65',
             'LOMBAR': '#90a4ae'
         };
         const CORES_FALLBACK_BASE100 = [
-            '#bb86fc', '#03dac6', '#ffb74d', '#ff6b81', '#4fc3f7',
-            '#aed581', '#ffd54f', '#f06292', '#9575cd', '#4db6ac',
+            '#A855F7', '#03dac6', '#ffb74d', '#ff6b81', '#4fc3f7',
+            '#aed581', '#ffd54f', '#f06292', '#06B6D4', '#4db6ac',
             '#ff8a65', '#90a4ae'
         ];
         const MESES_CURTOS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -3376,7 +3379,7 @@
         }
 
         function hexToRgba(hex, alpha) {
-            const clean = String(hex || '#bb86fc').replace('#', '');
+            const clean = String(hex || '#A855F7').replace('#', '');
             const r = parseInt(clean.substring(0, 2), 16);
             const g = parseInt(clean.substring(2, 4), 16);
             const b = parseInt(clean.substring(4, 6), 16);
@@ -3449,46 +3452,68 @@
 
         function construirDadosBase100() {
             const registros = obterRegistrosFiltradosBase100();
-            const periodosMap = new Map(); // key -> { key, labelCurto, labelTooltip }
-            const acumulador = new Map();  // grupo -> Map(periodKey -> { somaVC, qtdSeries, somaE1RM, qtdEx })
+            const periodosMap = new Map();          // periodKey -> { key, labelCurto, labelTooltip }
+            const acumuladorExercicios = new Map(); // grupo -> Map(exChave -> Map(periodKey -> { somaVC, qtdSeries, somaE1RM, qtdExec }))
+            const acumuladorGrupoReal = new Map();  // grupo -> Map(periodKey -> { somaVC, qtdSeries, somaE1RM, qtdExec })
 
             registros.forEach(docItem => {
-                if (!docItem.dataExecucao || !Array.isArray(docItem.series)) return;
+                if (!docItem.dataExecucao || !docItem.exercicio || !Array.isArray(docItem.series)) return;
                 const validas = docItem.series.filter(isSerieValidaE1RM);
                 if (validas.length === 0) return;
 
                 const periodo = obterChavePeriodoBase100(docItem.dataExecucao, granularidadeBase100);
                 if (!periodo) return;
 
-                const grupo = (docItem.musculo || muscleDictionary[docItem.exercicio] || 'OUTROS')
-                    .trim()
-                    .toUpperCase();
+                const grupo = classificarGrupoMuscularExercicio(docItem.exercicio, docItem.musculo);
+                const exChave = normalizarParaClassificacao(docItem.exercicio);
+                if (!exChave) return;
 
                 if (!periodosMap.has(periodo.key)) {
                     periodosMap.set(periodo.key, periodo);
                 }
 
-                if (!acumulador.has(grupo)) {
-                    acumulador.set(grupo, new Map());
+                // Estrutura por exercício (blindagem contra efeito mix)
+                if (!acumuladorExercicios.has(grupo)) {
+                    acumuladorExercicios.set(grupo, new Map());
                 }
-                const mapaGrupo = acumulador.get(grupo);
-                if (!mapaGrupo.has(periodo.key)) {
-                    mapaGrupo.set(periodo.key, { somaVC: 0, qtdSeries: 0, somaE1RM: 0, qtdEx: 0 });
+                const mapaExGrupo = acumuladorExercicios.get(grupo);
+                if (!mapaExGrupo.has(exChave)) {
+                    mapaExGrupo.set(exChave, new Map());
+                }
+                const mapaPeriodosEx = mapaExGrupo.get(exChave);
+                if (!mapaPeriodosEx.has(periodo.key)) {
+                    mapaPeriodosEx.set(periodo.key, { somaVC: 0, qtdSeries: 0, somaE1RM: 0, qtdExec: 0 });
                 }
 
-                const celula = mapaGrupo.get(periodo.key);
+                // Estrutura real agregada do grupo no período (para tooltip)
+                if (!acumuladorGrupoReal.has(grupo)) {
+                    acumuladorGrupoReal.set(grupo, new Map());
+                }
+                const mapaRealGrupo = acumuladorGrupoReal.get(grupo);
+                if (!mapaRealGrupo.has(periodo.key)) {
+                    mapaRealGrupo.set(periodo.key, { somaVC: 0, qtdSeries: 0, somaE1RM: 0, qtdExec: 0 });
+                }
+
+                const celEx = mapaPeriodosEx.get(periodo.key);
+                const celGrupo = mapaRealGrupo.get(periodo.key);
 
                 // Opção A: Volume-Carga por Série
                 validas.forEach(s => {
-                    celula.somaVC += Number(s.kg) * Number(s.reps);
-                    celula.qtdSeries += 1;
+                    const vc = Number(s.kg) * Number(s.reps);
+                    celEx.somaVC += vc;
+                    celEx.qtdSeries += 1;
+                    celGrupo.somaVC += vc;
+                    celGrupo.qtdSeries += 1;
                 });
 
                 // Opção B: e1RM Médio (1ª Série Válida do exercício)
                 const primeiraValida = validas.find(s => /^1[ªa]/.test(normalizarTexto(s.serie))) || validas[0];
                 if (primeiraValida) {
-                    celula.somaE1RM += calcularEpley(Number(primeiraValida.kg), Number(primeiraValida.reps));
-                    celula.qtdEx += 1;
+                    const e1rmVal = calcularEpley(Number(primeiraValida.kg), Number(primeiraValida.reps));
+                    celEx.somaE1RM += e1rmVal;
+                    celEx.qtdExec += 1;
+                    celGrupo.somaE1RM += e1rmVal;
+                    celGrupo.qtdExec += 1;
                 }
             });
 
@@ -3505,27 +3530,63 @@
                 }
             }
 
-            const gruposOrdenados = Array.from(acumulador.keys())
+            const gruposOrdenados = Array.from(acumuladorExercicios.keys())
                 .sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
             const seriesPorGrupo = gruposOrdenados.map((grupo, gIdx) => {
-                const mapaGrupo = acumulador.get(grupo);
+                const mapaExGrupo = acumuladorExercicios.get(grupo);
+                const mapaRealGrupo = acumuladorGrupoReal.get(grupo);
+
+                // 1) Métrica por exercício em cada período + 2) Base 100 individual por exercício
+                const indicesPorExercicio = [];
+                mapaExGrupo.forEach((mapaPeriodosEx) => {
+                    const valoresEx = periodosOrdenados.map(p => {
+                        const cel = mapaPeriodosEx.get(p.key);
+                        if (!cel) return null;
+                        if (metricaBase100 === 'vc') {
+                            return cel.qtdSeries > 0 ? cel.somaVC / cel.qtdSeries : null;
+                        }
+                        return cel.qtdExec > 0 ? cel.somaE1RM / cel.qtdExec : null;
+                    });
+
+                    const valorBaseEx = valoresEx.find(v => v !== null && v > 0) || null;
+                    if (!valorBaseEx) return;
+
+                    const indicesEx = valoresEx.map(val => {
+                        if (val === null || val <= 0) return null;
+                        return (val / valorBaseEx) * 100;
+                    });
+
+                    indicesPorExercicio.push(indicesEx);
+                });
+
+                // 3) Índice do grupo no período t = média dos índices Base 100 dos exercícios executados no período t
+                let lastValidIndex = -1;
+                const indices = periodosOrdenados.map((_, pIdx) => {
+                    let somaIdx = 0;
+                    let qtdExNoPeriodo = 0;
+
+                    indicesPorExercicio.forEach(indEx => {
+                        const val = indEx[pIdx];
+                        if (val !== null && val !== undefined) {
+                            somaIdx += val;
+                            qtdExNoPeriodo += 1;
+                        }
+                    });
+
+                    if (qtdExNoPeriodo === 0) return null;
+                    lastValidIndex = pIdx;
+                    return Number((somaIdx / qtdExNoPeriodo).toFixed(1));
+                });
+
+                // Métrica média real do período para o tooltip
                 const valoresBrutos = periodosOrdenados.map(p => {
-                    const cel = mapaGrupo.get(p.key);
+                    const cel = mapaRealGrupo.get(p.key);
                     if (!cel) return null;
                     if (metricaBase100 === 'vc') {
                         return cel.qtdSeries > 0 ? cel.somaVC / cel.qtdSeries : null;
                     }
-                    return cel.qtdEx > 0 ? cel.somaE1RM / cel.qtdEx : null;
-                });
-
-                const valorBase = valoresBrutos.find(v => v !== null && v > 0) || null;
-
-                let lastValidIndex = -1;
-                const indices = valoresBrutos.map((val, idx) => {
-                    if (val === null || !valorBase) return null;
-                    lastValidIndex = idx;
-                    return Number(((val / valorBase) * 100).toFixed(1));
+                    return cel.qtdExec > 0 ? cel.somaE1RM / cel.qtdExec : null;
                 });
 
                 return {
@@ -3599,6 +3660,103 @@
             }
         };
 
+        // Plugin inline: Rótulos finais à direita com anti-colisão vertical (mínimo 15px)
+        const base100EndLabelsPlugin = {
+            id: 'base100EndLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx, chartArea } = chart;
+                if (!chartArea) return;
+
+                const items = [];
+                chart.data.datasets.forEach((ds, datasetIndex) => {
+                    if (!chart.isDatasetVisible(datasetIndex)) return;
+                    const lastIdx = ds._lastValidIndex;
+                    if (lastIdx === undefined || lastIdx < 0) return;
+
+                    const val = ds.data[lastIdx];
+                    if (val === null || val === undefined) return;
+
+                    const meta = chart.getDatasetMeta(datasetIndex);
+                    const pt = meta?.data?.[lastIdx];
+                    if (!pt || Number.isNaN(pt.x) || Number.isNaN(pt.y)) return;
+
+                    const delta = Math.round(val - 100);
+                    items.push({
+                        datasetIndex,
+                        x: pt.x,
+                        origY: pt.y,
+                        y: pt.y,
+                        text: `${delta > 0 ? '+' : ''}${delta}%`,
+                        baseColor: ds._baseColor || ds.borderColor || '#A855F7'
+                    });
+                });
+
+                if (items.length === 0) return;
+
+                // Ordena do topo (menor Y) para a base (maior Y)
+                items.sort((a, b) => a.origY - b.origY);
+
+                const MIN_GAP = 15;
+                const minY = chartArea.top + 8;
+                const maxY = chartArea.bottom - 6;
+
+                // 1ª passada: empurra para baixo garantindo espaçamento mínimo
+                if (items[0].y < minY) items[0].y = minY;
+                for (let i = 1; i < items.length; i++) {
+                    if (items[i].y - items[i - 1].y < MIN_GAP) {
+                        items[i].y = items[i - 1].y + MIN_GAP;
+                    }
+                }
+
+                // 2ª passada: evita estourar a margem inferior empurrando para cima
+                if (items[items.length - 1].y > maxY) {
+                    items[items.length - 1].y = maxY;
+                    for (let i = items.length - 2; i >= 0; i--) {
+                        if (items[i + 1].y - items[i].y < MIN_GAP) {
+                            items[i].y = items[i + 1].y - MIN_GAP;
+                        }
+                    }
+                }
+
+                // 3ª passada: garante que o primeiro rótulo permaneça dentro do topo
+                if (items[0].y < minY) {
+                    items[0].y = minY;
+                    for (let i = 1; i < items.length; i++) {
+                        if (items[i].y - items[i - 1].y < MIN_GAP) {
+                            items[i].y = items[i - 1].y + MIN_GAP;
+                        }
+                    }
+                }
+
+                const hIdx = chart._hoveredDatasetIndex;
+
+                ctx.save();
+                ctx.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                items.forEach(item => {
+                    const emFoco = hIdx === null || hIdx === undefined || hIdx === item.datasetIndex;
+                    const corTexto = emFoco ? item.baseColor : hexToRgba(item.baseColor, 0.22);
+
+                    // Guia discreta caso o rótulo tenha sido deslocado para evitar sobreposição
+                    if (Math.abs(item.y - item.origY) > 4) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = emFoco ? hexToRgba(item.baseColor, 0.45) : hexToRgba(item.baseColor, 0.12);
+                        ctx.lineWidth = 1;
+                        ctx.moveTo(item.x + 3, item.origY);
+                        ctx.lineTo(item.x + 7, item.y);
+                        ctx.stroke();
+                    }
+
+                    ctx.fillStyle = corTexto;
+                    ctx.fillText(item.text, item.x + 9, item.y);
+                });
+
+                ctx.restore();
+            }
+        };
+
         function aplicarDestaqueHoverBase100(chart, hoveredIdx) {
             if (!chart || chart._hoveredDatasetIndex === hoveredIdx) return;
             chart._hoveredDatasetIndex = hoveredIdx;
@@ -3651,7 +3809,7 @@
                 borderColor: s.cor,
                 backgroundColor: s.cor,
                 borderWidth: 2.2,
-                tension: 0.3,
+                tension: 0.1,
                 fill: false,
                 spanGaps: true,
                 pointRadius: 3.5,
@@ -3659,35 +3817,18 @@
                 pointHitRadius: 16,
                 pointBackgroundColor: s.cor,
                 pointBorderColor: '#121212',
-                pointBorderWidth: 1.5,
-                datalabels: {
-                    display: (ctx) => ctx.dataIndex === ctx.dataset._lastValidIndex,
-                    align: 'right',
-                    anchor: 'end',
-                    offset: 6,
-                    color: (ctx) => {
-                        const hIdx = ctx.chart._hoveredDatasetIndex;
-                        const emFoco = hIdx === null || hIdx === undefined || hIdx === ctx.datasetIndex;
-                        return emFoco ? ctx.dataset._baseColor : hexToRgba(ctx.dataset._baseColor, 0.22);
-                    },
-                    font: { size: 11, weight: '700' },
-                    formatter: (val) => {
-                        if (val === null || val === undefined) return '';
-                        const delta = Math.round(val - 100);
-                        return `${delta > 0 ? '+' : ''}${delta}%`;
-                    }
-                }
+                pointBorderWidth: 1.5
             }));
 
             chartBase100Instance = new Chart(canvasBase100.getContext('2d'), {
                 type: 'line',
                 data: { labels: labelsX, datasets },
-                plugins: [ChartDataLabels, base100ReferenceLinePlugin],
+                plugins: [base100ReferenceLinePlugin, base100EndLabelsPlugin],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     layout: {
-                        padding: { top: 20, right: 54, left: 10, bottom: 4 }
+                        padding: { top: 20, right: 58, left: 10, bottom: 10 }
                     },
                     interaction: {
                         mode: 'nearest',
