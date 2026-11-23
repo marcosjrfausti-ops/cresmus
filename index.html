@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tracker de Treinos</title>
-    
-    <!-- CDNs: Chart.js, Datalabels Plugin e html2pdf.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         /* Variáveis de Tema Escuro */
@@ -389,7 +384,7 @@
         
         .carousel-card.single-card { flex: 0 0 100%; }
 
-        exec-card-title {
+        .exec-card-title {
             font-size: 1.2rem;
             color: var(--accent-color);
             text-align: center;
@@ -674,7 +669,7 @@
         .empty-msg { color: var(--text-secondary); text-align: center; margin-top: 16px; font-size: 0.95rem; }
 
         /* =========================================================
-           TELA 5: DASHBOARD DE BI E ANALYTICS
+           TELA 5: DASHBOARD (CABEÇALHO E FILTRO GLOBAL)
            ========================================================= */
         .bi-top-bar {
             display: flex;
@@ -749,191 +744,6 @@
         .btn-bi-clear:hover {
             border-color: var(--accent-color);
             color: var(--accent-color);
-        }
-
-        /* Grid de Cards dos Gráficos */
-        .bi-charts-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-            margin-bottom: 28px;
-        }
-        @media (min-width: 768px) {
-            .bi-charts-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .bi-card.full-width {
-                grid-column: 1 / -1;
-            }
-        }
-
-        .bi-card {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-        .bi-card-header {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 10px;
-        }
-        .bi-card-title-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 8px;
-        }
-        .bi-card-title {
-            font-size: 1.05rem;
-            color: var(--accent-color);
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
-        .bi-card-subtitle {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-        }
-
-        /* Filtro Individual de cada Card */
-        .bi-local-filter {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            background: var(--bg-color);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #282828;
-            align-items: center;
-        }
-        .bi-local-filter span.filter-tag {
-            font-size: 0.7rem;
-            color: var(--secondary-accent);
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            margin-right: 4px;
-        }
-        .bi-local-filter select, .bi-local-filter input {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            color-scheme: dark;
-            flex: 1;
-            min-width: 110px;
-        }
-
-        /* KPI Destaque dentro dos Cards */
-        .bi-kpi-banner {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            background: var(--bg-color);
-            padding: 12px;
-            border-radius: 8px;
-            border-left: 4px solid var(--secondary-accent);
-        }
-        .bi-kpi-box {
-            text-align: center;
-        }
-        .bi-kpi-label {
-            font-size: 0.72rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            display: block;
-            margin-bottom: 2px;
-        }
-        .bi-kpi-value {
-            font-size: 1.35rem;
-            font-weight: 800;
-            color: var(--text-primary);
-        }
-        .bi-kpi-value.accent {
-            color: var(--secondary-accent);
-        }
-
-        /* Containers de Canvas */
-        .chart-wrapper {
-            position: relative;
-            width: 100%;
-            height: 270px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .chart-wrapper.doughnut-wrapper {
-            height: 300px;
-        }
-        .chart-wrapper.tall-wrapper {
-            height: 320px;
-        }
-        .chart-empty-overlay {
-            position: absolute;
-            inset: 0;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.88rem;
-            background: rgba(30, 30, 30, 0.88);
-            border-radius: 8px;
-            padding: 16px;
-        }
-        .chart-empty-overlay.visible {
-            display: flex;
-        }
-
-        /* Rodapé de Exportação PDF */
-        .bi-export-footer {
-            margin-top: 8px;
-            margin-bottom: 48px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .btn-pdf-export {
-            background: linear-gradient(135deg, #bb86fc 0%, #985eff 100%);
-            color: #000000;
-            border: none;
-            padding: 18px 24px;
-            border-radius: var(--border-radius);
-            font-size: 1.05rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            cursor: pointer;
-            transition: transform 0.2s, filter 0.2s;
-            box-shadow: 0 4px 16px rgba(187, 134, 252, 0.3);
-        }
-        .btn-pdf-export:hover:not(:disabled) {
-            filter: brightness(1.1);
-            transform: translateY(-2px);
-        }
-        .btn-pdf-export:disabled {
-            opacity: 0.5;
-            cursor: wait;
-        }
-
-        /* Ajustes para modo de impressão PDF (300 DPI A4) */
-        .pdf-export-mode {
-            background-color: #121212 !important;
-            padding: 12px !important;
-        }
-        .pdf-export-mode .bi-local-filter,
-        .pdf-export-mode .btn-bi-clear {
-            display: none !important;
         }
     </style>
 </head>
@@ -1089,7 +899,7 @@
             </div>
             <select id="exec-session-select" class="session-select"></select>
 
-            <!-- NOVO: Seletor de exercício extra na Tela 4 -->
+            <!-- Seletor de exercício extra na Tela 4 -->
             <div class="exercise-selector" id="exec-exercise-dropdown" style="margin-bottom: 0;">
                 <div class="custom-dropdown-trigger" id="exec-dropdown-trigger">
                     <span>+ Escolher Exercício...</span>
@@ -1106,216 +916,47 @@
             </div>
         </div>
 
-        <div id="exec-container"></div> <!-- <-- ADICIONE ESTA LINHA -->
-    </div> <!-- <-- ADICIONE ESTA LINHA -->
+        <div id="exec-container"></div>
+    </div>
 
-    <!-- TELA 5: Dashboard de BI -->
+    <!-- TELA 5: Dashboard (Somente Cabeçalho e Filtro Global) -->
     <div id="screen-5" class="screen">
         <div class="bi-top-bar">
             <div class="nav-back" id="back-from-s5" style="margin-bottom: 0;">← Voltar à Home</div>
             <button type="button" id="btn-refresh-bi" class="btn-bi-clear">↻ Atualizar Dados</button>
         </div>
 
-        <div id="bi-printable-area">
-            <h2 class="screen-title" style="margin-bottom: 16px;">Dashboard BI — Performance & MME</h2>
+        <h2 class="screen-title" style="margin-bottom: 16px;">Dashboard BI — Performance & MME</h2>
 
-            <!-- Filtro Global -->
-            <section class="bi-global-filter-card">
-                <div class="bi-global-filter-header">
-                    <h3>Filtro Global de Período e Contexto</h3>
-                    <button type="button" id="btn-reset-global-filter" class="btn-bi-clear">Limpar Global</button>
-                </div>
-                <div class="bi-filter-grid">
-                    <div class="bi-filter-item">
-                        <label for="bi-global-start">Data Inicial:</label>
-                        <input type="date" id="bi-global-start">
-                    </div>
-                    <div class="bi-filter-item">
-                        <label for="bi-global-end">Data Final:</label>
-                        <input type="date" id="bi-global-end">
-                    </div>
-                    <div class="bi-filter-item">
-                        <label for="bi-global-rotina">Rotina:</label>
-                        <select id="bi-global-rotina">
-                            <option value="TODAS">Todas as Rotinas</option>
-                        </select>
-                    </div>
-                    <div class="bi-filter-item">
-                        <label for="bi-global-usuario">Usuário:</label>
-                        <select id="bi-global-usuario">
-                            <!-- Populated in JS -->
-                        </select>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Grid dos 7 Gráficos -->
-            <div class="bi-charts-grid">
-
-                <!-- 1. Volume-Carga por Grupo (Radar) -->
-                <article class="bi-card">
-                    <div class="bi-card-header">
-                        <div class="bi-card-title-row">
-                            <h4 class="bi-card-title">1. Volume-Carga</h4>
-                        </div>
-                        <p class="bi-card-subtitle">Volume-Carga = Σ(Carga × Repetições) das séries válidas</p>
-                    </div>
-                    <div class="bi-local-filter">
-                        <span class="filter-tag">Filtro Local:</span>
-                        <select id="f1-rotina">
-                            <option value="">Rotina (Usar Global)</option>
-                        </select>
-                        <select id="f1-session">
-                            <option value="">Todos os Treinos</option>
-                        </select>
-                    </div>
-                    <div class="bi-kpi-banner">
-                        <div class="bi-kpi-box">
-                            <span class="bi-kpi-label">Volume-Carga Total</span>
-                            <span class="bi-kpi-value accent" id="kpi-vol-valido">0 kg</span>
-                        </div>
-                        <div class="bi-kpi-box">
-                            <span class="bi-kpi-label">Séries Válidas</span>
-                            <span class="bi-kpi-value" id="kpi-series-validas">0</span>
-                        </div>
-                    </div>
-                    <div class="chart-wrapper doughnut-wrapper">
-                        <canvas id="chart-1-volume"></canvas>
-                        <div id="empty-chart-1" class="chart-empty-overlay">Sem séries válidas para os 4 grupos neste filtro.</div>
-                    </div>
-                </article>
-
-                <!-- 2. Força Bruta vs. Resistência (Progressão Real) -->
-                <article class="bi-card">
-                    <div class="bi-card-header">
-                        <div class="bi-card-title-row">
-                            <h4 class="bi-card-title">2. Força Bruta vs. Resistência</h4>
-                        </div>
-                        <p class="bi-card-subtitle">Colunas: Volume Protagonista (kg) | Linha: Carga Máxima (kg)</p>
-                    </div>
-                    <div class="bi-local-filter">
-                        <span class="filter-tag">Exercício (Obrigatório):</span>
-                        <select id="f2-exercise">
-                            <option value="">Selecione 1 Exercício...</option>
-                        </select>
-                    </div>
-                    <div class="bi-kpi-banner">
-                        <div class="bi-kpi-box">
-                            <span class="bi-kpi-label">Pico de Força (Carga Máx)</span>
-                            <span class="bi-kpi-value accent" id="kpi-carga-max">0 kg</span>
-                        </div>
-                        <div class="bi-kpi-box">
-                            <span class="bi-kpi-label">Vol. Protagonista Acumulado</span>
-                            <span class="bi-kpi-value" id="kpi-vol-prot-ex">0 kg</span>
-                        </div>
-                    </div>
-                    <div class="chart-wrapper">
-                        <canvas id="chart-2-forca-resistencia"></canvas>
-                        <div id="empty-chart-2" class="chart-empty-overlay">Selecione 1 exercício acima para visualizar a progressão de Força vs. Resistência.</div>
-                    </div>
-                </article>
-
-                <!-- 3. Volume Protagonista (Tensão Mecânica Direta) -->
-                <article class="bi-card">
-                    <div class="bi-card-header">
-                        <h4 class="bi-card-title">3. Volume Protagonista (Tensão Direta)</h4>
-                        <p class="bi-card-subtitle">(Carga × Reps) × % Protagonista (mme.pctProtagonista)</p>
-                    </div>
-                    <div class="bi-local-filter">
-                        <span class="filter-tag">Filtro Local:</span>
-                        <select id="f3-session">
-                            <option value="">Todas as Sessões</option>
-                        </select>
-                        <input type="date" id="f3-date" title="Data específica (sobrepõe global)">
-                    </div>
-                    <div class="chart-wrapper doughnut-wrapper">
-                        <canvas id="chart-3-protagonista"></canvas>
-                        <div id="empty-chart-3" class="chart-empty-overlay">Sem volume protagonista registrado no período.</div>
-                    </div>
-                </article>
-
-                <!-- 4. Volume Secundário / Sinergista (Fadiga Oculta) -->
-                <article class="bi-card">
-                    <div class="bi-card-header">
-                        <h4 class="bi-card-title">4. Volume Secundário / Sinergista</h4>
-                        <p class="bi-card-subtitle">Fadiga Oculta: (Carga × Reps) × % Secundário (mme.pctSecundario)</p>
-                    </div>
-                    <div class="bi-local-filter">
-                        <span class="filter-tag">Filtro Local:</span>
-                        <select id="f4-session">
-                            <option value="">Todas as Sessões</option>
-                        </select>
-                        <input type="date" id="f4-date" title="Data específica (sobrepõe global)">
-                    </div>
-                    <div class="chart-wrapper doughnut-wrapper">
-                        <canvas id="chart-4-secundario"></canvas>
-                        <div id="empty-chart-4" class="chart-empty-overlay">Sem músculos secundários acionados neste filtro.</div>
-                    </div>
-                </article>
-
-                <!-- 5. Volume Terciário -->
-                <article class="bi-card">
-                    <div class="bi-card-header">
-                        <h4 class="bi-card-title">5. Volume Terciário</h4>
-                        <p class="bi-card-subtitle">Sinergistas Menores: (Carga × Reps) × % Terciário (mme.pctTerciario)</p>
-                    </div>
-                    <div class="bi-local-filter">
-                        <span class="filter-tag">Filtro Local:</span>
-                        <select id="f5-session">
-                            <option value="">Todas as Sessões</option>
-                        </select>
-                        <input type="date" id="f5-date" title="Data específica (sobrepõe global)">
-                    </div>
-                    <div class="chart-wrapper doughnut-wrapper">
-                        <canvas id="chart-5-terciario"></canvas>
-                        <div id="empty-chart-5" class="chart-empty-overlay">Sem músculos terciários acionados neste filtro.</div>
-                    </div>
-                </article>
-
-                <!-- 6. Distribuição de Simetria (Superiores vs. Inferiores) -->
-                <article class="bi-card">
-                    <div class="bi-card-header">
-                        <h4 class="bi-card-title">6. Distribuição de Simetria</h4>
-                        <p class="bi-card-subtitle">Volume Protagonista: SUPERIORES vs. INFERIORES</p>
-                    </div>
-                    <div class="bi-local-filter">
-                        <span class="filter-tag">Filtro Local:</span>
-                        <select id="f6-rotina">
-                            <option value="">Rotina (Usar Global)</option>
-                        </select>
-                        <input type="date" id="f6-date" title="Data específica (sobrepõe global)">
-                    </div>
-                    <div class="chart-wrapper doughnut-wrapper">
-                        <canvas id="chart-6-simetria"></canvas>
-                        <div id="empty-chart-6" class="chart-empty-overlay">Sem dados de simetria para o período.</div>
-                    </div>
-                </article>
-
-                <!-- 7. Consistência de Repetições (Queda de Rendimento) -->
-                <article class="bi-card full-width">
-                    <div class="bi-card-header">
-                        <h4 class="bi-card-title">7. Consistência de Repetições (Queda de Rendimento)</h4>
-                        <p class="bi-card-subtitle">Comparativo lado a lado: "1ª Válida" vs. "2ª Válida" agrupado por Data e Exercício</p>
-                    </div>
-                    <div class="bi-local-filter">
-                        <span class="filter-tag">Filtro Local:</span>
-                        <select id="f7-exercise">
-                            <option value="TODOS">Todos os Exercícios</option>
-                        </select>
-                        <input type="date" id="f7-date" title="Filtrar data específica">
-                    </div>
-                    <div class="chart-wrapper tall-wrapper">
-                        <canvas id="chart-7-consistencia"></canvas>
-                        <div id="empty-chart-7" class="chart-empty-overlay">Sem registros contendo "1ª Válida" ou "2ª Válida" para o filtro.</div>
-                    </div>
-                </article>
-
+        <!-- Filtro Global -->
+        <section class="bi-global-filter-card">
+            <div class="bi-global-filter-header">
+                <h3>Filtro Global de Período e Contexto</h3>
+                <button type="button" id="btn-reset-global-filter" class="btn-bi-clear">Limpar Global</button>
             </div>
-        </div>
-
-        <div class="bi-export-footer">
-            <button type="button" id="btn-export-pdf" class="btn-pdf-export">📄 BAIXAR RELATÓRIO (PDF)</button>
-        </div>
+            <div class="bi-filter-grid">
+                <div class="bi-filter-item">
+                    <label for="bi-global-start">Data Inicial:</label>
+                    <input type="date" id="bi-global-start">
+                </div>
+                <div class="bi-filter-item">
+                    <label for="bi-global-end">Data Final:</label>
+                    <input type="date" id="bi-global-end">
+                </div>
+                <div class="bi-filter-item">
+                    <label for="bi-global-rotina">Rotina:</label>
+                    <select id="bi-global-rotina">
+                        <option value="TODAS">Todas as Rotinas</option>
+                    </select>
+                </div>
+                <div class="bi-filter-item">
+                    <label for="bi-global-usuario">Usuário:</label>
+                    <select id="bi-global-usuario">
+                        <!-- Populated in JS -->
+                    </select>
+                </div>
+            </div>
+        </section>
     </div>
 
     <!-- TELA 6: Seleção de Rotina para Alterar -->
@@ -1334,16 +975,11 @@
         <div id="edit-sessions-list" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
     </div>
 
-    <!-- INTEGRAÇÃO COM FIREBASE, AUTH E MOTOR DE BI -->
+    <!-- INTEGRAÇÃO COM FIREBASE E AUTH -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, doc, getDocs, getDoc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        // Registra o plugin Datalabels globalmente no Chart.js
-        if (window.Chart && window.ChartDataLabels) {
-            Chart.register(ChartDataLabels);
-        }
 
         const firebaseConfig = {
             apiKey: "AIzaSyDTyVjHdTo5vmRhqGzpyPGlLXolzu31dYo",
@@ -1357,10 +993,10 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const auth = getAuth(app); // INICIALIZANDO O FIREBASE AUTH
+        const auth = getAuth(app);
         
-        let usuarioAtivo = ""; // Agora armazenará o UID do usuário para segurança real
-        let usuarioEmail = ""; // Armazenará o email para exibir na tela
+        let usuarioAtivo = "";
+        let usuarioEmail = "";
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
@@ -1447,10 +1083,8 @@
             try {
                 let snap;
                 try {
-                    // Busca todos os exercícios customizados (inclui registros antigos com "Marcos" e os novos com UID)
                     snap = await getDocs(collection(db, "exercicios_customizados"));
                 } catch (permErr) {
-                    // Fallback caso as regras do Firestore restrinjam leitura apenas ao UID
                     const q = query(collection(db, "exercicios_customizados"), where("criadoPor", "==", usuarioAtivo));
                     snap = await getDocs(q);
                 }
@@ -1479,7 +1113,7 @@
                 });
 
                 renderDropdownList(dropdownSearchInput ? dropdownSearchInput.value : '');
-                renderDropdownListTela4(execDropdownSearchInput ? execDropdownSearchInput.value : ''); // <-- ADICIONE ESTA LINHA
+                renderDropdownListTela4(execDropdownSearchInput ? execDropdownSearchInput.value : '');
             } catch (err) {
                 console.error("Erro ao carregar exercícios customizados:", err);
             }
@@ -1503,7 +1137,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // --- LÓGICA DE LOGIN CLÁSSICO E CADASTRO AGORA COM FIREBASE AUTH ---
+        // --- LÓGICA DE LOGIN CLÁSSICO E CADASTRO COM FIREBASE AUTH ---
         const inputLoginUser = document.getElementById('login-user');
         const inputLoginPass = document.getElementById('login-pass');
         const displayUsername = document.getElementById('display-username');
@@ -1521,14 +1155,12 @@
             toggleAuthMode.textContent = isLoginMode ? 'Não tem uma conta? Crie aqui.' : 'Já tem uma conta? Faça login.';
         });
 
-        // PERSISTÊNCIA DE SESSÃO DO FIREBASE (Lembrar Login)
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                usuarioAtivo = user.uid; // Salva o UID (Seguro, único e inalterável)
+                usuarioAtivo = user.uid;
                 usuarioEmail = user.email;
                 displayUsername.textContent = usuarioEmail;
                 
-                // Carrega exercícios após garantir que temos a UID
                 carregarExerciciosCustomizados();
                 
                 if (screens.s0.classList.contains('active')) {
@@ -1593,7 +1225,7 @@
 
         document.getElementById('btn-logout').addEventListener('click', async () => {
             try {
-                await signOut(auth); // Desloga com segurança via Google Auth
+                await signOut(auth);
                 usuarioAtivo = "";
                 usuarioEmail = "";
                 inputLoginUser.value = "";
@@ -1666,13 +1298,11 @@
             numberPickerTitle.textContent = titleText;
             numberPickerGrid.innerHTML = '';
 
-            // Visor numérico
             keypadDisplayEl = document.createElement('div');
             keypadDisplayEl.className = 'keypad-display';
             keypadDisplayEl.textContent = keypadValue;
             numberPickerGrid.appendChild(keypadDisplayEl);
 
-            // Grade clássica: 1-9, C, 0, Apagar
             const gridEl = document.createElement('div');
             gridEl.className = 'keypad-grid';
 
@@ -1698,7 +1328,6 @@
 
             numberPickerGrid.appendChild(gridEl);
 
-            // Botão Confirmar
             const confirmBtn = document.createElement('button');
             confirmBtn.type = 'button';
             confirmBtn.className = 'keypad-confirm-btn';
@@ -1715,7 +1344,6 @@
             keypadDisplayEl = null;
         }
 
-        // Permite também digitar pelo teclado físico no PC
         document.addEventListener('keydown', (e) => {
             if (!numberPickerOverlay.classList.contains('open')) return;
             if (e.key >= '0' && e.key <= '9') {
@@ -1835,7 +1463,7 @@
             }
 
             const estruturaMme = criarEstruturaMmeFallback(musculoNovo);
-            const autor = usuarioAtivo; // Agora atrela rigidamente ao UID
+            const autor = usuarioAtivo;
 
             const novoExercicioFirestore = {
                 nome: nomeNovo,
@@ -1873,25 +1501,24 @@
             }
 
             renderDropdownList();
-            renderDropdownListTela4(); // <-- ADICIONADO
+            renderDropdownListTela4();
             modalNewExercise.classList.remove('open');
             inputNewExName.value = '';
 
             const isOnScreen1 = screens.s1.classList.contains('active');
             const isOnScreen2 = screens.s2.classList.contains('active');
-            const isOnScreen4 = screens.s4.classList.contains('active'); // <-- ADICIONADO
+            const isOnScreen4 = screens.s4.classList.contains('active');
 
             if (!isOnScreen1 && isOnScreen2) {
                 adicionarCardExercicioTela2(nomeNovo);
-            } else if (isOnScreen4) { // <-- ADICIONADO
-                adicionarExercicioExtraTela4(nomeNovo); // <-- ADICIONADO
+            } else if (isOnScreen4) {
+                adicionarExercicioExtraTela4(nomeNovo);
             }
 
             showToast(`"${nomeNovo}" adicionado com sucesso!`);
         });
 
-        // --- ESTADO DE EDIÇÃO E CRIAÇÃO DE ROTINAS (TELA 2, 6 e 7) --
-        
+        // --- ESTADO DE EDIÇÃO E CRIAÇÃO DE ROTINAS (TELA 2, 6 e 7) ---
         const exerciseContainer = document.getElementById('exercise-container');
         const inputNomeRotina = document.getElementById('input-nome');
         const selectDiaRef = document.getElementById('select-dia');
@@ -1977,7 +1604,6 @@
             editRoutinesList.innerHTML = `<p class="empty-msg">Buscando suas rotinas...</p>`;
 
             try {
-                // ISOLAMENTO DE DADOS: Puxa só as rotinas cadastradas por este UID
                 const rotinasRef = collection(db, "rotinas");
                 const q = query(rotinasRef, where("usuario", "==", usuarioAtivo));
                 const querySnapshot = await getDocs(q);
@@ -2303,7 +1929,7 @@
             }
 
             const pacoteRotina = {
-                usuario: usuarioAtivo, // Salva estritamente vinculado ao UID
+                usuario: usuarioAtivo,
                 nomeRotina: nomeRotina.toUpperCase(),
                 sessoes: sessoesTemporarias,
                 criadoEm: new Date().toISOString()
@@ -2333,7 +1959,6 @@
             routinesListContainer.innerHTML = `<p class="empty-msg">Buscando rotinas na base...</p>`;
 
             try {
-                // ISOLAMENTO DE DADOS: Puxa só as rotinas cadastradas por este UID
                 const q = query(collection(db, "rotinas"), where("usuario", "==", usuarioAtivo));
                 const querySnapshot = await getDocs(q);
                 
@@ -2358,14 +1983,13 @@
             }
         }
 
-// --- TELA 4: EXECUÇÃO E HISTÓRICO DO DIA ---
+        // --- TELA 4: EXECUÇÃO E HISTÓRICO DO DIA ---
         const dayRefHeader = document.getElementById('exec-day-ref');
         const dateInput = document.getElementById('exec-date');
         const sessionSelect = document.getElementById('exec-session-select');
         const execContainer = document.getElementById('exec-container');
         const diasDaSemana = ["DOMINGO", "SEGUNDA", "TERÇA", "QUARTA", "QUINTA", "SEXTA", "SÁBADO"];
 
-        // Dropdown customizado de exercícios da Tela 4
         const execCustomDropdown = document.getElementById('exec-exercise-dropdown');
         const execDropdownTrigger = document.getElementById('exec-dropdown-trigger');
         const execDropdownMenu = document.getElementById('exec-dropdown-menu');
@@ -2711,7 +2335,6 @@
                     }
                 });
 
-                // Recarrega também exercícios EXTRAS salvos nessa data que não estavam na rotina original
                 const sessaoAtual = obterSessaoAtualTela4();
                 Object.entries(mapaSalvos).forEach(([chaveNome, registroSalvo]) => {
                     if (exerciciosJaNoDOM.has(chaveNome)) return;
@@ -2848,128 +2471,15 @@
         });
 
         /* =========================================================================
-           MOTOR DO DASHBOARD DE BI (TELA 5)
+           BASE DE DADOS E FILTRO GLOBAL DO DASHBOARD (TELA 5)
            ========================================================================= */
         let rawTreinosExecutados = [];
-        const chartInstances = {};
-
-        const BI_PALETTE = [
-            '#bb86fc', '#03dac6', '#ff7597', '#ffb74d', '#4fc3f7',
-            '#aed581', '#ba68c8', '#fff176', '#ff8a65', '#90a4ae', '#f06292'
-        ];
+        let dadosDashboardFiltrados = [];
 
         const biGlobalStart = document.getElementById('bi-global-start');
         const biGlobalEnd = document.getElementById('bi-global-end');
         const biGlobalRotina = document.getElementById('bi-global-rotina');
-        const biGlobalUsuario = document.getElementById('bi-global-usuario'); // Agora mostra só o email do usuário ativo
-
-        const f1Rotina = document.getElementById('f1-rotina');
-        const f1Session = document.getElementById('f1-session');
-        const f2Exercise = document.getElementById('f2-exercise');
-        const f3Session = document.getElementById('f3-session');
-        const f3Date = document.getElementById('f3-date');
-        const f4Session = document.getElementById('f4-session');
-        const f4Date = document.getElementById('f4-date');
-        const f5Session = document.getElementById('f5-session');
-        const f5Date = document.getElementById('f5-date');
-        const f6Rotina = document.getElementById('f6-rotina');
-        const f6Date = document.getElementById('f6-date');
-        const f7Exercise = document.getElementById('f7-exercise');
-        const f7Date = document.getElementById('f7-date');
-
-        function ehSerieValida(serieObj) {
-            if (!serieObj || !serieObj.serie) return false;
-            return serieObj.serie.trim().toLowerCase() !== 'reconhecimento';
-        }
-
-        function classificarSimetria(docItem, mmeData) {
-            const grupoMuscular = (docItem.musculo || '').trim().toUpperCase();
-            const gruposInferiores = ['PERNAS', 'POSTERIOR DE COXA', 'PANTURRILHA', 'ADUTORES/ABDUTORES'];
-            const gruposSuperiores = ['PEITO', 'COSTAS', 'BÍCEPS', 'BICEPS', 'TRÍCEPS', 'TRICEPS', 'OMBRO', 'ANTEBRAÇO', 'ANTEBRACO', 'ABDÔMEN', 'ABDOMEN'];
-
-            if (gruposInferiores.includes(grupoMuscular)) return 'INFERIORES';
-            if (gruposSuperiores.includes(grupoMuscular)) return 'SUPERIORES';
-
-            const textoAlvo = `${grupoMuscular} ${mmeData?.protagonista || ''}`.toUpperCase();
-            const termosInferiores = [
-                'PERNA', 'QUADRÍCEPS', 'QUADRICEPS', 'GLÚTEO', 'GLUTEO',
-                'POSTERIOR', 'ISQUIOTIBIAIS', 'PANTURRILHA', 'GASTROCNÊMIO',
-                'SÓLEO', 'SOLEO', 'ADUTOR', 'ABDUTOR', 'COXA'
-            ];
-            for (const termo of termosInferiores) {
-                if (textoAlvo.includes(termo)) return 'INFERIORES';
-            }
-            return 'SUPERIORES';
-        }
-
-        function formatarDataCurta(isoDateStr) {
-            if (!isoDateStr || !isoDateStr.includes('-')) return isoDateStr || 'S/D';
-            const [ano, mes, dia] = isoDateStr.split('-');
-            return `${dia}/${mes}`;
-        }
-
-        async function carregarDadosDashboardBI() {
-            try {
-                showToast("Carregando métricas do BI...");
-                
-                // ISOLAMENTO DE DADOS DO BI: Puxa apenas dados deste usuário logado
-                const q = query(collection(db, "treinos_executados"), where("usuario", "==", usuarioAtivo));
-                const snap = await getDocs(q);
-                rawTreinosExecutados = [];
-
-                snap.forEach(docSnap => {
-                    const data = docSnap.data();
-                    const meta = obterMetadadosExercicio(data.exercicio);
-                    const mmeResolvido = meta?.mme || data.mme || criarEstruturaMmeFallback(data.musculo || "OUTROS").mme;
-                    rawTreinosExecutados.push({
-                        id: docSnap.id,
-                        ...data,
-                        mme: mmeResolvido
-                    });
-                });
-
-                popularSelectsDoDashboard();
-                atualizarTodosOsGraficos();
-            } catch (error) {
-                console.error("Erro ao carregar dados do BI:", error);
-                showToast("Erro ao buscar dados de BI no Firestore.");
-            }
-        }
-
-        function popularSelectsDoDashboard() {
-            const rotinasSet = new Set();
-            const musculosSet = new Set();
-            const exerciciosSet = new Set();
-            const sessoesSet = new Set();
-
-            rawTreinosExecutados.forEach(item => {
-                if (item.nomeRotina) rotinasSet.add(item.nomeRotina.toUpperCase());
-                if (item.musculo) musculosSet.add(item.musculo.toUpperCase());
-                if (item.exercicio) exerciciosSet.add(item.exercicio);
-                if (item.nomeTreino) sessoesSet.add(item.nomeTreino.toUpperCase());
-            });
-
-            preencherSelect(biGlobalRotina, Array.from(rotinasSet).sort(), "TODAS", "Todas as Rotinas");
-            
-            // O dropdown de usuário agora apenas exibe o próprio usuário, blindando os outros!
-            preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
-
-            preencherSelect(f1Rotina, Array.from(rotinasSet).sort(), "", "Rotina (Usar Global)");
-            atualizarSessoesF1();
-            
-            const listaExercicios = Array.from(exerciciosSet).sort();
-            const defaultEx2 = f2Exercise.value || (listaExercicios.length > 0 ? listaExercicios[0] : "");
-            preencherSelect(f2Exercise, listaExercicios, defaultEx2, "Selecione 1 Exercício...");
-
-            preencherSelect(f7Exercise, listaExercicios, "TODOS", "Todos os Exercícios");
-
-            const listaSessoes = Array.from(sessoesSet).sort();
-            preencherSelect(f3Session, listaSessoes, "", "Todas as Sessões");
-            preencherSelect(f4Session, listaSessoes, "", "Todas as Sessões");
-            preencherSelect(f5Session, listaSessoes, "", "Todas as Sessões");
-
-            preencherSelect(f6Rotina, Array.from(rotinasSet).sort(), "", "Rotina (Usar Global)");
-        }
+        const biGlobalUsuario = document.getElementById('bi-global-usuario');
 
         function preencherSelect(selectEl, valuesArray, defaultVal, firstLabel) {
             const valorAtual = selectEl.value;
@@ -2988,759 +2498,79 @@
             }
         }
 
-        function filtrarRegistros({ localDate = '', localRotina = '', localMuscle = '', localExercise = '', localSession = '' } = {}) {
+        function popularSelectsDoDashboard() {
+            const rotinasSet = new Set();
+
+            rawTreinosExecutados.forEach(item => {
+                if (item.nomeRotina) rotinasSet.add(item.nomeRotina.toUpperCase());
+            });
+
+            preencherSelect(biGlobalRotina, Array.from(rotinasSet).sort(), "TODAS", "Todas as Rotinas");
+            preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
+        }
+
+        function filtrarRegistrosGlobais() {
             const gStart = biGlobalStart.value;
             const gEnd = biGlobalEnd.value;
             const gRotina = biGlobalRotina.value;
 
             return rawTreinosExecutados.filter(docItem => {
-                const rotinaAlvo = localRotina || (gRotina !== 'TODAS' ? gRotina : '');
-                if (rotinaAlvo) {
-                    if ((docItem.nomeRotina || '').toUpperCase() !== rotinaAlvo.toUpperCase()) return false;
+                if (gRotina && gRotina !== 'TODAS') {
+                    if ((docItem.nomeRotina || '').toUpperCase() !== gRotina.toUpperCase()) return false;
                 }
 
                 const dataDoc = docItem.dataExecucao || '';
-                if (localDate) {
-                    if (dataDoc !== localDate) return false;
-                } else {
-                    if (gStart && dataDoc < gStart) return false;
-                    if (gEnd && dataDoc > gEnd) return false;
-                }
-
-                if (localMuscle && (docItem.musculo || '').toUpperCase() !== localMuscle.toUpperCase()) {
-                    return false;
-                }
-                if (localExercise && localExercise !== 'TODOS' && (docItem.exercicio || '').toLowerCase() !== localExercise.toLowerCase()) {
-                    return false;
-                }
-                if (localSession && (docItem.nomeTreino || '').toUpperCase() !== localSession.toUpperCase()) {
-                    return false;
-                }
+                if (gStart && dataDoc < gStart) return false;
+                if (gEnd && dataDoc > gEnd) return false;
 
                 return true;
             });
         }
 
-        function alternarEmptyState(emptyId, isEmpty, customMessage = null) {
-            const el = document.getElementById(emptyId);
-            if (!el) return;
-            if (customMessage) el.textContent = customMessage;
-            el.classList.toggle('visible', isEmpty);
+        function aplicarFiltrosGlobaisBI() {
+            dadosDashboardFiltrados = filtrarRegistrosGlobais();
         }
 
-        function destruirGraficoSeExistir(key) {
-            if (chartInstances[key]) {
-                chartInstances[key].destroy();
-                delete chartInstances[key];
-            }
-        }
+        async function carregarDadosDashboardBI() {
+            try {
+                showToast("Carregando dados do Dashboard...");
+                
+                const q = query(collection(db, "treinos_executados"), where("usuario", "==", usuarioAtivo));
+                const snap = await getDocs(q);
+                rawTreinosExecutados = [];
 
-        function criarConfigRosca(labels, valores, sufixoUnidade = 'pct') {
-            const total = valores.reduce((acc, v) => acc + v, 0);
-            return {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: valores,
-                        backgroundColor: labels.map((_, i) => BI_PALETTE[i % BI_PALETTE.length]),
-                        borderColor: '#1e1e1e',
-                        borderWidth: 2,
-                        hoverOffset: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '58%',
-                    layout: {
-                        padding: { top: 34, bottom: 34, left: 45, right: 45 }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => {
-                                    const val = ctx.raw || 0;
-                                    const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-                                    return ` ${ctx.label}: ${Math.round(val).toLocaleString('pt-BR')} kg (${pct}%)`;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            color: '#e0e0e0',
-                            anchor: 'end',
-                            align: 'end',
-                            offset: 4,
-                            clamp: true,
-                            font: {
-                                weight: 'bold',
-                                size: 11
-                            },
-                            formatter: (value, ctx) => {
-                                if (!total || value <= 0) return null;
-                                const pct = ((value / total) * 100).toFixed(1);
-                                const nome = ctx.chart.data.labels[ctx.dataIndex];
-                                if (sufixoUnidade === 'kg_pct') {
-                                    return `${nome}\n${Math.round(value)}kg (${pct}%)`;
-                                }
-                                return `${nome}\n${pct}%`;
-                            }
-                        }
-                    }
-                }
-            };
-        }
-
-        function atualizarSessoesF1() {
-            const rotinaAlvo = f1Rotina.value || (biGlobalRotina.value !== 'TODAS' ? biGlobalRotina.value : '');
-            const sessoesFiltradas = new Set();
-
-            rawTreinosExecutados.forEach(item => {
-                if (rotinaAlvo && (item.nomeRotina || '').toUpperCase() !== rotinaAlvo.toUpperCase()) return;
-                if (item.nomeTreino) sessoesFiltradas.add(item.nomeTreino.toUpperCase());
-            });
-
-            preencherSelect(f1Session, Array.from(sessoesFiltradas).sort(), "", "Todos os Treinos");
-        }
-
-        function classificarEixoRadar1(docItem) {
-            const musculo = (docItem.musculo || '').trim().toUpperCase();
-            const nomeEx = (docItem.exercicio || '').trim().toLowerCase();
-            const prot = (docItem.mme?.protagonista || '').trim().toLowerCase();
-
-            // 1. Braço (ombro, elevação lateral, tríceps, roscas/bíceps, antebraço)
-            if (
-                ['OMBRO', 'TRÍCEPS', 'TRICEPS', 'BÍCEPS', 'BICEPS', 'ANTEBRAÇO', 'ANTEBRACO'].includes(musculo) ||
-                nomeEx.includes('tríceps') || nomeEx.includes('triceps') ||
-                nomeEx.includes('rosca') || nomeEx.includes('bíceps') || nomeEx.includes('biceps') ||
-                nomeEx.includes('elevação lateral') || nomeEx.includes('elevacao lateral') ||
-                nomeEx.includes('ombro') || nomeEx.includes('desenvolvimento') || nomeEx.includes('punho')
-            ) {
-                return 'Braço';
-            }
-
-            // 2. Peito (supinos, crossover, peck deck, crucifixo)
-            if (
-                musculo === 'PEITO' || prot.includes('peitoral') ||
-                nomeEx.includes('supino') || nomeEx.includes('crossover') ||
-                nomeEx.includes('peck deck') || nomeEx.includes('crucifixo') || nomeEx.includes('voador')
-            ) {
-                return 'Peito';
-            }
-
-            // 3. Costas (puxadas, remadas, pulley)
-            if (
-                musculo === 'COSTAS' || prot.includes('dorsal') ||
-                nomeEx.includes('puxada') || nomeEx.includes('remada') ||
-                nomeEx.includes('pulley') || nomeEx.includes('barra fixa')
-            ) {
-                return 'Costas';
-            }
-
-            // 4. Quadríceps (exclui glúteo, panturrilha, posterior de coxa e adutores/abdutores)
-            const gruposExcluidosPerna = ['POSTERIOR DE COXA', 'PANTURRILHA', 'ADUTORES/ABDUTORES', 'GLÚTEO', 'GLÚTEOS', 'GLUTEO', 'GLUTEOS'];
-            const termosExcluidos = ['glúteo', 'gluteo', 'panturrilha', 'gêmeos', 'gemeos', 'pélvica', 'pelvica', 'flexora', 'stiff', 'adutor', 'abdutor', 'isquiotibiais'];
-
-            if (
-                gruposExcluidosPerna.includes(musculo) ||
-                termosExcluidos.some(t => nomeEx.includes(t) || prot.includes(t))
-            ) {
-                return null;
-            }
-
-            if (
-                prot.includes('quadríceps') || prot.includes('quadriceps') ||
-                musculo === 'PERNAS' ||
-                nomeEx.includes('extensora') || nomeEx.includes('agachamento') ||
-                nomeEx.includes('leg press') || nomeEx.includes('hack') ||
-                nomeEx.includes('quadríceps') || nomeEx.includes('quadriceps')
-            ) {
-                return 'Quadríceps';
-            }
-
-            return null;
-        }
-
-        function renderizarGrafico1Volume() {
-            const dados = filtrarRegistros({
-                localRotina: f1Rotina.value,
-                localSession: f1Session.value
-            });
-
-            const eixos = ['Costas', 'Peito', 'Braço', 'Quadríceps'];
-            const volumePorEixo = { Costas: 0, Peito: 0, Braço: 0, Quadríceps: 0 };
-            let volumeTotal = 0;
-            let totalSeriesValidas = 0;
-
-            dados.forEach(docItem => {
-                if (!Array.isArray(docItem.series)) return;
-                const eixo = classificarEixoRadar1(docItem);
-                if (!eixo) return;
-
-                docItem.series.forEach(s => {
-                    if (!ehSerieValida(s)) return;
-                    const vol = (Number(s.kg) || 0) * (Number(s.reps) || 0);
-                    volumePorEixo[eixo] += vol;
-                    volumeTotal += vol;
-                    totalSeriesValidas++;
+                snap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const meta = obterMetadadosExercicio(data.exercicio);
+                    const mmeResolvido = meta?.mme || data.mme || criarEstruturaMmeFallback(data.musculo || "OUTROS").mme;
+                    rawTreinosExecutados.push({
+                        id: docSnap.id,
+                        ...data,
+                        mme: mmeResolvido
+                    });
                 });
-            });
 
-            document.getElementById('kpi-vol-valido').textContent = `${Math.round(volumeTotal).toLocaleString('pt-BR')} kg`;
-            document.getElementById('kpi-series-validas').textContent = totalSeriesValidas;
-
-            const valores = eixos.map(e => Math.round(volumePorEixo[e]));
-            const temDados = volumeTotal > 0;
-
-            alternarEmptyState('empty-chart-1', !temDados);
-            destruirGraficoSeExistir('c1');
-
-            if (!temDados) return;
-
-            const maxVal = Math.max(...valores, 1);
-
-            const ctx = document.getElementById('chart-1-volume').getContext('2d');
-            chartInstances['c1'] = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: eixos,
-                    datasets: [{
-                        label: 'Volume-Carga (kg)',
-                        data: valores,
-                        backgroundColor: 'rgba(187, 134, 252, 0.28)',
-                        borderColor: '#bb86fc',
-                        borderWidth: 2.5,
-                        pointBackgroundColor: '#03dac6',
-                        pointBorderColor: '#121212',
-                        pointBorderWidth: 2,
-                        pointRadius: 5,
-                        pointHoverRadius: 7
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: {
-                        padding: { top: 22, bottom: 22, left: 26, right: 26 }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (ctx) => ` ${ctx.label}: ${Number(ctx.raw).toLocaleString('pt-BR')} kg`
-                            }
-                        },
-                        datalabels: {
-                            color: '#03dac6',
-                            backgroundColor: 'rgba(18, 18, 18, 0.88)',
-                            borderRadius: 4,
-                            padding: { top: 3, bottom: 3, left: 6, right: 6 },
-                            anchor: 'end',
-                            align: 'end',
-                            offset: 6,
-                            // >>> ALTERE AQUI O TAMANHO DOS VALORES NO RADAR (ex: 12, 13, 14, 15) <<<
-                            font: { weight: 'bold', size: 13 },
-                            formatter: (val) => val > 0 ? `${val.toLocaleString('pt-BR')}kg` : '0'
-                        }
-                    },
-                    scales: {
-                        r: {
-                            beginAtZero: true,
-                            // Folga de 30% no raio máximo para o valor nunca cobrir o nome do eixo
-                            max: Math.ceil(maxVal * 1.3),
-                            grid: { color: 'rgba(255, 255, 255, 0.12)' },
-                            angleLines: { color: 'rgba(255, 255, 255, 0.15)' },
-                            pointLabels: {
-                                color: '#e0e0e0',
-                                padding: 14,
-                                // >>> ALTERE AQUI O TAMANHO DOS NOMES (Costas, Peito, Braço, Quadríceps) <<<
-                                font: { size: 13, weight: 'bold' }
-                            },
-                            ticks: {
-                                display: false
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderizarGrafico2ForcaResistencia() {
-            const exercicioEscolhido = f2Exercise.value;
-
-            if (!exercicioEscolhido) {
-                document.getElementById('kpi-carga-max').textContent = `0 kg`;
-                document.getElementById('kpi-vol-prot-ex').textContent = `0 kg`;
-                alternarEmptyState('empty-chart-2', true, 'Selecione 1 exercício acima para visualizar a progressão de Força vs. Resistência.');
-                destruirGraficoSeExistir('c2');
-                return;
+                popularSelectsDoDashboard();
+                aplicarFiltrosGlobaisBI();
+                showToast("Dados atualizados!");
+            } catch (error) {
+                console.error("Erro ao carregar dados do Dashboard:", error);
+                showToast("Erro ao buscar dados no Firestore.");
             }
-
-            const dados = filtrarRegistros({
-                localExercise: exercicioEscolhido
-            });
-
-            const mapaPorData = {};
-            let maiorCargaGlobal = 0;
-            let volumeProtAcumulado = 0;
-
-            dados.forEach(docItem => {
-                const dataKey = docItem.dataExecucao || 'Sem Data';
-                if (!Array.isArray(docItem.series)) return;
-
-                const mme = docItem.mme || criarEstruturaMmeFallback(docItem.musculo || 'OUTROS').mme;
-                const pctProt = Number(mme.pctProtagonista) || 100;
-
-                docItem.series.forEach(s => {
-                    if (!ehSerieValida(s)) return;
-                    const carga = Number(s.kg) || 0;
-                    const reps = Number(s.reps) || 0;
-                    const volProt = (carga * reps) * (pctProt / 100);
-
-                    if (!mapaPorData[dataKey]) {
-                        mapaPorData[dataKey] = { volProt: 0, maxKg: 0 };
-                    }
-
-                    mapaPorData[dataKey].volProt += volProt;
-                    if (carga > mapaPorData[dataKey].maxKg) {
-                        mapaPorData[dataKey].maxKg = carga;
-                    }
-
-                    volumeProtAcumulado += volProt;
-                    if (carga > maiorCargaGlobal) {
-                        maiorCargaGlobal = carga;
-                    }
-                });
-            });
-
-            document.getElementById('kpi-carga-max').textContent = `${maiorCargaGlobal} kg`;
-            document.getElementById('kpi-vol-prot-ex').textContent = `${Math.round(volumeProtAcumulado).toLocaleString('pt-BR')} kg`;
-
-            const datasOrdenadas = Object.keys(mapaPorData).sort();
-            const valoresVolProt = datasOrdenadas.map(d => Math.round(mapaPorData[d].volProt));
-            const valoresCargaMax = datasOrdenadas.map(d => mapaPorData[d].maxKg);
-
-            alternarEmptyState('empty-chart-2', datasOrdenadas.length === 0, `Sem séries válidas para "${exercicioEscolhido}" no período selecionado.`);
-            destruirGraficoSeExistir('c2');
-
-            if (datasOrdenadas.length === 0) return;
-
-            const ctx = document.getElementById('chart-2-forca-resistencia').getContext('2d');
-            chartInstances['c2'] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: datasOrdenadas.map(formatarDataCurta),
-                    datasets: [
-                        {
-                            type: 'line',
-                            label: 'Carga Máxima (kg)',
-                            data: valoresCargaMax,
-                            yAxisID: 'yMaxLoad',
-                            borderColor: '#03dac6',
-                            backgroundColor: '#03dac6',
-                            borderWidth: 3,
-                            tension: 0.25,
-                            pointRadius: 5,
-                            pointBackgroundColor: '#03dac6',
-                            order: 1,
-                            datalabels: {
-                                color: '#03dac6',
-                                backgroundColor: 'rgba(18, 18, 18, 0.85)',
-                                borderRadius: 4,
-                                padding: { top: 2, bottom: 2, left: 4, right: 4 },
-                                anchor: 'end',
-                                align: 'top',
-                                offset: 4,
-                                font: { weight: 'bold', size: 11 },
-                                formatter: (val) => `${val}kg`
-                            }
-                        },
-                        {
-                            type: 'bar',
-                            label: 'Volume Protagonista (kg)',
-                            data: valoresVolProt,
-                            yAxisID: 'yVolProt',
-                            backgroundColor: 'rgba(187, 134, 252, 0.72)',
-                            borderColor: '#bb86fc',
-                            borderWidth: 1,
-                            borderRadius: 6,
-                            order: 2,
-                            datalabels: {
-                                color: '#ffffff',
-                                anchor: 'center',
-                                align: 'center',
-                                font: { weight: 'bold', size: 10 },
-                                formatter: (val) => val > 0 ? `${val}kg` : ''
-                            }
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: {
-                        padding: { top: 28 }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            labels: { color: '#e0e0e0', boxWidth: 12, font: { size: 11 } }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: '#a0a0a0' },
-                            grid: { display: false },
-                            border: { color: '#333333' }
-                        },
-                        yVolProt: {
-                            type: 'linear',
-                            position: 'left',
-                            display: false,
-                            beginAtZero: true,
-                            grace: '25%'
-                        },
-                        yMaxLoad: {
-                            type: 'linear',
-                            position: 'right',
-                            display: false,
-                            beginAtZero: true,
-                            grace: '30%'
-                        }
-                    }
-                }
-            });
-        }
-
-        function renderizarGrafico3Protagonista() {
-            const dados = filtrarRegistros({
-                localSession: f3Session.value,
-                localDate: f3Date.value
-            });
-
-            const mapaProtagonista = {};
-
-            dados.forEach(docItem => {
-                if (!Array.isArray(docItem.series)) return;
-                const mme = docItem.mme || criarEstruturaMmeFallback(docItem.musculo || 'OUTROS').mme;
-                const musculoProt = mme.protagonista || docItem.musculo || 'Outros';
-                const pctProt = Number(mme.pctProtagonista) || 100;
-
-                docItem.series.forEach(s => {
-                    if (!ehSerieValida(s)) return;
-                    const volBruto = (Number(s.kg) || 0) * (Number(s.reps) || 0);
-                    const volProt = volBruto * (pctProt / 100);
-                    if (volProt > 0) {
-                        mapaProtagonista[musculoProt] = (mapaProtagonista[musculoProt] || 0) + volProt;
-                    }
-                });
-            });
-
-            const labels = Object.keys(mapaProtagonista);
-            const valores = labels.map(k => mapaProtagonista[k]);
-
-            alternarEmptyState('empty-chart-3', labels.length === 0);
-            destruirGraficoSeExistir('c3');
-
-            if (labels.length === 0) return;
-
-            const ctx = document.getElementById('chart-3-protagonista').getContext('2d');
-            chartInstances['c3'] = new Chart(ctx, criarConfigRosca(labels, valores, 'pct'));
-        }
-
-        function renderizarGrafico4Secundario() {
-            const dados = filtrarRegistros({
-                localSession: f4Session.value,
-                localDate: f4Date.value
-            });
-
-            const mapaSecundario = {};
-
-            dados.forEach(docItem => {
-                if (!Array.isArray(docItem.series)) return;
-                const mme = docItem.mme;
-                if (!mme || !mme.secundario || !mme.pctSecundario) return;
-
-                const musculoSec = mme.secundario;
-                const pctSec = Number(mme.pctSecundario) || 0;
-                if (pctSec <= 0) return;
-
-                docItem.series.forEach(s => {
-                    if (!ehSerieValida(s)) return;
-                    const volBruto = (Number(s.kg) || 0) * (Number(s.reps) || 0);
-                    const volSec = volBruto * (pctSec / 100);
-                    if (volSec > 0) {
-                        mapaSecundario[musculoSec] = (mapaSecundario[musculoSec] || 0) + volSec;
-                    }
-                });
-            });
-
-            const labels = Object.keys(mapaSecundario);
-            const valores = labels.map(k => mapaSecundario[k]);
-
-            alternarEmptyState('empty-chart-4', labels.length === 0);
-            destruirGraficoSeExistir('c4');
-
-            if (labels.length === 0) return;
-
-            const ctx = document.getElementById('chart-4-secundario').getContext('2d');
-            chartInstances['c4'] = new Chart(ctx, criarConfigRosca(labels, valores, 'pct'));
-        }
-
-        function renderizarGrafico5Terciario() {
-            const dados = filtrarRegistros({
-                localSession: f5Session.value,
-                localDate: f5Date.value
-            });
-
-            const mapaTerciario = {};
-
-            dados.forEach(docItem => {
-                if (!Array.isArray(docItem.series)) return;
-                const mme = docItem.mme;
-                if (!mme || !mme.terciario || !mme.pctTerciario) return;
-
-                const musculoTerc = mme.terciario;
-                const pctTerc = Number(mme.pctTerciario) || 0;
-                if (pctTerc <= 0) return;
-
-                docItem.series.forEach(s => {
-                    if (!ehSerieValida(s)) return;
-                    const volBruto = (Number(s.kg) || 0) * (Number(s.reps) || 0);
-                    const volTerc = volBruto * (pctTerc / 100);
-                    if (volTerc > 0) {
-                        mapaTerciario[musculoTerc] = (mapaTerciario[musculoTerc] || 0) + volTerc;
-                    }
-                });
-            });
-
-            const labels = Object.keys(mapaTerciario);
-            const valores = labels.map(k => mapaTerciario[k]);
-
-            alternarEmptyState('empty-chart-5', labels.length === 0);
-            destruirGraficoSeExistir('c5');
-
-            if (labels.length === 0) return;
-
-            const ctx = document.getElementById('chart-5-terciario').getContext('2d');
-            chartInstances['c5'] = new Chart(ctx, criarConfigRosca(labels, valores, 'pct'));
-        }
-
-        function renderizarGrafico6Simetria() {
-            const dados = filtrarRegistros({
-                localRotina: f6Rotina.value,
-                localDate: f6Date.value
-            });
-
-            const simetria = { SUPERIORES: 0, INFERIORES: 0 };
-
-            dados.forEach(docItem => {
-                if (!Array.isArray(docItem.series)) return;
-                const mme = docItem.mme || criarEstruturaMmeFallback(docItem.musculo || 'OUTROS').mme;
-                const pctProt = Number(mme.pctProtagonista) || 100;
-                const categoria = classificarSimetria(docItem, mme);
-
-                docItem.series.forEach(s => {
-                    if (!ehSerieValida(s)) return;
-                    const volBruto = (Number(s.kg) || 0) * (Number(s.reps) || 0);
-                    const volProt = volBruto * (pctProt / 100);
-                    simetria[categoria] += volProt;
-                });
-            });
-
-            const totalSimetria = simetria.SUPERIORES + simetria.INFERIORES;
-            alternarEmptyState('empty-chart-6', totalSimetria <= 0);
-            destruirGraficoSeExistir('c6');
-
-            if (totalSimetria <= 0) return;
-
-            const labels = ['SUPERIORES', 'INFERIORES'];
-            const valores = [simetria.SUPERIORES, simetria.INFERIORES];
-
-            const ctx = document.getElementById('chart-6-simetria').getContext('2d');
-            chartInstances['c6'] = new Chart(ctx, criarConfigRosca(labels, valores, 'pct'));
-        }
-
-        function renderizarGrafico7Consistencia() {
-            const dados = filtrarRegistros({
-                localExercise: f7Exercise.value,
-                localDate: f7Date.value
-            });
-
-            const registrosOrdenados = [...dados].sort((a, b) => (a.dataExecucao || '').localeCompare(b.dataExecucao || ''));
-
-            const labels = [];
-            const reps1Valida = [];
-            const reps2Valida = [];
-
-            registrosOrdenados.forEach(docItem => {
-                if (!Array.isArray(docItem.series)) return;
-
-                const s1 = docItem.series.find(s => (s.serie || '').trim().toLowerCase() === '1ª válida');
-                const s2 = docItem.series.find(s => (s.serie || '').trim().toLowerCase() === '2ª válida');
-
-                if (s1 || s2) {
-                    const dataCurta = formatarDataCurta(docItem.dataExecucao);
-                    const nomeExCurto = (docItem.exercicio || 'Exercício').slice(0, 18);
-                    labels.push(`${dataCurta} - ${nomeExCurto}`);
-                    reps1Valida.push(s1 ? Number(s1.reps) || 0 : 0);
-                    reps2Valida.push(s2 ? Number(s2.reps) || 0 : 0);
-                }
-            });
-
-            alternarEmptyState('empty-chart-7', labels.length === 0);
-            destruirGraficoSeExistir('c7');
-
-            if (labels.length === 0) return;
-
-            const ctx = document.getElementById('chart-7-consistencia').getContext('2d');
-            chartInstances['c7'] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: '1ª Válida (Reps)',
-                            data: reps1Valida,
-                            backgroundColor: '#bb86fc',
-                            borderRadius: 4
-                        },
-                        {
-                            label: '2ª Válida (Reps)',
-                            data: reps2Valida,
-                            backgroundColor: '#03dac6',
-                            borderRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: {
-                        padding: { top: 24 }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            labels: { color: '#e0e0e0' }
-                        },
-                        datalabels: {
-                            color: '#e0e0e0',
-                            anchor: 'end',
-                            align: 'top',
-                            font: { weight: 'bold', size: 11 },
-                            formatter: (val) => val > 0 ? val : ''
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: '#a0a0a0', maxRotation: 35, minRotation: 0, font: { size: 10 } },
-                            grid: { display: false },
-                            border: { color: '#333333' }
-                        },
-                        y: {
-                            display: false,
-                            beginAtZero: true,
-                            grace: '22%'
-                        }
-                    }
-                }
-            });
-        }
-
-        function atualizarTodosOsGraficos() {
-            atualizarSessoesF1();
-            renderizarGrafico1Volume();
-            renderizarGrafico2ForcaResistencia();
-            renderizarGrafico3Protagonista();
-            renderizarGrafico4Secundario();
-            renderizarGrafico5Terciario();
-            renderizarGrafico6Simetria();
-            renderizarGrafico7Consistencia();
         }
 
         [biGlobalStart, biGlobalEnd, biGlobalRotina].forEach(el => {
-            el.addEventListener('change', atualizarTodosOsGraficos);
+            el.addEventListener('change', aplicarFiltrosGlobaisBI);
         });
 
         document.getElementById('btn-reset-global-filter').addEventListener('click', () => {
             biGlobalStart.value = '';
             biGlobalEnd.value = '';
             biGlobalRotina.value = 'TODAS';
-            atualizarTodosOsGraficos();
+            aplicarFiltrosGlobaisBI();
         });
 
         document.getElementById('btn-refresh-bi').addEventListener('click', carregarDadosDashboardBI);
-
-        f1Rotina.addEventListener('change', () => {
-            atualizarSessoesF1();
-            renderizarGrafico1Volume();
-        });
-        f1Session.addEventListener('change', renderizarGrafico1Volume);
-
-        f2Exercise.addEventListener('change', renderizarGrafico2ForcaResistencia);
-
-        f3Session.addEventListener('change', renderizarGrafico3Protagonista);
-        f3Date.addEventListener('change', renderizarGrafico3Protagonista);
-
-        f4Session.addEventListener('change', renderizarGrafico4Secundario);
-        f4Date.addEventListener('change', renderizarGrafico4Secundario);
-
-        f5Session.addEventListener('change', renderizarGrafico5Terciario);
-        f5Date.addEventListener('change', renderizarGrafico5Terciario);
-
-        f6Rotina.addEventListener('change', renderizarGrafico6Simetria);
-        f6Date.addEventListener('change', renderizarGrafico6Simetria);
-
-        f7Exercise.addEventListener('change', renderizarGrafico7Consistencia);
-        f7Date.addEventListener('change', renderizarGrafico7Consistencia);
-
-        const btnExportPdf = document.getElementById('btn-export-pdf');
-        btnExportPdf.addEventListener('click', async () => {
-            const printableArea = document.getElementById('bi-printable-area');
-            if (!window.html2pdf) {
-                showToast("Biblioteca de PDF não carregada.");
-                return;
-            }
-
-            try {
-                btnExportPdf.disabled = true;
-                btnExportPdf.textContent = "GERANDO PDF (300 DPI)... AGUARDE";
-                printableArea.classList.add('pdf-export-mode');
-
-                const dataHoje = new Date().toISOString().slice(0, 10);
-                const opt = {
-                    margin: [8, 8, 8, 8],
-                    filename: `Relatorio_BI_Treinos_${usuarioEmail}_${dataHoje}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: {
-                        scale: 3.125,
-                        useCORS: true,
-                        backgroundColor: '#121212',
-                        logging: false
-                    },
-                    jsPDF: {
-                        unit: 'mm',
-                        format: 'a4',
-                        orientation: 'portrait'
-                    },
-                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-                };
-
-                await window.html2pdf().set(opt).from(printableArea).save();
-                showToast("Relatório PDF A4 (300 DPI) baixado com sucesso!");
-            } catch (err) {
-                console.error("Erro ao exportar PDF:", err);
-                showToast("Erro ao gerar o PDF.");
-            } finally {
-                printableArea.classList.remove('pdf-export-mode');
-                btnExportPdf.disabled = false;
-                btnExportPdf.textContent = "📄 BAIXAR RELATÓRIO (PDF)";
-            }
-        });
     </script>
 </body>
 </html>
