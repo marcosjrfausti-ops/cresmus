@@ -1504,6 +1504,63 @@
             return exercisesRepository.find(ex => normalizarTexto(ex.nome) === alvo) || null;
         }
 
+        function normalizarParaClassificacao(texto) {
+            return normalizarTexto(texto).replace(/\s+/g, ' ');
+        }
+
+        function classificarGrupoMuscularExercicio(nomeExercicio, musculoFallback = null) {
+            const norm = normalizarParaClassificacao(nomeExercicio);
+
+            if (norm) {
+                // 1. Prioridade COSTAS
+                if (
+                    norm.includes('remada') ||
+                    norm.includes('puxada') ||
+                    /pull[\s-]?down/.test(norm)
+                ) {
+                    return 'COSTAS';
+                }
+
+                // 2. Prioridade PEITO
+                if (
+                    /peit(?:o|oral)\s+superior/.test(norm) ||
+                    /peit(?:o|oral)\s+inferior/.test(norm) ||
+                    /cross[\s-]?over/.test(norm) ||
+                    norm.includes('supino') ||
+                    /peck?[\s-]?deck/.test(norm) ||
+                    norm.includes('voador') ||
+                    norm.includes('crucifixo')
+                ) {
+                    return 'PEITO';
+                }
+
+                // 3. Prioridade OMBRO
+                if (
+                    (norm.includes('elevac') && /fronta(?:l|is)/.test(norm)) ||
+                    (norm.includes('elevac') && /latera(?:l|is)/.test(norm)) ||
+                    norm.includes('desenvolvimento')
+                ) {
+                    return 'OMBRO';
+                }
+
+                // Fallback 1: Repositório / dicionário local
+                const meta = obterMetadadosExercicio(nomeExercicio);
+                if (meta && meta.musculo) {
+                    return String(meta.musculo).trim().toUpperCase();
+                }
+                if (muscleDictionary[nomeExercicio]) {
+                    return String(muscleDictionary[nomeExercicio]).trim().toUpperCase();
+                }
+            }
+
+            // Fallback 2: grupo salvo no registro
+            if (musculoFallback && String(musculoFallback).trim()) {
+                return String(musculoFallback).trim().toUpperCase();
+            }
+
+            return 'OUTROS';
+        }
+
         async function carregarExerciciosCustomizados() {
             if (!usuarioAtivo) return;
             try {
@@ -2139,7 +2196,7 @@
         function adicionarCardExercicioTela2(exerciseName, preloadedSeries = null, autoScroll = true) {
             if (!exerciseName) return;
 
-            const muscle = muscleDictionary[exerciseName] || "OUTROS";
+            const muscle = classificarGrupoMuscularExercicio(exerciseName);
 
             let groupDiv = Array.from(exerciseContainer.querySelectorAll('.muscle-group')).find(
                 div => div.dataset.muscleGroup === muscle
@@ -2524,7 +2581,7 @@
             const emptyMsg = execContainer.querySelector('.empty-msg');
             if (emptyMsg) emptyMsg.remove();
 
-            const muscle = muscleDictionary[ex.nome] || (ex.mme?.protagonista) || "OUTROS";
+            const muscle = classificarGrupoMuscularExercicio(ex.nome, ex.mme?.protagonista);
 
             let groupDiv = Array.from(execContainer.querySelectorAll('.muscle-group')).find(
                 div => div.dataset.muscleGroup === muscle
