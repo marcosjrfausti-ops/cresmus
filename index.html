@@ -939,7 +939,87 @@
         }
         .bi-info-body strong {
             color: var(--text-primary);
-        }        
+        }
+        /* =========================================================
+           TELA 5: GRÁFICO 2 (ÍNDICE BASE 100 — CHIPS DE GRUPOS)
+           ========================================================= */
+        .bi-chips-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .bi-chips-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .bi-chips-header label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .bi-chips-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .bi-chip-action-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 3px 9px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .bi-chip-action-btn:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+        .bi-chips-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .bi-muscle-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 11px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: all 0.18s ease;
+            user-select: none;
+        }
+        .bi-muscle-chip:hover {
+            opacity: 0.85;
+        }
+        .bi-muscle-chip.active {
+            opacity: 1;
+            color: var(--text-primary);
+            background: var(--surface-highlight);
+            border-color: var(--chip-color, var(--accent-color));
+        }
+        .bi-chip-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--chip-color, var(--accent-color));
+            flex-shrink: 0;
+        }
+        #bi-base100-canvas-wrap {
+            height: 320px;
+        }
     </style>
 </head>
 <body>
@@ -1009,6 +1089,31 @@
                     <li><strong>Melhor Série do Dia:</strong> usa o maior e1RM do dia, útil quando a 1ª série serviu de ajuste de carga.</li>
                     <li><strong>Séries de Reconhecimento / Aquecimento:</strong> ficam automaticamente fora do cálculo.</li>
                     <li><strong>Linha tracejada (MM 3):</strong> média móvel das últimas 3 sessões para suavizar dias ruins isolados e mostrar a tendência real.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de Informação: Gráfico Índice Base 100 -->
+    <div id="modal-info-base100" class="modal-overlay">
+        <div class="modal-card">
+            <div class="bi-info-modal-header">
+                <h3>Sobre o Gráfico — Base 100</h3>
+                <button type="button" id="btn-close-info-base100" class="btn-close-info-modal" title="Fechar">✕</button>
+            </div>
+            <div class="bi-info-body">
+                <p>
+                    Compara a <strong>velocidade de evolução proporcional</strong> entre diferentes grupos musculares na mesma linha do tempo, eliminando a distorção de cargas absolutas (ex.: Costas movendo 30 kg vs. Ombro movendo 4 kg).
+                </p>
+                <div class="bi-info-formula">
+                    Índice = (Valor do Período Atual / Valor do Período Base) × 100<br>
+                    Delta (%) = Índice − 100
+                </div>
+                <ul>
+                    <li><strong>Ponto de partida igual (Base 100):</strong> o primeiro período com registro válido de cada grupo dentro do recorte filtrado equivale a <strong>100</strong>. A linha tracejada marca esse ponto inicial.</li>
+                    <li><strong>VC / Série (padrão):</strong> calcula <em>Σ(Carga × Reps) / Qtd. Séries Válidas</em> do grupo no período, evitando quedas artificiais em semanas com menos treinos.</li>
+                    <li><strong>e1RM Médio (1ª Série):</strong> média do 1RM estimado (Epley) considerando a 1ª série válida dos exercícios do grupo no período.</li>
+                    <li><strong>Períodos sem treino:</strong> se um grupo ficar sem registro em uma semana/mês intermediário, a linha conecta os pontos adjacentes sem cair para zero.</li>
+                    <li><strong>Leitura limpa:</strong> passe o mouse ou toque em uma linha para destacá-la; clique nos chips de grupos musculares para filtrar a visualização.</li>
                 </ul>
             </div>
         </div>
@@ -1218,6 +1323,65 @@
 
             <div class="bi-chart-canvas-wrapper" id="bi-e1rm-canvas-wrap">
                 <canvas id="chart-e1rm"></canvas>
+            </div>
+        </section>
+    </div>
+    <!-- Gráfico 2: Índice de Evolução Normalizado (Base 100) -->
+        <section class="bi-chart-card" id="card-grafico-base100">
+            <div class="bi-chart-header">
+                <div class="bi-chart-title-wrap">
+                    <h3>2. Índice de Evolução Normalizado (Base 100)</h3>
+                    <p>Velocidade proporcional de progresso por grupo muscular • Início = 100</p>
+                </div>
+                <button type="button" id="btn-info-base100" class="btn-chart-info" title="Sobre este gráfico">i</button>
+            </div>
+
+            <div class="bi-chart-controls">
+                <!-- Filtro de rotina (padrão Usar Global) -->
+                <div class="bi-filter-item">
+                    <label for="bi-base100-rotina">Rotina:</label>
+                    <select id="bi-base100-rotina">
+                        <option value="GLOBAL">Rotina (Usar Global)</option>
+                    </select>
+                </div>
+
+                <!-- Granularidade -->
+                <div class="bi-filter-item">
+                    <label>Granularidade:</label>
+                    <div class="bi-segmented-toggle" id="bi-base100-gran-toggle">
+                        <button type="button" class="bi-seg-btn active" data-gran="semanal">Semanal</button>
+                        <button type="button" class="bi-seg-btn" data-gran="mensal">Mensal</button>
+                    </div>
+                </div>
+
+                <!-- Métrica Base -->
+                <div class="bi-filter-item">
+                    <label>Métrica Base:</label>
+                    <div class="bi-segmented-toggle" id="bi-base100-metrica-toggle">
+                        <button type="button" class="bi-seg-btn active" data-metrica="vc">VC / Série</button>
+                        <button type="button" class="bi-seg-btn" data-metrica="e1rm">e1RM Médio</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chips interativos de grupos musculares -->
+            <div class="bi-chips-section">
+                <div class="bi-chips-header">
+                    <label>Grupos Musculares:</label>
+                    <div class="bi-chips-actions">
+                        <button type="button" id="btn-base100-chips-all" class="bi-chip-action-btn">Todos</button>
+                        <button type="button" id="btn-base100-chips-none" class="bi-chip-action-btn">Limpar</button>
+                    </div>
+                </div>
+                <div id="bi-base100-chips" class="bi-chips-wrap"></div>
+            </div>
+
+            <div id="bi-base100-empty" class="bi-chart-empty">
+                Nenhum dado válido encontrado para o filtro selecionado.
+            </div>
+
+            <div class="bi-chart-canvas-wrapper" id="bi-base100-canvas-wrap">
+                <canvas id="chart-base100"></canvas>
             </div>
         </section>
     </div>
@@ -2770,6 +2934,7 @@
 
             preencherSelect(biGlobalRotina, Array.from(rotinasSet).sort(), "TODAS", "Todas as Rotinas");
             preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
+            popularSelectRotinaBase100(listaRotinas);
         }
 
         function filtrarRegistrosGlobais() {
@@ -2793,6 +2958,7 @@
         function aplicarFiltrosGlobaisBI() {
             dadosDashboardFiltrados = filtrarRegistrosGlobais();
             atualizarGraficoE1RM();
+            atualizarGraficoBase100();
         }
 
         async function carregarDadosDashboardBI() {
@@ -3159,6 +3325,483 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modalInfoE1rm.classList.contains('open')) {
                 modalInfoE1rm.classList.remove('open');
+            }
+        });
+        /* =========================================================================
+           GRÁFICO 2: ÍNDICE DE EVOLUÇÃO NORMALIZADO (BASE 100)
+           ========================================================================= */
+        const selectBase100Rotina = document.getElementById('bi-base100-rotina');
+        const granToggleBase100 = document.getElementById('bi-base100-gran-toggle');
+        const metricaToggleBase100 = document.getElementById('bi-base100-metrica-toggle');
+        const chipsContainerBase100 = document.getElementById('bi-base100-chips');
+        const btnBase100ChipsAll = document.getElementById('btn-base100-chips-all');
+        const btnBase100ChipsNone = document.getElementById('btn-base100-chips-none');
+        const canvasBase100 = document.getElementById('chart-base100');
+        const canvasWrapBase100 = document.getElementById('bi-base100-canvas-wrap');
+        const emptyStateBase100 = document.getElementById('bi-base100-empty');
+
+        const btnInfoBase100 = document.getElementById('btn-info-base100');
+        const modalInfoBase100 = document.getElementById('modal-info-base100');
+        const btnCloseInfoBase100 = document.getElementById('btn-close-info-base100');
+
+        let granularidadeBase100 = 'semanal'; // 'semanal' | 'mensal'
+        let metricaBase100 = 'vc';            // 'vc' | 'e1rm'
+        let gruposBase100Desativados = new Set();
+        let gruposBase100Disponiveis = [];
+        let chartBase100Instance = null;
+
+        const PALETA_GRUPOS_BASE100 = {
+            'COSTAS': '#bb86fc',
+            'PEITO': '#03dac6',
+            'PERNAS': '#ffb74d',
+            'OMBRO': '#ff6b81',
+            'BÍCEPS': '#4fc3f7',
+            'TRÍCEPS': '#aed581',
+            'POSTERIOR DE COXA': '#ffd54f',
+            'PANTURRILHA': '#f06292',
+            'ANTEBRAÇO': '#9575cd',
+            'ADUTORES/ABDUTORES': '#4db6ac',
+            'ABDÔMEN': '#ff8a65',
+            'LOMBAR': '#90a4ae'
+        };
+        const CORES_FALLBACK_BASE100 = [
+            '#bb86fc', '#03dac6', '#ffb74d', '#ff6b81', '#4fc3f7',
+            '#aed581', '#ffd54f', '#f06292', '#9575cd', '#4db6ac',
+            '#ff8a65', '#90a4ae'
+        ];
+        const MESES_CURTOS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+        function obterCorGrupoBase100(grupo, fallbackIdx = 0) {
+            if (PALETA_GRUPOS_BASE100[grupo]) return PALETA_GRUPOS_BASE100[grupo];
+            return CORES_FALLBACK_BASE100[fallbackIdx % CORES_FALLBACK_BASE100.length];
+        }
+
+        function hexToRgba(hex, alpha) {
+            const clean = String(hex || '#bb86fc').replace('#', '');
+            const r = parseInt(clean.substring(0, 2), 16);
+            const g = parseInt(clean.substring(2, 4), 16);
+            const b = parseInt(clean.substring(4, 6), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        function popularSelectRotinaBase100(listaRotinas) {
+            const valorAtual = selectBase100Rotina.value || 'GLOBAL';
+            selectBase100Rotina.innerHTML = '<option value="GLOBAL">Rotina (Usar Global)</option>';
+            listaRotinas.forEach(rot => {
+                const opt = document.createElement('option');
+                opt.value = rot;
+                opt.textContent = rot;
+                selectBase100Rotina.appendChild(opt);
+            });
+            if (Array.from(selectBase100Rotina.options).some(o => o.value === valorAtual)) {
+                selectBase100Rotina.value = valorAtual;
+            } else {
+                selectBase100Rotina.value = 'GLOBAL';
+            }
+        }
+
+        function obterRegistrosFiltradosBase100() {
+            const gStart = biGlobalStart.value;
+            const gEnd = biGlobalEnd.value;
+            const rotinaLocal = selectBase100Rotina.value;
+            const rotinaEfetiva = rotinaLocal === 'GLOBAL' ? biGlobalRotina.value : rotinaLocal;
+
+            return rawTreinosExecutados.filter(docItem => {
+                if (rotinaEfetiva && rotinaEfetiva !== 'TODAS') {
+                    if ((docItem.nomeRotina || '').toUpperCase() !== rotinaEfetiva.toUpperCase()) return false;
+                }
+                const dataDoc = docItem.dataExecucao || '';
+                if (gStart && dataDoc < gStart) return false;
+                if (gEnd && dataDoc > gEnd) return false;
+                return true;
+            });
+        }
+
+        function obterChavePeriodoBase100(dataIso, granularidade) {
+            if (!dataIso || !dataIso.includes('-')) return null;
+            const [ano, mes, dia] = dataIso.split('-').map(Number);
+
+            if (granularidade === 'mensal') {
+                const key = `${ano}-${String(mes).padStart(2, '0')}`;
+                const mesNome = MESES_CURTOS_PT[mes - 1] || String(mes);
+                return {
+                    key,
+                    labelCurto: `${mesNome}/${String(ano).slice(-2)}`,
+                    labelTooltip: `Mês ${mesNome}/${ano}`
+                };
+            }
+
+            // Semanal (Segunda a Domingo)
+            const dt = new Date(ano, mes - 1, dia);
+            const dayOfWeek = dt.getDay(); // 0 = Dom, 1 = Seg...
+            const diffSeg = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            const seg = new Date(ano, mes - 1, dia + diffSeg);
+            const dom = new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + 6);
+
+            const fmtIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const fmtDM = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+            return {
+                key: fmtIso(seg),
+                labelCurto: fmtDM(seg),
+                labelTooltip: `Semana ${fmtDM(seg)} – ${fmtDM(dom)}`
+            };
+        }
+
+        function construirDadosBase100() {
+            const registros = obterRegistrosFiltradosBase100();
+            const periodosMap = new Map(); // key -> { key, labelCurto, labelTooltip }
+            const acumulador = new Map();  // grupo -> Map(periodKey -> { somaVC, qtdSeries, somaE1RM, qtdEx })
+
+            registros.forEach(docItem => {
+                if (!docItem.dataExecucao || !Array.isArray(docItem.series)) return;
+                const validas = docItem.series.filter(isSerieValidaE1RM);
+                if (validas.length === 0) return;
+
+                const periodo = obterChavePeriodoBase100(docItem.dataExecucao, granularidadeBase100);
+                if (!periodo) return;
+
+                const grupo = (docItem.musculo || muscleDictionary[docItem.exercicio] || 'OUTROS')
+                    .trim()
+                    .toUpperCase();
+
+                if (!periodosMap.has(periodo.key)) {
+                    periodosMap.set(periodo.key, periodo);
+                }
+
+                if (!acumulador.has(grupo)) {
+                    acumulador.set(grupo, new Map());
+                }
+                const mapaGrupo = acumulador.get(grupo);
+                if (!mapaGrupo.has(periodo.key)) {
+                    mapaGrupo.set(periodo.key, { somaVC: 0, qtdSeries: 0, somaE1RM: 0, qtdEx: 0 });
+                }
+
+                const celula = mapaGrupo.get(periodo.key);
+
+                // Opção A: Volume-Carga por Série
+                validas.forEach(s => {
+                    celula.somaVC += Number(s.kg) * Number(s.reps);
+                    celula.qtdSeries += 1;
+                });
+
+                // Opção B: e1RM Médio (1ª Série Válida do exercício)
+                const primeiraValida = validas.find(s => /^1[ªa]/.test(normalizarTexto(s.serie))) || validas[0];
+                if (primeiraValida) {
+                    celula.somaE1RM += calcularEpley(Number(primeiraValida.kg), Number(primeiraValida.reps));
+                    celula.qtdEx += 1;
+                }
+            });
+
+            const periodosOrdenados = Array.from(periodosMap.values())
+                .sort((a, b) => a.key.localeCompare(b.key));
+
+            // Se cruzar mais de um ano no modo semanal, inclui o ano curto no eixo X
+            if (granularidadeBase100 === 'semanal') {
+                const anos = new Set(periodosOrdenados.map(p => p.key.slice(0, 4)));
+                if (anos.size > 1) {
+                    periodosOrdenados.forEach(p => {
+                        p.labelCurto = `${p.labelCurto}/${p.key.slice(2, 4)}`;
+                    });
+                }
+            }
+
+            const gruposOrdenados = Array.from(acumulador.keys())
+                .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+            const seriesPorGrupo = gruposOrdenados.map((grupo, gIdx) => {
+                const mapaGrupo = acumulador.get(grupo);
+                const valoresBrutos = periodosOrdenados.map(p => {
+                    const cel = mapaGrupo.get(p.key);
+                    if (!cel) return null;
+                    if (metricaBase100 === 'vc') {
+                        return cel.qtdSeries > 0 ? cel.somaVC / cel.qtdSeries : null;
+                    }
+                    return cel.qtdEx > 0 ? cel.somaE1RM / cel.qtdEx : null;
+                });
+
+                const valorBase = valoresBrutos.find(v => v !== null && v > 0) || null;
+
+                let lastValidIndex = -1;
+                const indices = valoresBrutos.map((val, idx) => {
+                    if (val === null || !valorBase) return null;
+                    lastValidIndex = idx;
+                    return Number(((val / valorBase) * 100).toFixed(1));
+                });
+
+                return {
+                    grupo,
+                    cor: obterCorGrupoBase100(grupo, gIdx),
+                    valoresBrutos,
+                    indices,
+                    lastValidIndex
+                };
+            }).filter(s => s.lastValidIndex !== -1);
+
+            return { periodosOrdenados, seriesPorGrupo };
+        }
+
+        function renderizarChipsBase100(seriesPorGrupo) {
+            gruposBase100Disponiveis = seriesPorGrupo.map(s => s.grupo);
+            chipsContainerBase100.innerHTML = '';
+
+            if (seriesPorGrupo.length === 0) {
+                chipsContainerBase100.innerHTML = '<span style="font-size:0.8rem; color:var(--text-secondary);">Nenhum grupo disponível</span>';
+                return;
+            }
+
+            seriesPorGrupo.forEach(serie => {
+                const isAtivo = !gruposBase100Desativados.has(serie.grupo);
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = `bi-muscle-chip${isAtivo ? ' active' : ''}`;
+                chip.style.setProperty('--chip-color', serie.cor);
+                chip.innerHTML = `<span class="bi-chip-dot"></span><span>${serie.grupo}</span>`;
+
+                chip.addEventListener('click', () => {
+                    if (gruposBase100Desativados.has(serie.grupo)) {
+                        gruposBase100Desativados.delete(serie.grupo);
+                    } else {
+                        gruposBase100Desativados.add(serie.grupo);
+                    }
+                    atualizarGraficoBase100();
+                });
+
+                chipsContainerBase100.appendChild(chip);
+            });
+        }
+
+        // Plugin inline: Linha de referência tracejada em y = 100 com etiqueta "Base 100"
+        const base100ReferenceLinePlugin = {
+            id: 'base100ReferenceLine',
+            beforeDatasetsDraw(chart) {
+                const { ctx, chartArea, scales } = chart;
+                if (!scales?.y || !chartArea) return;
+
+                const yPos = scales.y.getPixelForValue(100);
+                if (yPos < chartArea.top || yPos > chartArea.bottom) return;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.setLineDash([5, 5]);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+                ctx.lineWidth = 1;
+                ctx.moveTo(chartArea.left, yPos);
+                ctx.lineTo(chartArea.right, yPos);
+                ctx.stroke();
+
+                ctx.setLineDash([]);
+                ctx.font = '600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.fillStyle = 'rgba(224, 224, 224, 0.42)';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('Base 100', chartArea.left + 4, yPos - 4);
+                ctx.restore();
+            }
+        };
+
+        function aplicarDestaqueHoverBase100(chart, hoveredIdx) {
+            if (!chart || chart._hoveredDatasetIndex === hoveredIdx) return;
+            chart._hoveredDatasetIndex = hoveredIdx;
+
+            chart.data.datasets.forEach((ds, idx) => {
+                const emFoco = hoveredIdx === null || idx === hoveredIdx;
+                ds.borderColor = emFoco ? ds._baseColor : hexToRgba(ds._baseColor, 0.16);
+                ds.pointBackgroundColor = emFoco ? ds._baseColor : hexToRgba(ds._baseColor, 0.16);
+                ds.borderWidth = hoveredIdx !== null && idx === hoveredIdx ? 3.2 : 2.2;
+            });
+
+            chart.update('none');
+        }
+
+        function atualizarGraficoBase100() {
+            const { periodosOrdenados, seriesPorGrupo } = construirDadosBase100();
+            renderizarChipsBase100(seriesPorGrupo);
+
+            if (chartBase100Instance) {
+                chartBase100Instance.destroy();
+                chartBase100Instance = null;
+            }
+
+            const seriesAtivas = seriesPorGrupo.filter(s => !gruposBase100Desativados.has(s.grupo));
+
+            if (periodosOrdenados.length === 0 || seriesPorGrupo.length === 0) {
+                canvasWrapBase100.style.display = 'none';
+                emptyStateBase100.textContent = 'Nenhum dado válido encontrado para o filtro selecionado.';
+                emptyStateBase100.classList.add('visible');
+                return;
+            }
+
+            if (seriesAtivas.length === 0) {
+                canvasWrapBase100.style.display = 'none';
+                emptyStateBase100.textContent = 'Selecione ao menos um grupo muscular acima para exibir a evolução.';
+                emptyStateBase100.classList.add('visible');
+                return;
+            }
+
+            emptyStateBase100.classList.remove('visible');
+            canvasWrapBase100.style.display = 'block';
+
+            const labelsX = periodosOrdenados.map(p => p.labelCurto);
+            const datasets = seriesAtivas.map(s => ({
+                label: s.grupo,
+                data: s.indices,
+                _baseColor: s.cor,
+                _valoresBrutos: s.valoresBrutos,
+                _lastValidIndex: s.lastValidIndex,
+                borderColor: s.cor,
+                backgroundColor: s.cor,
+                borderWidth: 2.2,
+                tension: 0.3,
+                fill: false,
+                spanGaps: true,
+                pointRadius: 3.5,
+                pointHoverRadius: 6,
+                pointHitRadius: 16,
+                pointBackgroundColor: s.cor,
+                pointBorderColor: '#121212',
+                pointBorderWidth: 1.5,
+                datalabels: {
+                    display: (ctx) => ctx.dataIndex === ctx.dataset._lastValidIndex,
+                    align: 'right',
+                    anchor: 'end',
+                    offset: 6,
+                    color: (ctx) => {
+                        const hIdx = ctx.chart._hoveredDatasetIndex;
+                        const emFoco = hIdx === null || hIdx === undefined || hIdx === ctx.datasetIndex;
+                        return emFoco ? ctx.dataset._baseColor : hexToRgba(ctx.dataset._baseColor, 0.22);
+                    },
+                    font: { size: 11, weight: '700' },
+                    formatter: (val) => {
+                        if (val === null || val === undefined) return '';
+                        const delta = Math.round(val - 100);
+                        return `${delta > 0 ? '+' : ''}${delta}%`;
+                    }
+                }
+            }));
+
+            chartBase100Instance = new Chart(canvasBase100.getContext('2d'), {
+                type: 'line',
+                data: { labels: labelsX, datasets },
+                plugins: [ChartDataLabels, base100ReferenceLinePlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 20, right: 54, left: 10, bottom: 4 }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'xy',
+                        intersect: false
+                    },
+                    onHover: (event, activeElements, chart) => {
+                        const nextIdx = activeElements.length > 0 ? activeElements[0].datasetIndex : null;
+                        aplicarDestaqueHoverBase100(chart, nextIdx);
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // Chips acima já fazem o papel de legenda interativa
+                        },
+                        tooltip: {
+                            backgroundColor: '#121212',
+                            borderColor: '#333333',
+                            borderWidth: 1,
+                            titleColor: '#bb86fc',
+                            bodyColor: '#e0e0e0',
+                            padding: 12,
+                            displayColors: true,
+                            usePointStyle: true,
+                            callbacks: {
+                                title: (items) => {
+                                    const idx = items[0]?.dataIndex;
+                                    return idx !== undefined ? periodosOrdenados[idx].labelTooltip : '';
+                                },
+                                label: (ctx) => {
+                                    const indice = ctx.parsed.y;
+                                    if (indice === null || indice === undefined) return null;
+                                    const delta = indice - 100;
+                                    const sinal = delta > 0 ? '+' : '';
+                                    return ` ${ctx.dataset.label}: ${formatarNumeroBR(indice, 1)} (${sinal}${formatarNumeroBR(delta, 1)}% vs. início)`;
+                                },
+                                afterLabel: (ctx) => {
+                                    const bruto = ctx.dataset._valoresBrutos?.[ctx.dataIndex];
+                                    if (bruto === null || bruto === undefined) return '';
+                                    const prefixo = metricaBase100 === 'vc' ? 'VC/Série' : 'e1RM médio';
+                                    return `   ${prefixo}: ${formatarNumeroBR(bruto, 1)} kg`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: {
+                                color: '#a0a0a0',
+                                font: { size: 11 }
+                            }
+                        },
+                        y: {
+                            display: false, // Oculta eixo Y, ticks, título e linhas de grade horizontais
+                            grace: '14%',
+                            suggestedMin: 95,
+                            suggestedMax: 105
+                        }
+                    }
+                }
+            });
+
+            chartBase100Instance._hoveredDatasetIndex = null;
+        }
+
+        // Restaura opacidade das linhas quando o mouse sai do canvas
+        canvasBase100.addEventListener('mouseleave', () => {
+            if (chartBase100Instance) {
+                aplicarDestaqueHoverBase100(chartBase100Instance, null);
+            }
+        });
+
+        // Eventos dos filtros locais do Gráfico 2
+        selectBase100Rotina.addEventListener('change', atualizarGraficoBase100);
+
+        granToggleBase100.querySelectorAll('.bi-seg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                granToggleBase100.querySelectorAll('.bi-seg-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                granularidadeBase100 = btn.dataset.gran;
+                atualizarGraficoBase100();
+            });
+        });
+
+        metricaToggleBase100.querySelectorAll('.bi-seg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                metricaToggleBase100.querySelectorAll('.bi-seg-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                metricaBase100 = btn.dataset.metrica;
+                atualizarGraficoBase100();
+            });
+        });
+
+        btnBase100ChipsAll.addEventListener('click', () => {
+            gruposBase100Desativados.clear();
+            atualizarGraficoBase100();
+        });
+
+        btnBase100ChipsNone.addEventListener('click', () => {
+            gruposBase100Disponiveis.forEach(g => gruposBase100Desativados.add(g));
+            atualizarGraficoBase100();
+        });
+
+        // Eventos do Modal de Informação ("i" e "X")
+        btnInfoBase100.addEventListener('click', () => modalInfoBase100.classList.add('open'));
+        btnCloseInfoBase100.addEventListener('click', () => modalInfoBase100.classList.remove('open'));
+        modalInfoBase100.addEventListener('click', (e) => {
+            if (e.target === modalInfoBase100) modalInfoBase100.classList.remove('open');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalInfoBase100.classList.contains('open')) {
+                modalInfoBase100.classList.remove('open');
             }
         });
     </script>
