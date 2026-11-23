@@ -1325,7 +1325,6 @@
                 <canvas id="chart-e1rm"></canvas>
             </div>
         </section>
-    </div>
     <!-- Gráfico 2: Índice de Evolução Normalizado (Base 100) -->
         <section class="bi-chart-card" id="card-grafico-base100">
             <div class="bi-chart-header">
@@ -2926,17 +2925,17 @@
         }
 
         function popularSelectsDoDashboard() {
-            const rotinasSet = new Set();
+    const rotinasSet = new Set();
 
-            rawTreinosExecutados.forEach(item => {
-                if (item.nomeRotina) rotinasSet.add(item.nomeRotina.toUpperCase());
-            });
+    rawTreinosExecutados.forEach(item => {
+        if (item.nomeRotina) rotinasSet.add(item.nomeRotina.toUpperCase());
+    });
 
-            preencherSelect(biGlobalRotina, Array.from(rotinasSet).sort(), "TODAS", "Todas as Rotinas");
-            preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
-            popularSelectRotinaBase100(listaRotinas);
-        }
-
+    const listaRotinas = Array.from(rotinasSet).sort();
+    preencherSelect(biGlobalRotina, listaRotinas, "TODAS", "Todas as Rotinas");
+    preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
+    popularSelectRotinaBase100(listaRotinas);
+}
         function filtrarRegistrosGlobais() {
             const gStart = biGlobalStart.value;
             const gEnd = biGlobalEnd.value;
