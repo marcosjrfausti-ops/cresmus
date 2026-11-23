@@ -988,6 +988,31 @@
             </div>
         </div>
     </div>
+    <!-- Modal de Informação: Gráfico e1RM -->
+    <div id="modal-info-e1rm" class="modal-overlay">
+        <div class="modal-card">
+            <div class="bi-info-modal-header">
+                <h3>Sobre o Gráfico — e1RM</h3>
+                <button type="button" id="btn-close-info-e1rm" class="btn-close-info-modal" title="Fechar">✕</button>
+            </div>
+            <div class="bi-info-body">
+                <p>
+                    Acompanha a evolução de força pura do exercício ao longo do tempo usando o <strong>1RM Estimado (Fórmula de Epley)</strong>:
+                </p>
+                <div class="bi-info-formula">e1RM = Carga × (1 + Reps / 30)</div>
+                <p>
+                    <strong>Insight principal:</strong> resolve a pegadinha da progressão de carga (piso 8 / teto 12). Se você faz 18 kg × 12 reps (Volume = 216 kg; e1RM = 25,2 kg) e sobe para 20 kg × 9 reps, o Volume-Carga cai para 180 kg, mas o <strong>e1RM sobe para 26,0 kg</strong> — comprovando ganho real de força.
+                </p>
+                <ul>
+                    <li><strong>1 exercício por vez:</strong> somar ou tirar média de exercícios diferentes distorceria a curva de força.</li>
+                    <li><strong>1ª Série Válida (padrão):</strong> captura o frescor neurológico máximo (alinhado à faixa de 8 a 12 reps).</li>
+                    <li><strong>Melhor Série do Dia:</strong> usa o maior e1RM do dia, útil quando a 1ª série serviu de ajuste de carga.</li>
+                    <li><strong>Séries de Reconhecimento / Aquecimento:</strong> ficam automaticamente fora do cálculo.</li>
+                    <li><strong>Linha tracejada (MM 3):</strong> média móvel das últimas 3 sessões para suavizar dias ruins isolados e mostrar a tendência real.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 
     <!-- TELA 0: Login / Cadastro -->
     <div id="screen-0" class="screen active">
@@ -1150,6 +1175,49 @@
                         <!-- Populated in JS -->
                     </select>
                 </div>
+            </div>
+        </section>
+        <!-- Gráfico 1: Evolução de Força (e1RM) -->
+        <section class="bi-chart-card" id="card-grafico-e1rm">
+            <div class="bi-chart-header">
+                <div class="bi-chart-title-wrap">
+                    <h3>1. Evolução de Força — e1RM</h3>
+                    <p>1RM Estimado (Epley) por sessão • Séries de aquecimento excluídas</p>
+                </div>
+                <button type="button" id="btn-info-e1rm" class="btn-chart-info" title="Sobre este gráfico">i</button>
+            </div>
+
+            <div class="bi-chart-controls">
+                <!-- Filtro obrigatório: 1 exercício por vez -->
+                <div class="bi-filter-item">
+                    <label for="bi-e1rm-exercicio">Exercício (obrigatório):</label>
+                    <select id="bi-e1rm-exercicio">
+                        <option value="">Sem exercícios no período</option>
+                    </select>
+                </div>
+
+                <!-- Seletor de critério da série -->
+                <div class="bi-filter-item">
+                    <label>Critério da Série:</label>
+                    <div class="bi-segmented-toggle" id="bi-e1rm-criterio-toggle">
+                        <button type="button" class="bi-seg-btn active" data-criterio="primeira">1ª Série Válida</button>
+                        <button type="button" class="bi-seg-btn" data-criterio="melhor">Melhor Série</button>
+                    </div>
+                </div>
+
+                <!-- Toggle da linha de tendência (MM3) -->
+                <label class="bi-trend-toggle-label">
+                    <input type="checkbox" id="bi-e1rm-trend-toggle" checked>
+                    <span>Tendência (MM 3)</span>
+                </label>
+            </div>
+
+            <div id="bi-e1rm-empty" class="bi-chart-empty">
+                Nenhum dado válido encontrado para este exercício no filtro selecionado.
+            </div>
+
+            <div class="bi-chart-canvas-wrapper" id="bi-e1rm-canvas-wrap">
+                <canvas id="chart-e1rm"></canvas>
             </div>
         </section>
     </div>
@@ -2723,7 +2791,8 @@
         }
 
         function aplicarFiltrosGlobaisBI() {
-            dadosDashboardFiltrados = filtrarRegistrosGlobais();
+            ddadosDashboardFiltrados = filtrarRegistrosGlobais();
+            atualizarGraficoE1RM();
         }
 
         async function carregarDadosDashboardBI() {
@@ -2766,6 +2835,332 @@
         });
 
         document.getElementById('btn-refresh-bi').addEventListener('click', carregarDadosDashboardBI);
+        /* =========================================================================
+           GRÁFICO 1: EVOLUÇÃO DE FORÇA (e1RM — FÓRMULA DE EPLEY)
+           ========================================================================= */
+        const selectE1rmExercicio = document.getElementById('bi-e1rm-exercicio');
+        const criterioToggleContainer = document.getElementById('bi-e1rm-criterio-toggle');
+        const checkboxE1rmTrend = document.getElementById('bi-e1rm-trend-toggle');
+        const canvasE1rm = document.getElementById('chart-e1rm');
+        const canvasWrapE1rm = document.getElementById('bi-e1rm-canvas-wrap');
+        const emptyStateE1rm = document.getElementById('bi-e1rm-empty');
+
+        const btnInfoE1rm = document.getElementById('btn-info-e1rm');
+        const modalInfoE1rm = document.getElementById('modal-info-e1rm');
+        const btnCloseInfoE1rm = document.getElementById('btn-close-info-e1rm');
+
+        let criterioSerieE1RM = 'primeira'; // 'primeira' | 'melhor'
+        let chartE1RMInstance = null;
+
+        function isSerieValidaE1RM(serieObj) {
+            if (!serieObj) return false;
+            const nome = normalizarTexto(serieObj.serie || '');
+            if (nome.includes('reconhecimento') || nome.includes('aquecimento')) return false;
+            const kg = Number(serieObj.kg);
+            const reps = Number(serieObj.reps);
+            return kg > 0 && reps > 0;
+        }
+
+        function calcularEpley(kg, reps) {
+            if (reps === 1) return kg;
+            return kg * (1 + reps / 30);
+        }
+
+        function formatarNumeroBR(valor, casas = 1) {
+            return Number(valor).toFixed(casas).replace('.', ',');
+        }
+
+        function formatarDataCurta(dataIso, incluirAno = false) {
+            if (!dataIso || !dataIso.includes('-')) return dataIso || '';
+            const [ano, mes, dia] = dataIso.split('-');
+            return incluirAno ? `${dia}/${mes}/${ano.slice(-2)}` : `${dia}/${mes}`;
+        }
+
+        function formatarDataCompleta(dataIso) {
+            if (!dataIso || !dataIso.includes('-')) return dataIso || '';
+            const [ano, mes, dia] = dataIso.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+
+        function popularSelectExerciciosE1RM() {
+            const valorAnterior = selectE1rmExercicio.value;
+            const mapaExercicios = new Map();
+
+            dadosDashboardFiltrados.forEach(docItem => {
+                if (!docItem.exercicio || !Array.isArray(docItem.series)) return;
+                const temSerieValida = docItem.series.some(isSerieValidaE1RM);
+                if (!temSerieValida) return;
+
+                const chave = normalizarTexto(docItem.exercicio);
+                if (!mapaExercicios.has(chave)) {
+                    mapaExercicios.set(chave, docItem.exercicio.trim());
+                }
+            });
+
+            const listaOrdenada = Array.from(mapaExercicios.values())
+                .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+            selectE1rmExercicio.innerHTML = '';
+
+            if (listaOrdenada.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'Nenhum exercício com série válida';
+                selectE1rmExercicio.appendChild(opt);
+                return '';
+            }
+
+            listaOrdenada.forEach(nomeEx => {
+                const opt = document.createElement('option');
+                opt.value = nomeEx;
+                opt.textContent = nomeEx;
+                selectE1rmExercicio.appendChild(opt);
+            });
+
+            const aindaExiste = listaOrdenada.find(
+                ex => normalizarTexto(ex) === normalizarTexto(valorAnterior)
+            );
+            selectE1rmExercicio.value = aindaExiste || listaOrdenada[0];
+            return selectE1rmExercicio.value;
+        }
+
+        function montarSerieTemporalE1RM(exercicioSelecionado) {
+            if (!exercicioSelecionado) return [];
+
+            const alvoNorm = normalizarTexto(exercicioSelecionado);
+            const porData = new Map();
+
+            dadosDashboardFiltrados.forEach(docItem => {
+                if (normalizarTexto(docItem.exercicio) !== alvoNorm) return;
+                if (!docItem.dataExecucao || !Array.isArray(docItem.series)) return;
+
+                const validas = docItem.series.filter(isSerieValidaE1RM);
+                if (validas.length === 0) return;
+
+                if (!porData.has(docItem.dataExecucao)) {
+                    porData.set(docItem.dataExecucao, []);
+                }
+                porData.get(docItem.dataExecucao).push(...validas);
+            });
+
+            const datasOrdenadas = Array.from(porData.keys()).sort((a, b) => a.localeCompare(b));
+            const anosDistintos = new Set(datasOrdenadas.map(d => d.split('-')[0]));
+            const exibirAnoNoEixo = anosDistintos.size > 1;
+
+            const pontos = [];
+
+            datasOrdenadas.forEach(dataIso => {
+                const seriesValidas = porData.get(dataIso);
+                let escolhida = null;
+
+                if (criterioSerieE1RM === 'primeira') {
+                    escolhida = seriesValidas.find(s => normalizarTexto(s.serie).startsWith('1a')) || seriesValidas[0];
+                } else {
+                    escolhida = seriesValidas.reduce((melhor, atual) => {
+                        const e1rmAtual = calcularEpley(Number(atual.kg), Number(atual.reps));
+                        const e1rmMelhor = calcularEpley(Number(melhor.kg), Number(melhor.reps));
+                        return e1rmAtual > e1rmMelhor ? atual : melhor;
+                    }, seriesValidas[0]);
+                }
+
+                const kg = Number(escolhida.kg);
+                const reps = Number(escolhida.reps);
+                const e1rm = Number(calcularEpley(kg, reps).toFixed(1));
+
+                pontos.push({
+                    dataIso,
+                    labelX: formatarDataCurta(dataIso, exibirAnoNoEixo),
+                    dataCompleta: formatarDataCompleta(dataIso),
+                    e1rm,
+                    kg,
+                    reps,
+                    serie: escolhida.serie || 'Série Válida'
+                });
+            });
+
+            return pontos;
+        }
+
+        function calcularMediaMovel3(pontos) {
+            return pontos.map((_, idx) => {
+                if (idx < 2) return null;
+                const media = (pontos[idx].e1rm + pontos[idx - 1].e1rm + pontos[idx - 2].e1rm) / 3;
+                return Number(media.toFixed(1));
+            });
+        }
+
+        function renderizarGraficoE1RM() {
+            const exercicioSelecionado = selectE1rmExercicio.value;
+            const pontos = montarSerieTemporalE1RM(exercicioSelecionado);
+
+            if (chartE1RMInstance) {
+                chartE1RMInstance.destroy();
+                chartE1RMInstance = null;
+            }
+
+            if (pontos.length === 0) {
+                canvasWrapE1rm.style.display = 'none';
+                emptyStateE1rm.classList.add('visible');
+                return;
+            }
+
+            emptyStateE1rm.classList.remove('visible');
+            canvasWrapE1rm.style.display = 'block';
+
+            const labels = pontos.map(p => p.labelX);
+            const valoresE1RM = pontos.map(p => p.e1rm);
+            const mostrarTendencia = checkboxE1rmTrend.checked;
+
+            const datasets = [
+                {
+                    label: 'e1RM (kg)',
+                    data: valoresE1RM,
+                    borderColor: '#bb86fc',
+                    backgroundColor: 'rgba(187, 134, 252, 0.14)',
+                    borderWidth: 2.5,
+                    tension: 0.2,
+                    fill: true,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointHitRadius: 18,
+                    pointBackgroundColor: '#bb86fc',
+                    pointBorderColor: '#121212',
+                    pointBorderWidth: 2,
+                    datalabels: {
+                        display: true,
+                        align: 'top',
+                        offset: 6,
+                        color: '#e0e0e0',
+                        font: { size: 11, weight: '700' },
+                        formatter: (val) => formatarNumeroBR(val, 1)
+                    }
+                }
+            ];
+
+            if (mostrarTendencia) {
+                datasets.push({
+                    label: 'Tendência (MM 3)',
+                    data: calcularMediaMovel3(pontos),
+                    borderColor: '#03dac6',
+                    borderWidth: 2,
+                    borderDash: [6, 5],
+                    tension: 0.25,
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointHitRadius: 12,
+                    pointBackgroundColor: '#03dac6',
+                    spanGaps: false,
+                    datalabels: {
+                        display: false
+                    }
+                });
+            }
+
+            chartE1RMInstance = new Chart(canvasE1rm.getContext('2d'), {
+                type: 'line',
+                data: { labels, datasets },
+                plugins: [ChartDataLabels],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 28, right: 18, left: 18, bottom: 4 }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: '#a0a0a0',
+                                usePointStyle: true,
+                                boxWidth: 10,
+                                font: { size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#121212',
+                            borderColor: '#bb86fc',
+                            borderWidth: 1,
+                            titleColor: '#bb86fc',
+                            bodyColor: '#e0e0e0',
+                            padding: 12,
+                            displayColors: true,
+                            callbacks: {
+                                title: (items) => {
+                                    const idx = items[0]?.dataIndex;
+                                    return idx !== undefined ? `Sessão: ${pontos[idx].dataCompleta}` : '';
+                                },
+                                label: (ctx) => {
+                                    if (ctx.datasetIndex === 0) {
+                                        const p = pontos[ctx.dataIndex];
+                                        return ` e1RM: ${formatarNumeroBR(p.e1rm, 1)} kg (${p.kg} kg × ${p.reps} reps)`;
+                                    }
+                                    if (ctx.parsed.y !== null) {
+                                        return ` Tendência (MM 3): ${formatarNumeroBR(ctx.parsed.y, 1)} kg`;
+                                    }
+                                    return null;
+                                },
+                                afterBody: (items) => {
+                                    const idx = items[0]?.dataIndex;
+                                    if (idx === undefined) return '';
+                                    return `Origem: ${pontos[idx].serie}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#a0a0a0',
+                                font: { size: 11 }
+                            }
+                        },
+                        y: {
+                            display: false, // Oculta completamente o eixo Y; os valores ficam só na linha
+                            grace: '15%'
+                        }
+                    }
+                }
+            });
+        }
+
+        function atualizarGraficoE1RM() {
+            popularSelectExerciciosE1RM();
+            renderizarGraficoE1RM();
+        }
+
+        // Eventos dos filtros locais do gráfico
+        selectE1rmExercicio.addEventListener('change', renderizarGraficoE1RM);
+        checkboxE1rmTrend.addEventListener('change', renderizarGraficoE1RM);
+
+        criterioToggleContainer.querySelectorAll('.bi-seg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                criterioToggleContainer.querySelectorAll('.bi-seg-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                criterioSerieE1RM = btn.dataset.criterio;
+                renderizarGraficoE1RM();
+            });
+        });
+
+        // Eventos do Modal de Informação ("i" e "X")
+        btnInfoE1rm.addEventListener('click', () => modalInfoE1rm.classList.add('open'));
+        btnCloseInfoE1rm.addEventListener('click', () => modalInfoE1rm.classList.remove('open'));
+        modalInfoE1rm.addEventListener('click', (e) => {
+            if (e.target === modalInfoE1rm) modalInfoE1rm.classList.remove('open');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalInfoE1rm.classList.contains('open')) {
+                modalInfoE1rm.classList.remove('open');
+            }
+        });
     </script>
 </body>
 </html>
