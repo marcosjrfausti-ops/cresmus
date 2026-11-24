@@ -1079,6 +1079,60 @@
         #bi-vcserie-canvas-wrap {
             height: 310px;
         }
+        /* =========================================================
+           TELA 5: GRÁFICO 4 (SÉRIES VÁLIDAS FRACIONADAS — META 8–14)
+           ========================================================= */
+        .bi-frac-legend {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 14px;
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+        }
+        .bi-frac-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .bi-frac-swatch {
+            width: 11px;
+            height: 11px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .bi-frac-swatch.direta {
+            background: var(--accent-color);
+        }
+        .bi-frac-swatch.indireta {
+            background: rgba(187, 134, 252, 0.32);
+            border: 1px solid rgba(187, 134, 252, 0.65);
+        }
+        .bi-frac-swatch.meta {
+            background: rgba(3, 218, 198, 0.14);
+            border: 1px dashed rgba(3, 218, 198, 0.65);
+        }
+        .bi-frac-status-legend {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+        .bi-status-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            margin-right: 4px;
+        }
+        .bi-status-dot.low { background: #a0a0a0; }
+        .bi-status-dot.ideal { background: #03dac6; }
+        .bi-status-dot.high { background: #ffb74d; }
+
+        #bi-frac-canvas-wrap {
+            height: 360px;
+            transition: height 0.2s ease;
+        }
     </style>
 </head>
 <body>
@@ -1196,6 +1250,32 @@
                     <li><strong>Barras ao fundo (Quantidade):</strong> representam o total de séries válidas no período, escaladas na metade inferior para não cruzar a curva.</li>
                     <li><strong>1 Grupo Muscular por vez:</strong> evita distorcer a média misturando exercícios de alavancas muito diferentes.</li>
                     <li><strong>Séries de Reconhecimento / Aquecimento:</strong> ficam automaticamente excluídas do cálculo.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de Informação: Gráfico 4 (Séries Válidas Fracionadas) -->
+    <div id="modal-info-frac" class="modal-overlay">
+        <div class="modal-card">
+            <div class="bi-info-modal-header">
+                <h3>Sobre — Séries Fracionadas</h3>
+                <button type="button" id="btn-close-info-frac" class="btn-close-info-modal" title="Fechar">✕</button>
+            </div>
+            <div class="bi-info-body">
+                <p>
+                    Mede o <strong>volume semanal efetivo</strong> recebido por cada músculo, somando séries diretas e o estímulo indireto dos sinergistas mapeados no <code>mme</code>.
+                </p>
+                <div class="bi-info-formula">
+                    Protagonista = 1,0 série válida<br>
+                    Secundário = pctSecundario / 100<br>
+                    Terciário = pctTerciario / 100<br>
+                    Séries/sem = Total Fracionado / Semanas
+                </div>
+                <ul>
+                    <li><strong>Sem carga ou repetições:</strong> conta exclusivamente séries válidas (reconhecimento/aquecimento excluídos).</li>
+                    <li><strong>Faixa 8–14:</strong> área destacada indicando o volume semanal alvo de referência.</li>
+                    <li><strong>Cores na ponta da barra:</strong> cinza (&lt; 8 abaixo do piso), ciano (8–14 faixa ideal) e âmbar (&gt; 14 acima do teto).</li>
+                    <li><strong>Macrogrupos (padrão):</strong> agrupa Peitoral, Costas (sem Trapézio), Panturrilha, Antebraço, Glúteo, Lombar e Abdômen, mantendo as 3 cabeças do Deltoide e o Trapézio separados.</li>
                 </ul>
             </div>
         </div>
@@ -1529,6 +1609,64 @@
 
             <div class="bi-chart-canvas-wrapper" id="bi-vcserie-canvas-wrap">
                 <canvas id="chart-vcserie"></canvas>
+            </div>
+        </section>
+        <!-- Gráfico 4: Séries Válidas Fracionadas (Meta: 8–14/semana) -->
+        <section class="bi-chart-card" id="card-grafico-frac">
+            <div class="bi-chart-header">
+                <div class="bi-chart-title-wrap">
+                    <h3>4. Séries Válidas Fracionadas (Meta: 8–14/semana)</h3>
+                    <p id="bi-frac-subtitle">Média semanal • aguardando dados</p>
+                </div>
+                <button type="button" id="btn-info-frac" class="btn-chart-info" title="Sobre este gráfico">i</button>
+            </div>
+
+            <!-- Filtros locais compactos -->
+            <div class="bi-chart-controls">
+                <div class="bi-filter-item">
+                    <label>Granularidade:</label>
+                    <div class="bi-segmented-toggle" id="bi-frac-gran-toggle">
+                        <button type="button" class="bi-seg-btn active" data-gran="macro">Macrogrupos</button>
+                        <button type="button" class="bi-seg-btn" data-gran="detalhado">Detalhado</button>
+                    </div>
+                </div>
+
+                <div class="bi-filter-item">
+                    <label>Contagem:</label>
+                    <div class="bi-segmented-toggle" id="bi-frac-modo-toggle">
+                        <button type="button" class="bi-seg-btn active" data-modo="fracionado">Fracionado (Total)</button>
+                        <button type="button" class="bi-seg-btn" data-modo="direto">Só Direto</button>
+                    </div>
+                </div>
+
+                <div class="bi-filter-item">
+                    <label>Região:</label>
+                    <div class="bi-segmented-toggle" id="bi-frac-regiao-toggle">
+                        <button type="button" class="bi-seg-btn active" data-regiao="todos">Todos</button>
+                        <button type="button" class="bi-seg-btn" data-regiao="superiores">Superiores</button>
+                        <button type="button" class="bi-seg-btn" data-regiao="inferiores">Inferiores</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legenda minimalista -->
+            <div class="bi-frac-legend">
+                <span class="bi-frac-legend-item"><span class="bi-frac-swatch direta"></span>Diretas</span>
+                <span class="bi-frac-legend-item" id="bi-frac-legend-indireta"><span class="bi-frac-swatch indireta"></span>Indiretas</span>
+                <span class="bi-frac-legend-item"><span class="bi-frac-swatch meta"></span>Meta 8–14</span>
+                <span class="bi-frac-status-legend">
+                    <span><span class="bi-status-dot low"></span>&lt; 8</span>
+                    <span><span class="bi-status-dot ideal"></span>8–14</span>
+                    <span><span class="bi-status-dot high"></span>&gt; 14</span>
+                </span>
+            </div>
+
+            <div id="bi-frac-empty" class="bi-chart-empty">
+                Nenhuma série válida encontrada para o filtro selecionado.
+            </div>
+
+            <div class="bi-chart-canvas-wrapper" id="bi-frac-canvas-wrap">
+                <canvas id="chart-frac"></canvas>
             </div>
         </section>
     </div>
@@ -3165,6 +3303,7 @@
             atualizarGraficoE1RM();
             atualizarGraficoBase100();
             atualizarGraficoVCSerie();
+            atualizarGraficoSeriesFracionadas();
         }
 
         async function carregarDadosDashboardBI() {
@@ -4612,6 +4751,481 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modalInfoVcSerie.classList.contains('open')) {
                 modalInfoVcSerie.classList.remove('open');
+            }
+        });
+        /* =========================================================================
+           GRÁFICO 4: SÉRIES VÁLIDAS FRACIONADAS (META: 8–14/SEMANA)
+           ========================================================================= */
+        const fracSubtitleEl = document.getElementById('bi-frac-subtitle');
+        const fracGranToggle = document.getElementById('bi-frac-gran-toggle');
+        const fracModoToggle = document.getElementById('bi-frac-modo-toggle');
+        const fracRegiaoToggle = document.getElementById('bi-frac-regiao-toggle');
+        const fracLegendIndireta = document.getElementById('bi-frac-legend-indireta');
+        const canvasFrac = document.getElementById('chart-frac');
+        const canvasWrapFrac = document.getElementById('bi-frac-canvas-wrap');
+        const emptyStateFrac = document.getElementById('bi-frac-empty');
+
+        const btnInfoFrac = document.getElementById('btn-info-frac');
+        const modalInfoFrac = document.getElementById('modal-info-frac');
+        const btnCloseInfoFrac = document.getElementById('btn-close-info-frac');
+
+        let granularidadeFrac = 'macro';     // 'macro' | 'detalhado'
+        let modoContagemFrac = 'fracionado'; // 'fracionado' | 'direto'
+        let regiaoFrac = 'todos';            // 'todos' | 'superiores' | 'inferiores'
+        let chartFracInstance = null;
+
+        function mapearMacrogrupoFrac(nomeMusculoRaw) {
+            const norm = normalizarParaClassificacao(nomeMusculoRaw);
+            if (!norm) return null;
+
+            // Peitoral (Superior + Médio + Inferior)
+            if (norm.includes('peito') || norm.includes('peitoral')) return 'Peitoral';
+
+            // Costas (Dorsal + Romboides, mantendo Trapézio separado)
+            if (norm.includes('dorsal') || norm.includes('romboide') || norm === 'costas') return 'Costas';
+
+            // Panturrilha (Gastrocnêmio + Sóleo)
+            if (norm.includes('panturrilha') || norm.includes('gastrocnemio') || norm.includes('soleo')) return 'Panturrilha';
+
+            // Antebraço (Braquiorradial + Flexores/Extensores)
+            if (
+                norm.includes('braquiorradial') ||
+                norm.includes('antebraco') ||
+                norm.includes('flexor') ||
+                norm.includes('extensor') ||
+                norm.includes('punho')
+            ) return 'Antebraço';
+
+            // Cabeças do Ombro e Trapézio mantidos separados
+            if (norm.includes('deltoide anterior')) return 'Deltoide Anterior';
+            if (norm.includes('deltoide lateral')) return 'Deltoide Lateral';
+            if (norm.includes('deltoide posterior')) return 'Deltoide Posterior';
+            if (norm.includes('trapezio')) return 'Trapézio';
+
+            // Demais grupos individuais
+            if (norm.includes('quadriceps')) return 'Quadríceps';
+            if (norm.includes('isquiotibiais') || norm.includes('posterior de coxa')) return 'Isquiotibiais';
+            if (norm.includes('gluteo')) return 'Glúteo';
+            if (norm.includes('triceps')) return 'Tríceps';
+            if (norm.includes('biceps')) return 'Bíceps';
+            if (norm.includes('lombar') || norm.includes('eretores da espinha')) return 'Lombar';
+            if (
+                norm.includes('abdom') ||
+                norm.includes('obliquo') ||
+                norm.includes('transverso') ||
+                norm === 'core'
+            ) return 'Abdômen';
+            if (norm.includes('adutor') || norm.includes('abdutor')) return 'Adutores';
+
+            return String(nomeMusculoRaw).trim();
+        }
+
+        function classificarRegiaoMusculoFrac(nomeMusculo) {
+            const norm = normalizarParaClassificacao(nomeMusculo);
+            if (
+                norm.includes('quadriceps') ||
+                norm.includes('isquiotibiais') ||
+                norm.includes('posterior de coxa') ||
+                norm.includes('gluteo') ||
+                norm.includes('panturrilha') ||
+                norm.includes('gastrocnemio') ||
+                norm.includes('soleo') ||
+                norm.includes('adutor') ||
+                norm.includes('abdutor') ||
+                norm.includes('pernas')
+            ) {
+                return 'inferiores';
+            }
+            return 'superiores';
+        }
+
+        function obterStatusMetaFrac(totalSemanal) {
+            if (totalSemanal < 8) {
+                return { label: 'Abaixo do piso (< 8)', cor: '#a0a0a0' };
+            }
+            if (totalSemanal <= 14) {
+                return { label: 'Faixa ideal (8–14)', cor: '#03dac6' };
+            }
+            return { label: 'Acima do teto (> 14)', cor: '#ffb74d' };
+        }
+
+        function calcularSemanasPeriodoFrac(registrosComValidas) {
+            const datas = registrosComValidas
+                .map(r => r.dataExecucao)
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b));
+
+            if (datas.length === 0) return { semanas: 1, dias: 7 };
+
+            const inicioIso = biGlobalStart.value || datas[0];
+            const fimIso = biGlobalEnd.value || datas[datas.length - 1];
+
+            const [a1, m1, d1] = inicioIso.split('-').map(Number);
+            const [a2, m2, d2] = fimIso.split('-').map(Number);
+            const dtInicio = new Date(a1, m1 - 1, d1);
+            const dtFim = new Date(a2, m2 - 1, d2);
+
+            const diffDias = Math.round((dtFim - dtInicio) / 86400000) + 1;
+            const dias = Math.max(1, Number.isFinite(diffDias) ? diffDias : 1);
+            const semanas = Math.max(1, dias / 7);
+
+            return { semanas, dias };
+        }
+
+        function construirDadosSeriesFracionadas() {
+            const registrosValidos = dadosDashboardFiltrados.filter(docItem =>
+                docItem.dataExecucao &&
+                Array.isArray(docItem.series) &&
+                docItem.series.some(isSerieValidaE1RM)
+            );
+
+            const { semanas } = calcularSemanasPeriodoFrac(registrosValidos);
+            const mapaMusculos = new Map();
+
+            function acumular(musculoRaw, tipo, qtdFracionada, nomeExercicio) {
+                if (!musculoRaw || qtdFracionada <= 0) return;
+                const nomeFinal = granularidadeFrac === 'macro'
+                    ? mapearMacrogrupoFrac(musculoRaw)
+                    : String(musculoRaw).trim();
+                if (!nomeFinal) return;
+
+                if (!mapaMusculos.has(nomeFinal)) {
+                    mapaMusculos.set(nomeFinal, {
+                        musculo: nomeFinal,
+                        regiao: classificarRegiaoMusculoFrac(nomeFinal),
+                        diretas: 0,
+                        secundarias: 0,
+                        terciarias: 0,
+                        exercicios: new Map()
+                    });
+                }
+
+                const entry = mapaMusculos.get(nomeFinal);
+                entry[tipo] += qtdFracionada;
+
+                const exNome = (nomeExercicio || 'Exercício').trim();
+                entry.exercicios.set(exNome, (entry.exercicios.get(exNome) || 0) + qtdFracionada);
+            }
+
+            registrosValidos.forEach(docItem => {
+                const qtdValidas = docItem.series.filter(isSerieValidaE1RM).length;
+                if (qtdValidas === 0) return;
+
+                const mme = docItem.mme || criarEstruturaMmeFallback(docItem.musculo).mme;
+                if (!mme) return;
+
+                // Protagonista: peso 1.0 por série válida
+                if (mme.protagonista) {
+                    acumular(mme.protagonista, 'diretas', qtdValidas * 1.0, docItem.exercicio);
+                }
+
+                // Sinergistas (apenas no modo Fracionado)
+                if (modoContagemFrac === 'fracionado') {
+                    if (mme.secundario) {
+                        const pesoSec = Number(mme.pctSecundario) > 0
+                            ? Number(mme.pctSecundario) / 100
+                            : 0.5;
+                        acumular(mme.secundario, 'secundarias', qtdValidas * pesoSec, docItem.exercicio);
+                    }
+                    if (mme.terciario) {
+                        const pesoTerc = Number(mme.pctTerciario) > 0
+                            ? Number(mme.pctTerciario) / 100
+                            : 0.25;
+                        acumular(mme.terciario, 'terciarias', qtdValidas * pesoTerc, docItem.exercicio);
+                    }
+                }
+            });
+
+            const linhas = Array.from(mapaMusculos.values())
+                .filter(item => regiaoFrac === 'todos' || item.regiao === regiaoFrac)
+                .map(item => {
+                    const diretasSem = item.diretas / semanas;
+                    const secundariasSem = item.secundarias / semanas;
+                    const terciariasSem = item.terciarias / semanas;
+                    const indiretasSem = secundariasSem + terciariasSem;
+                    const totalSem = diretasSem + indiretasSem;
+
+                    const topExercicios = Array.from(item.exercicios.entries())
+                        .map(([nome, soma]) => ({ nome, valorSem: soma / semanas }))
+                        .sort((a, b) => b.valorSem - a.valorSem)
+                        .slice(0, 3);
+
+                    return {
+                        musculo: item.musculo,
+                        diretas: diretasSem,
+                        secundarias: secundariasSem,
+                        terciarias: terciariasSem,
+                        indiretas: indiretasSem,
+                        total: totalSem,
+                        status: obterStatusMetaFrac(totalSem),
+                        topExercicios
+                    };
+                })
+                .filter(item => item.total > 0.01)
+                .sort((a, b) => b.total - a.total);
+
+            return { linhas, semanas, totalRegistros: registrosValidos.length };
+        }
+
+        // Plugin: Faixa sutil 8–14 com duas linhas tracejadas e micro-rótulos no topo
+        const seriesFracionadasMetaPlugin = {
+            id: 'seriesFracionadasMeta',
+            beforeDatasetsDraw(chart) {
+                const { ctx, chartArea, scales } = chart;
+                if (!chartArea || !scales?.x) return;
+
+                const x8 = scales.x.getPixelForValue(8);
+                const x14 = scales.x.getPixelForValue(14);
+
+                ctx.save();
+
+                // Faixa translúcida entre 8 e 14
+                ctx.fillStyle = 'rgba(3, 218, 198, 0.065)';
+                ctx.fillRect(x8, chartArea.top, x14 - x8, chartArea.bottom - chartArea.top);
+
+                // Linhas verticais tracejadas discretas em 8 e 14
+                ctx.strokeStyle = 'rgba(3, 218, 198, 0.30)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+
+                [x8, x14].forEach(xPos => {
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, chartArea.top);
+                    ctx.lineTo(xPos, chartArea.bottom);
+                    ctx.stroke();
+                });
+
+                // Micro-rótulos "8" e "14" no topo da área do gráfico
+                ctx.setLineDash([]);
+                ctx.font = '700 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.fillStyle = 'rgba(3, 218, 198, 0.78)';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('8', x8, chartArea.top - 5);
+                ctx.fillText('14', x14, chartArea.top - 5);
+
+                ctx.restore();
+            }
+        };
+
+        // Plugin: Valor total (1 casa decimal) + micro-ponto de status à direita da ponta da barra
+        const seriesFracionadasTotalLabelsPlugin = {
+            id: 'seriesFracionadasTotalLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx, scales } = chart;
+                const linhas = chart.config._linhasFrac || [];
+                if (!scales?.x || !scales?.y || linhas.length === 0) return;
+
+                ctx.save();
+                ctx.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                linhas.forEach((linha, idx) => {
+                    const xEnd = scales.x.getPixelForValue(linha.total);
+                    const yPos = scales.y.getPixelForValue(idx);
+                    if (Number.isNaN(xEnd) || Number.isNaN(yPos)) return;
+
+                    // Micro-ponto indicador de status
+                    ctx.beginPath();
+                    ctx.fillStyle = linha.status.cor;
+                    ctx.arc(xEnd + 8, yPos, 3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Valor total com 1 casa decimal
+                    ctx.fillStyle = linha.status.cor;
+                    ctx.fillText(formatarNumeroBR(linha.total, 1), xEnd + 15, yPos + 0.5);
+                });
+
+                ctx.restore();
+            }
+        };
+
+        function atualizarGraficoSeriesFracionadas() {
+            const { linhas, semanas, totalRegistros } = construirDadosSeriesFracionadas();
+
+            fracLegendIndireta.style.display = modoContagemFrac === 'fracionado' ? 'inline-flex' : 'none';
+
+            if (totalRegistros === 0) {
+                fracSubtitleEl.textContent = 'Média semanal • sem registros no período';
+            } else {
+                const semTxt = Math.abs(semanas - Math.round(semanas)) < 0.05
+                    ? `${Math.round(semanas)} ${Math.round(semanas) === 1 ? 'semana' : 'semanas'}`
+                    : `${formatarNumeroBR(semanas, 1)} semanas`;
+                fracSubtitleEl.textContent = `Média semanal • ${semTxt}`;
+            }
+
+            if (chartFracInstance) {
+                chartFracInstance.destroy();
+                chartFracInstance = null;
+            }
+
+            if (linhas.length === 0) {
+                canvasWrapFrac.style.display = 'none';
+                emptyStateFrac.textContent = totalRegistros === 0
+                    ? 'Nenhuma série válida encontrada para o filtro selecionado.'
+                    : 'Nenhum músculo desta região possui registros no período filtrado.';
+                emptyStateFrac.classList.add('visible');
+                return;
+            }
+
+            emptyStateFrac.classList.remove('visible');
+            canvasWrapFrac.style.display = 'block';
+
+            // Altura dinâmica para evitar truncamento/sobreposição no mobile
+            const alturaCalculada = Math.max(170, linhas.length * 36 + 38);
+            canvasWrapFrac.style.height = `${alturaCalculada}px`;
+
+            const labels = linhas.map(l => l.musculo);
+            const maxTotal = Math.max(...linhas.map(l => l.total), 0);
+            const xMax = Math.max(15.5, maxTotal * 1.14);
+
+            const datasets = [
+                {
+                    label: 'Séries Diretas',
+                    data: linhas.map(l => Number(l.diretas.toFixed(2))),
+                    backgroundColor: '#bb86fc',
+                    hoverBackgroundColor: '#cca2ff',
+                    borderRadius: 4,
+                    barThickness: 18
+                }
+            ];
+
+            if (modoContagemFrac === 'fracionado') {
+                datasets.push({
+                    label: 'Séries Indiretas',
+                    data: linhas.map(l => Number(l.indiretas.toFixed(2))),
+                    backgroundColor: 'rgba(187, 134, 252, 0.30)',
+                    hoverBackgroundColor: 'rgba(187, 134, 252, 0.45)',
+                    borderColor: 'rgba(187, 134, 252, 0.55)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                    barThickness: 18
+                });
+            }
+
+            const config = {
+                type: 'bar',
+                _linhasFrac: linhas,
+                data: { labels, datasets },
+                plugins: [seriesFracionadasMetaPlugin, seriesFracionadasTotalLabelsPlugin],
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 20, right: 52, left: 4, bottom: 4 }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        axis: 'y',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#121212',
+                            borderColor: '#bb86fc',
+                            borderWidth: 1,
+                            titleColor: '#bb86fc',
+                            bodyColor: '#e0e0e0',
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                title: (items) => {
+                                    const idx = items[0]?.dataIndex;
+                                    if (idx === undefined) return '';
+                                    const l = linhas[idx];
+                                    return `${l.musculo} — ${formatarNumeroBR(l.total, 1)} séries/sem`;
+                                },
+                                label: (ctx) => {
+                                    // Renderiza o resumo completo uma única vez
+                                    if (ctx.datasetIndex !== 0) return null;
+                                    const l = linhas[ctx.dataIndex];
+                                    const out = [
+                                        `Status: ${l.status.label}`,
+                                        `Diretas (Protagonista): ${formatarNumeroBR(l.diretas, 1)}`
+                                    ];
+
+                                    if (modoContagemFrac === 'fracionado') {
+                                        out.push(`Secundárias: ${formatarNumeroBR(l.secundarias, 1)}`);
+                                        out.push(`Terciárias: ${formatarNumeroBR(l.terciarias, 1)}`);
+                                    }
+
+                                    if (l.topExercicios.length > 0) {
+                                        out.push('');
+                                        out.push('Principais exercícios (séries/sem):');
+                                        l.topExercicios.forEach(ex => {
+                                            out.push(`• ${ex.nome}: ${formatarNumeroBR(ex.valorSem, 1)}`);
+                                        });
+                                    }
+                                    return out;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            display: false, // Remove completamente eixo numérico, ticks e grade
+                            min: 0,
+                            max: xMax
+                        },
+                        y: {
+                            stacked: true,
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: {
+                                autoSkip: false,
+                                color: '#e0e0e0',
+                                padding: 8,
+                                font: { size: 12, weight: '600' }
+                            }
+                        }
+                    }
+                }
+            };
+
+            chartFracInstance = new Chart(canvasFrac.getContext('2d'), config);
+        }
+
+        // Eventos dos filtros locais do Gráfico 4
+        fracGranToggle.querySelectorAll('.bi-seg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                fracGranToggle.querySelectorAll('.bi-seg-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                granularidadeFrac = btn.dataset.gran;
+                atualizarGraficoSeriesFracionadas();
+            });
+        });
+
+        fracModoToggle.querySelectorAll('.bi-seg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                fracModoToggle.querySelectorAll('.bi-seg-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                modoContagemFrac = btn.dataset.modo;
+                atualizarGraficoSeriesFracionadas();
+            });
+        });
+
+        fracRegiaoToggle.querySelectorAll('.bi-seg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                fracRegiaoToggle.querySelectorAll('.bi-seg-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                regiaoFrac = btn.dataset.regiao;
+                atualizarGraficoSeriesFracionadas();
+            });
+        });
+
+        // Eventos do Modal de Informação do Gráfico 4 ("i", "X", clique fora e Esc)
+        btnInfoFrac.addEventListener('click', () => modalInfoFrac.classList.add('open'));
+        btnCloseInfoFrac.addEventListener('click', () => modalInfoFrac.classList.remove('open'));
+        modalInfoFrac.addEventListener('click', (e) => {
+            if (e.target === modalInfoFrac) modalInfoFrac.classList.remove('open');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalInfoFrac.classList.contains('open')) {
+                modalInfoFrac.classList.remove('open');
             }
         });
     </script>
