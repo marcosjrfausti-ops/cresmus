@@ -3576,15 +3576,15 @@
             }
         }
 
-        [biGlobalStart, biGlobalEnd, biGlobalRotina].forEach(el => {
+        [biGlobalStart, biGlobalEnd].forEach(el => {
             el.addEventListener('change', aplicarFiltrosGlobaisBI);
         });
 
         biGlobalRotina.addEventListener('change', () => {
             if (selectSimetriaRotina) {
                 selectSimetriaRotina.value = biGlobalRotina.value || 'TODAS';
-                atualizarGraficoSimetria();
             }
+            aplicarFiltrosGlobaisBI();
         });
         biGlobalUsuario.addEventListener('change', () => {
             carregarPesoCorporalUsuario();
