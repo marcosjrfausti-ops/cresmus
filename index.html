@@ -1263,17 +1263,18 @@
             </div>
             <div class="bi-info-body">
                 <p>
-                    Mede o <strong>volume semanal efetivo</strong> recebido por cada músculo, somando séries diretas e o estímulo indireto dos sinergistas mapeados no <code>mme</code>.
+                    Mede o <strong>volume semanal efetivo</strong> recebido por cada músculo, somando séries diretas e o estímulo indireto dos sinergistas mapeados no <code>mme</code> com pesos fixos por função.
                 </p>
                 <div class="bi-info-formula">
-                    Protagonista = 1,0 série válida<br>
-                    Secundário = pctSecundario / 100<br>
-                    Terciário = pctTerciario / 100<br>
-                    Séries/sem = Total Fracionado / Semanas
+                    Protagonista = +1,0 série válida<br>
+                    Secundário = +0,5 série válida<br>
+                    Terciário = +0,25 série válida<br>
+                    Séries/sem = Total Fracionado / Semanas com treino
                 </div>
                 <ul>
+                    <li><strong>Pesos fixos (sem percentuais do MME):</strong> os percentuais do <code>mme</code> dividem apenas Volume-Carga (kg); aqui cada série válida atribui peso fixo por papel muscular (um composto soma mais de 1,0 entre os músculos envolvidos).</li>
+                    <li><strong>Semanas reais no divisor:</strong> considera apenas as semanas calendário (Seg–Dom) que possuem treinos registrados dentro do filtro, evitando distorções em meses ainda em andamento.</li>
                     <li><strong>Sem carga ou repetições:</strong> conta exclusivamente séries válidas (reconhecimento/aquecimento excluídos).</li>
-                    <li><strong>Faixa 8–14:</strong> área destacada indicando o volume semanal alvo de referência.</li>
                     <li><strong>Cores na ponta da barra:</strong> cinza (&lt; 8 abaixo do piso), ciano (8–14 faixa ideal) e âmbar (&gt; 14 acima do teto).</li>
                     <li><strong>Macrogrupos (padrão):</strong> agrupa Peitoral, Costas (sem Trapézio), Panturrilha, Antebraço, Glúteo, Lombar e Abdômen, mantendo as 3 cabeças do Deltoide e o Trapézio separados.</li>
                 </ul>
@@ -4849,27 +4850,35 @@
             return { label: 'Acima do teto (> 14)', cor: '#ffb74d' };
         }
 
+        const PESOS_SERIES_FRAC = {
+            protagonista: 1.0,
+            secundario: 0.5,
+            terciario: 0.25
+        };
+
+        function extrairMusculosMmeFrac(valor) {
+            if (!valor) return [];
+            if (Array.isArray(valor)) {
+                return valor.map(v => String(v || '').trim()).filter(Boolean);
+            }
+            return String(valor)
+                .split(',')
+                .map(v => v.trim())
+                .filter(Boolean);
+        }
+
         function calcularSemanasPeriodoFrac(registrosComValidas) {
-            const datas = registrosComValidas
-                .map(r => r.dataExecucao)
-                .filter(Boolean)
-                .sort((a, b) => a.localeCompare(b));
+            const semanasDistintas = new Set();
 
-            if (datas.length === 0) return { semanas: 1, dias: 7 };
+            registrosComValidas.forEach(r => {
+                const periodoSemanal = obterChavePeriodoBase100(r.dataExecucao, 'semanal');
+                if (periodoSemanal && periodoSemanal.key) {
+                    semanasDistintas.add(periodoSemanal.key);
+                }
+            });
 
-            const inicioIso = biGlobalStart.value || datas[0];
-            const fimIso = biGlobalEnd.value || datas[datas.length - 1];
-
-            const [a1, m1, d1] = inicioIso.split('-').map(Number);
-            const [a2, m2, d2] = fimIso.split('-').map(Number);
-            const dtInicio = new Date(a1, m1 - 1, d1);
-            const dtFim = new Date(a2, m2 - 1, d2);
-
-            const diffDias = Math.round((dtFim - dtInicio) / 86400000) + 1;
-            const dias = Math.max(1, Number.isFinite(diffDias) ? diffDias : 1);
-            const semanas = Math.max(1, dias / 7);
-
-            return { semanas, dias };
+            const semanas = Math.max(1, semanasDistintas.size);
+            return { semanas };
         }
 
         function construirDadosSeriesFracionadas() {
@@ -4882,12 +4891,8 @@
             const { semanas } = calcularSemanasPeriodoFrac(registrosValidos);
             const mapaMusculos = new Map();
 
-            function acumular(musculoRaw, tipo, qtdFracionada, nomeExercicio) {
-                if (!musculoRaw || qtdFracionada <= 0) return;
-                const nomeFinal = granularidadeFrac === 'macro'
-                    ? mapearMacrogrupoFrac(musculoRaw)
-                    : String(musculoRaw).trim();
-                if (!nomeFinal) return;
+            function acumular(nomeFinal, tipo, qtdFracionada, nomeExercicio) {
+                if (!nomeFinal || qtdFracionada <= 0) return;
 
                 if (!mapaMusculos.has(nomeFinal)) {
                     mapaMusculos.set(nomeFinal, {
@@ -4914,25 +4919,30 @@
                 const mme = docItem.mme || criarEstruturaMmeFallback(docItem.musculo).mme;
                 if (!mme) return;
 
-                // Protagonista: peso 1.0 por série válida
-                if (mme.protagonista) {
-                    acumular(mme.protagonista, 'diretas', qtdValidas * 1.0, docItem.exercicio);
+                const gruposJaComputadosNoExercicio = new Set();
+
+                function aplicarPapel(musculosRaw, tipo, pesoFixo) {
+                    extrairMusculosMmeFrac(musculosRaw).forEach(musculoRaw => {
+                        const nomeFinal = granularidadeFrac === 'macro'
+                            ? mapearMacrogrupoFrac(musculoRaw)
+                            : musculoRaw;
+                        if (!nomeFinal) return;
+
+                        const chaveDedup = normalizarParaClassificacao(nomeFinal);
+                        if (gruposJaComputadosNoExercicio.has(chaveDedup)) return;
+                        gruposJaComputadosNoExercicio.add(chaveDedup);
+
+                        acumular(nomeFinal, tipo, qtdValidas * pesoFixo, docItem.exercicio);
+                    });
                 }
 
-                // Sinergistas (apenas no modo Fracionado)
+                // Protagonista(s): peso fixo +1.0 por série válida
+                aplicarPapel(mme.protagonista, 'diretas', PESOS_SERIES_FRAC.protagonista);
+
+                // Sinergistas (apenas no modo Fracionado): pesos fixos +0.5 e +0.25
                 if (modoContagemFrac === 'fracionado') {
-                    if (mme.secundario) {
-                        const pesoSec = Number(mme.pctSecundario) > 0
-                            ? Number(mme.pctSecundario) / 100
-                            : 0.5;
-                        acumular(mme.secundario, 'secundarias', qtdValidas * pesoSec, docItem.exercicio);
-                    }
-                    if (mme.terciario) {
-                        const pesoTerc = Number(mme.pctTerciario) > 0
-                            ? Number(mme.pctTerciario) / 100
-                            : 0.25;
-                        acumular(mme.terciario, 'terciarias', qtdValidas * pesoTerc, docItem.exercicio);
-                    }
+                    aplicarPapel(mme.secundario, 'secundarias', PESOS_SERIES_FRAC.secundario);
+                    aplicarPapel(mme.terciario, 'terciarias', PESOS_SERIES_FRAC.terciario);
                 }
             });
 
@@ -5049,10 +5059,7 @@
             if (totalRegistros === 0) {
                 fracSubtitleEl.textContent = 'Média semanal • sem registros no período';
             } else {
-                const semTxt = Math.abs(semanas - Math.round(semanas)) < 0.05
-                    ? `${Math.round(semanas)} ${Math.round(semanas) === 1 ? 'semana' : 'semanas'}`
-                    : `${formatarNumeroBR(semanas, 1)} semanas`;
-                fracSubtitleEl.textContent = `Média semanal • ${semTxt}`;
+                fracSubtitleEl.textContent = `Média semanal • ${semanas} ${semanas === 1 ? 'semana' : 'semanas'}`;
             }
 
             if (chartFracInstance) {
@@ -5144,12 +5151,12 @@
                                     const l = linhas[ctx.dataIndex];
                                     const out = [
                                         `Status: ${l.status.label}`,
-                                        `Diretas (Protagonista): ${formatarNumeroBR(l.diretas, 1)}`
+                                        `Diretas (×1,0): ${formatarNumeroBR(l.diretas, 1)}`
                                     ];
 
                                     if (modoContagemFrac === 'fracionado') {
-                                        out.push(`Secundárias: ${formatarNumeroBR(l.secundarias, 1)}`);
-                                        out.push(`Terciárias: ${formatarNumeroBR(l.terciarias, 1)}`);
+                                        out.push(`Secundárias (×0,5): ${formatarNumeroBR(l.secundarias, 1)}`);
+                                        out.push(`Terciárias (×0,25): ${formatarNumeroBR(l.terciarias, 1)}`);
                                     }
 
                                     if (l.topExercicios.length > 0) {
