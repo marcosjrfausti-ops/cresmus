@@ -3410,7 +3410,7 @@
             preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
             popularSelectRotinaBase100(listaRotinas);
             popularSelectRotinaSimetria(listaRotinas);
-        }}
+        }
         function filtrarRegistrosGlobais() {
             const gStart = biGlobalStart.value;
             const gEnd = biGlobalEnd.value;
@@ -3467,6 +3467,10 @@
                 showToast("Erro ao buscar dados no Firestore.");
             }
         }
+
+        [biGlobalStart, biGlobalEnd, biGlobalRotina].forEach(el => {
+            el.addEventListener('change', aplicarFiltrosGlobaisBI);
+        });
 
         biGlobalRotina.addEventListener('change', () => {
             if (selectSimetriaRotina) {
