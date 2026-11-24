@@ -1192,6 +1192,36 @@
             font-weight: 800;
             color: var(--text-primary);
         }
+        /* =========================================================
+           TELA 5: GRÁFICO 6 (TAXA DE QUEDA INTRA-SESSÃO — DROP-OFF)
+           ========================================================= */
+        .bi-dropoff-legend {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 14px;
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+        }
+        .bi-dropoff-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .bi-dropoff-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .bi-dropoff-dot.conservador { background: #60a5fa; }
+        .bi-dropoff-dot.produtivo   { background: #10b981; }
+        .bi-dropoff-dot.alerta      { background: #f87171; }
+
+        #bi-dropoff-canvas-wrap {
+            height: 300px;
+            transition: height 0.2s ease;
+        }
     </style>
 </head>
 <body>
@@ -1359,6 +1389,30 @@
                     <li><strong>Toggle de Correção:</strong> desligá-lo força <code>k = 0</code> em todos os exercícios para comparar o impacto do peso corporal.</li>
                     <li><strong>Exclusão de Core:</strong> exercícios com <strong>Abdômen</strong> ou <strong>Lombar</strong> como protagonistas ficam fora da razão para não distorcer a simetria.</li>
                     <li><strong>Séries válidas:</strong> séries de reconhecimento e aquecimento são excluídas automaticamente.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de Informação: Gráfico 6 (Taxa de Queda Intra-Sessão) -->
+    <div id="modal-info-dropoff" class="modal-overlay">
+        <div class="modal-card">
+            <div class="bi-info-modal-header">
+                <h3>Sobre — Drop-off de Fadiga</h3>
+                <button type="button" id="btn-close-info-dropoff" class="btn-close-info-modal" title="Fechar">✕</button>
+            </div>
+            <div class="bi-info-body">
+                <p>
+                    Mede a <strong>queda percentual de rendimento</strong> entre a 1ª e a última série válida do mesmo exercício dentro da mesma sessão.
+                </p>
+                <div class="bi-info-formula">
+                    VC = Carga × Repetições<br>
+                    Drop-off (%) = (1 − VC_última / VC_1ª) × 100
+                </div>
+                <ul>
+                    <li><strong>Elegibilidade:</strong> entram apenas sessões com <strong>2 ou mais séries válidas</strong> (reconhecimento/aquecimento excluídos) e com <code>VC_1ª &gt; 0</code>.</li>
+                    <li><strong>&lt; 10% (Conservador / Margem sobrando):</strong> queda muito baixa ou negativa; possível 1ª série longe da falha ou carga subestimada.</li>
+                    <li><strong>10% a 35% (Fadiga Produtiva):</strong> esforço consistente preservando qualidade mecânica ao longo das séries.</li>
+                    <li><strong>&gt; 35% (Alerta de Fadiga / Volume Lixo):</strong> queda brusca; vale revisar tempo de descanso entre séries ou excesso de volume.</li>
                 </ul>
             </div>
         </div>
@@ -1808,7 +1862,56 @@
                     </span>
                 </div>
             </div>
-        </section>        
+        </section>
+        <!-- Gráfico 6: Taxa de Queda Intra-Sessão (Drop-off de Fadiga) -->
+        <section class="bi-chart-card" id="card-grafico-dropoff">
+            <div class="bi-chart-header">
+                <div class="bi-chart-title-wrap">
+                    <h3>6. Taxa de Queda Intra-Sessão (Drop-off de Fadiga)</h3>
+                    <p>Queda média de Volume-Carga entre a 1ª e a última série válida • Mín. 2 séries/sessão</p>
+                </div>
+                <button type="button" id="btn-info-dropoff" class="btn-chart-info" title="Sobre este gráfico">i</button>
+            </div>
+
+            <div class="bi-chart-controls">
+                <!-- Filtro local: Rotina / Sessão -->
+                <div class="bi-filter-item">
+                    <label for="bi-dropoff-rotina">Rotina / Sessão:</label>
+                    <select id="bi-dropoff-rotina">
+                        <option value="TODAS">Todas</option>
+                    </select>
+                </div>
+
+                <!-- Filtro local: Grupo Muscular -->
+                <div class="bi-filter-item">
+                    <label for="bi-dropoff-grupo">Grupo Muscular:</label>
+                    <select id="bi-dropoff-grupo">
+                        <option value="TODOS">Todos</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Legenda discreta de 3 pontos -->
+            <div class="bi-dropoff-legend">
+                <span class="bi-dropoff-legend-item">
+                    <span class="bi-dropoff-dot conservador"></span>Conservador (&lt; 10%)
+                </span>
+                <span class="bi-dropoff-legend-item">
+                    <span class="bi-dropoff-dot produtivo"></span>Produtivo (10–35%)
+                </span>
+                <span class="bi-dropoff-legend-item">
+                    <span class="bi-dropoff-dot alerta"></span>Alerta (&gt; 35%)
+                </span>
+            </div>
+
+            <div id="bi-dropoff-empty" class="bi-chart-empty">
+                Nenhum exercício com 2 ou mais séries válidas na mesma sessão para o filtro selecionado.
+            </div>
+
+            <div class="bi-chart-canvas-wrapper" id="bi-dropoff-canvas-wrap">
+                <canvas id="chart-dropoff"></canvas>
+            </div>
+        </section
     </div>
 
     <!-- TELA 6: Seleção de Rotina para Alterar -->
@@ -3518,6 +3621,7 @@
             carregarPesoCorporalUsuario();
             popularSelectRotinaBase100(listaRotinas);
             popularSelectRotinaSimetria(listaRotinas);
+            popularSelectRotinaSessaoDropOff();
         }
         function filtrarRegistrosGlobais() {
             const gStart = biGlobalStart.value;
@@ -3544,6 +3648,7 @@
             atualizarGraficoVCSerie();
             atualizarGraficoSeriesFracionadas();
             atualizarGraficoSimetria();
+            atualizarGraficoDropOff();
         }
 
         async function carregarDadosDashboardBI() {
@@ -3584,6 +3689,13 @@
             if (selectSimetriaRotina) {
                 selectSimetriaRotina.value = biGlobalRotina.value || 'TODAS';
             }
+            if (selectDropOffRotina) {
+                const rotVal = biGlobalRotina.value;
+                const targetVal = (!rotVal || rotVal === 'TODAS') ? 'TODAS' : `ROTINA::${rotVal}`;
+                selectDropOffRotina.value = Array.from(selectDropOffRotina.options).some(o => o.value === targetVal)
+                    ? targetVal
+                    : 'TODAS';
+            }
             aplicarFiltrosGlobaisBI();
         });
         biGlobalUsuario.addEventListener('change', () => {
@@ -3596,6 +3708,8 @@
             biGlobalEnd.value = '';
             biGlobalRotina.value = 'TODAS';
             if (selectSimetriaRotina) selectSimetriaRotina.value = 'TODAS';
+            if (selectDropOffRotina) selectDropOffRotina.value = 'TODAS';
+            if (selectDropOffGrupo) selectDropOffGrupo.value = 'TODOS';
             aplicarFiltrosGlobaisBI();
         });       
 
@@ -5905,6 +6019,447 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modalInfoSimetria.classList.contains('open')) {
                 modalInfoSimetria.classList.remove('open');
+            }
+        });
+        /* =========================================================================
+           GRÁFICO 6: TAXA DE QUEDA INTRA-SESSÃO (DROP-OFF DE FADIGA)
+           ========================================================================= */
+        const selectDropOffRotina = document.getElementById('bi-dropoff-rotina');
+        const selectDropOffGrupo = document.getElementById('bi-dropoff-grupo');
+        const canvasDropOff = document.getElementById('chart-dropoff');
+        const canvasWrapDropOff = document.getElementById('bi-dropoff-canvas-wrap');
+        const emptyStateDropOff = document.getElementById('bi-dropoff-empty');
+
+        const btnInfoDropOff = document.getElementById('btn-info-dropoff');
+        const modalInfoDropOff = document.getElementById('modal-info-dropoff');
+        const btnCloseInfoDropOff = document.getElementById('btn-close-info-dropoff');
+
+        let chartDropOffInstance = null;
+
+        function obterFaixaDropOff(pctArredondado) {
+            if (pctArredondado < 10) {
+                return {
+                    status: 'Conservador / Margem sobrando',
+                    cor: '#60a5fa',
+                    corHover: '#93c5fd'
+                };
+            }
+            if (pctArredondado <= 35) {
+                return {
+                    status: 'Fadiga Produtiva',
+                    cor: '#10b981',
+                    corHover: '#34d399'
+                };
+            }
+            return {
+                status: 'Alerta de Fadiga / Volume Lixo',
+                cor: '#f87171',
+                corHover: '#fca5a5'
+            };
+        }
+
+        function formatarValorCompacto(num) {
+            return Number.isInteger(num) ? String(num) : formatarNumeroBR(num, 1);
+        }
+
+        function popularSelectRotinaSessaoDropOff() {
+            const valorAtual = selectDropOffRotina.value || 'TODAS';
+            const rotinasSet = new Set();
+            const sessoesMap = new Map(); // chave -> { rotina, sessao }
+
+            rawTreinosExecutados.forEach(item => {
+                const rot = (item.nomeRotina || '').trim().toUpperCase();
+                const sess = (item.nomeTreino || '').trim().toUpperCase();
+                if (rot) rotinasSet.add(rot);
+                if (rot && sess) {
+                    const chave = `${rot}||${sess}`;
+                    if (!sessoesMap.has(chave)) {
+                        sessoesMap.set(chave, { rotina: rot, sessao: sess });
+                    }
+                }
+            });
+
+            selectDropOffRotina.innerHTML = '<option value="TODAS">Todas</option>';
+
+            const rotinasOrdenadas = Array.from(rotinasSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            if (rotinasOrdenadas.length > 0) {
+                const optGroupRot = document.createElement('optgroup');
+                optGroupRot.label = 'Rotinas';
+                rotinasOrdenadas.forEach(rot => {
+                    const opt = document.createElement('option');
+                    opt.value = `ROTINA::${rot}`;
+                    opt.textContent = rot;
+                    optGroupRot.appendChild(opt);
+                });
+                selectDropOffRotina.appendChild(optGroupRot);
+            }
+
+            const sessoesOrdenadas = Array.from(sessoesMap.values()).sort((a, b) => {
+                const cmpRot = a.rotina.localeCompare(b.rotina, 'pt-BR');
+                return cmpRot !== 0 ? cmpRot : a.sessao.localeCompare(b.sessao, 'pt-BR');
+            });
+            if (sessoesOrdenadas.length > 0) {
+                const optGroupSess = document.createElement('optgroup');
+                optGroupSess.label = 'Sessões';
+                sessoesOrdenadas.forEach(({ rotina, sessao }) => {
+                    const opt = document.createElement('option');
+                    opt.value = `SESSAO::${rotina}||${sessao}`;
+                    opt.textContent = `${rotina} • ${sessao}`;
+                    optGroupSess.appendChild(opt);
+                });
+                selectDropOffRotina.appendChild(optGroupSess);
+            }
+
+            if (Array.from(selectDropOffRotina.options).some(o => o.value === valorAtual)) {
+                selectDropOffRotina.value = valorAtual;
+            } else {
+                selectDropOffRotina.value = 'TODAS';
+            }
+        }
+
+        function obterRegistrosPorDataERotinaDropOff() {
+            const gStart = biGlobalStart.value;
+            const gEnd = biGlobalEnd.value;
+            const filtroLocal = selectDropOffRotina.value || 'TODAS';
+
+            return rawTreinosExecutados.filter(docItem => {
+                const dataDoc = docItem.dataExecucao || '';
+                if (gStart && dataDoc < gStart) return false;
+                if (gEnd && dataDoc > gEnd) return false;
+
+                if (filtroLocal.startsWith('ROTINA::')) {
+                    const rotAlvo = filtroLocal.slice('ROTINA::'.length);
+                    if ((docItem.nomeRotina || '').trim().toUpperCase() !== rotAlvo) return false;
+                } else if (filtroLocal.startsWith('SESSAO::')) {
+                    const [rotAlvo, sessAlvo] = filtroLocal.slice('SESSAO::'.length).split('||');
+                    if ((docItem.nomeRotina || '').trim().toUpperCase() !== rotAlvo) return false;
+                    if ((docItem.nomeTreino || '').trim().toUpperCase() !== sessAlvo) return false;
+                }
+
+                return true;
+            });
+        }
+
+        function popularSelectGrupoDropOff(registrosBase) {
+            const valorAtual = selectDropOffGrupo.value || 'TODOS';
+            const gruposSet = new Set();
+
+            registrosBase.forEach(docItem => {
+                if (!docItem.exercicio || !Array.isArray(docItem.series)) return;
+                if (docItem.series.filter(isSerieValidaE1RM).length === 0) return;
+                const grupo = classificarGrupoMuscularExercicio(docItem.exercicio, docItem.musculo);
+                gruposSet.add(grupo);
+            });
+
+            const listaGrupos = Array.from(gruposSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            selectDropOffGrupo.innerHTML = '<option value="TODOS">Todos</option>';
+
+            listaGrupos.forEach(grupo => {
+                const opt = document.createElement('option');
+                opt.value = grupo;
+                opt.textContent = grupo;
+                selectDropOffGrupo.appendChild(opt);
+            });
+
+            selectDropOffGrupo.value = listaGrupos.includes(valorAtual) ? valorAtual : 'TODOS';
+        }
+
+        function construirDadosDropOff(registrosBase) {
+            const grupoSelecionado = selectDropOffGrupo.value || 'TODOS';
+
+            // 1) Ordena registros cronologicamente para preservar a ordem das séries em caso de múltiplos docs no mesmo dia
+            const registrosOrdenados = registrosBase
+                .filter(docItem => {
+                    if (!docItem.dataExecucao || !docItem.exercicio || !Array.isArray(docItem.series)) return false;
+                    if (grupoSelecionado !== 'TODOS') {
+                        const grupo = classificarGrupoMuscularExercicio(docItem.exercicio, docItem.musculo);
+                        if (grupo !== grupoSelecionado) return false;
+                    }
+                    return true;
+                })
+                .sort((a, b) => {
+                    const cmpData = (a.dataExecucao || '').localeCompare(b.dataExecucao || '');
+                    if (cmpData !== 0) return cmpData;
+                    return (a.atualizadoEm || '').localeCompare(b.atualizadoEm || '');
+                });
+
+            // 2) Agrupa por Sessão (Data + Rotina + Treino) + Exercício mantendo ordem cronológica das séries válidas
+            const sessoesExercicio = new Map();
+
+            registrosOrdenados.forEach(docItem => {
+                const validas = docItem.series.filter(isSerieValidaE1RM);
+                if (validas.length === 0) return;
+
+                const exNorm = normalizarTexto(docItem.exercicio);
+                const rotNorm = (docItem.nomeRotina || '').trim().toUpperCase();
+                const treinoNorm = (docItem.nomeTreino || '').trim().toUpperCase();
+                const chaveSessao = `${docItem.dataExecucao}||${rotNorm}||${treinoNorm}||${exNorm}`;
+
+                if (!sessoesExercicio.has(chaveSessao)) {
+                    sessoesExercicio.set(chaveSessao, {
+                        dataExecucao: docItem.dataExecucao,
+                        atualizadoEm: docItem.atualizadoEm || '',
+                        exNorm,
+                        exercicio: docItem.exercicio.trim(),
+                        seriesValidas: []
+                    });
+                }
+
+                const entry = sessoesExercicio.get(chaveSessao);
+                entry.seriesValidas.push(...validas);
+                if (docItem.atualizadoEm && docItem.atualizadoEm > entry.atualizadoEm) {
+                    entry.atualizadoEm = docItem.atualizadoEm;
+                }
+            });
+
+            // 3) Filtra sessões elegíveis (>= 2 séries válidas e VC_1ª > 0) e agrega por exercício
+            const agregadoPorExercicio = new Map();
+
+            sessoesExercicio.forEach(sessao => {
+                if (sessao.seriesValidas.length < 2) return;
+
+                const primeira = sessao.seriesValidas[0];
+                const ultima = sessao.seriesValidas[sessao.seriesValidas.length - 1];
+
+                const kg1 = Number(primeira.kg);
+                const reps1 = Number(primeira.reps);
+                const kgUlt = Number(ultima.kg);
+                const repsUlt = Number(ultima.reps);
+
+                const vcPrimeira = kg1 * reps1;
+                const vcUltima = kgUlt * repsUlt;
+                if (vcPrimeira <= 0) return;
+
+                const dropOffSessao = (1 - (vcUltima / vcPrimeira)) * 100;
+
+                if (!agregadoPorExercicio.has(sessao.exNorm)) {
+                    agregadoPorExercicio.set(sessao.exNorm, {
+                        exercicio: sessao.exercicio,
+                        somaDropOff: 0,
+                        qtdSessoes: 0,
+                        ultimaOcorrencia: null
+                    });
+                }
+
+                const agg = agregadoPorExercicio.get(sessao.exNorm);
+                agg.somaDropOff += dropOffSessao;
+                agg.qtdSessoes += 1;
+
+                const ehMaisRecente = !agg.ultimaOcorrencia ||
+                    sessao.dataExecucao > agg.ultimaOcorrencia.dataExecucao ||
+                    (
+                        sessao.dataExecucao === agg.ultimaOcorrencia.dataExecucao &&
+                        sessao.atualizadoEm >= agg.ultimaOcorrencia.atualizadoEm
+                    );
+
+                if (ehMaisRecente) {
+                    agg.ultimaOcorrencia = {
+                        dataExecucao: sessao.dataExecucao,
+                        atualizadoEm: sessao.atualizadoEm,
+                        primeira: { kg: kg1, reps: reps1 },
+                        ultima: { kg: kgUlt, reps: repsUlt }
+                    };
+                }
+            });
+
+            // 4) Calcula média aritmética e ordena decrescente (maior Drop-off no topo)
+            return Array.from(agregadoPorExercicio.values())
+                .map(agg => {
+                    const dropOffMedio = agg.somaDropOff / agg.qtdSessoes;
+                    const pctExibido = Math.round(dropOffMedio);
+                    const faixa = obterFaixaDropOff(pctExibido);
+                    return {
+                        exercicio: agg.exercicio,
+                        dropOffMedio,
+                        pctExibido,
+                        valorVisual: Number(Math.max(dropOffMedio, 0).toFixed(2)),
+                        qtdSessoes: agg.qtdSessoes,
+                        ultimaOcorrencia: agg.ultimaOcorrencia,
+                        faixa
+                    };
+                })
+                .sort((a, b) => {
+                    if (b.dropOffMedio !== a.dropOffMedio) return b.dropOffMedio - a.dropOffMedio;
+                    return a.exercicio.localeCompare(b.exercicio, 'pt-BR');
+                });
+        }
+
+        // Plugin inline: desenha micro-barra neutra para valores <= 0 e rótulo % direto na ponta externa
+        const dropOffValueLabelsPlugin = {
+            id: 'dropOffValueLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                const linhas = chart.data?.datasets?.[0]?._linhasDropOff || [];
+                const meta = chart.getDatasetMeta(0);
+                if (!meta || linhas.length === 0) return;
+
+                ctx.save();
+                ctx.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                linhas.forEach((linha, idx) => {
+                    const barEl = meta.data?.[idx];
+                    if (!barEl || Number.isNaN(barEl.x) || Number.isNaN(barEl.y)) return;
+
+                    let xTip = barEl.x;
+                    const yCenter = barEl.y;
+
+                    // Micro-barra neutra para valores <= 0 preservando alinhamento à esquerda
+                    if (linha.dropOffMedio <= 0) {
+                        const microW = 4;
+                        const microH = 18;
+                        ctx.fillStyle = linha.faixa.cor;
+                        ctx.beginPath();
+                        if (typeof ctx.roundRect === 'function') {
+                            ctx.roundRect(xTip, yCenter - microH / 2, microW, microH, 2);
+                        } else {
+                            ctx.rect(xTip, yCenter - microH / 2, microW, microH);
+                        }
+                        ctx.fill();
+                        xTip += microW;
+                    }
+
+                    ctx.fillStyle = linha.faixa.cor;
+                    ctx.fillText(`${linha.pctExibido}%`, xTip + 8, yCenter + 0.5);
+                });
+
+                ctx.restore();
+            }
+        };
+
+        function renderizarGraficoDropOff(registrosBase) {
+            const linhas = construirDadosDropOff(registrosBase);
+
+            if (chartDropOffInstance) {
+                chartDropOffInstance.destroy();
+                chartDropOffInstance = null;
+            }
+
+            if (linhas.length === 0) {
+                canvasWrapDropOff.style.display = 'none';
+                emptyStateDropOff.classList.add('visible');
+                return;
+            }
+
+            emptyStateDropOff.classList.remove('visible');
+            canvasWrapDropOff.style.display = 'block';
+
+            const alturaCalculada = Math.max(160, linhas.length * 36 + 24);
+            canvasWrapDropOff.style.height = `${alturaCalculada}px`;
+
+            const labels = linhas.map(l => l.exercicio);
+            const maxVisual = Math.max(...linhas.map(l => l.valorVisual), 0);
+            const xMax = Math.max(maxVisual * 1.15, 20);
+
+            chartDropOffInstance = new Chart(canvasDropOff.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Drop-off médio (%)',
+                            data: linhas.map(l => l.valorVisual),
+                            _linhasDropOff: linhas,
+                            backgroundColor: linhas.map(l => l.faixa.cor),
+                            hoverBackgroundColor: linhas.map(l => l.faixa.corHover),
+                            borderRadius: 4,
+                            barThickness: 18
+                        }
+                    ]
+                },
+                plugins: [dropOffValueLabelsPlugin],
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 6, right: 52, left: 4, bottom: 6 }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        axis: 'y',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#121212',
+                            borderColor: '#bb86fc',
+                            borderWidth: 1,
+                            titleColor: '#bb86fc',
+                            bodyColor: '#e0e0e0',
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                title: (items) => {
+                                    const idx = items[0]?.dataIndex;
+                                    return idx !== undefined ? linhas[idx].exercicio : '';
+                                },
+                                label: (ctx) => {
+                                    const l = linhas[ctx.dataIndex];
+                                    const occ = l.ultimaOcorrencia;
+                                    const pluralSessoes = l.qtdSessoes === 1
+                                        ? '1 sessão analisada'
+                                        : `${l.qtdSessoes} sessões analisadas`;
+
+                                    const linhasTooltip = [
+                                        `Drop-off médio: ${l.pctExibido}% (${l.faixa.status})`,
+                                        `Última (${formatarDataCompleta(occ.dataExecucao)}): 1ª série: ${formatarValorCompacto(occ.primeira.kg)} kg × ${occ.primeira.reps} reps → Última: ${formatarValorCompacto(occ.ultima.kg)} kg × ${occ.ultima.reps} reps`,
+                                        `Base: ${pluralSessoes}`
+                                    ];
+
+                                    if (l.dropOffMedio <= 0) {
+                                        linhasTooltip.push('Obs.: Última série igual ou superior à 1ª');
+                                    }
+
+                                    return linhasTooltip;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false, // Oculta completamente eixo numérico, ticks e linhas de grade
+                            min: 0,
+                            max: xMax
+                        },
+                        y: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: {
+                                autoSkip: false,
+                                color: '#e0e0e0',
+                                padding: 8,
+                                font: { size: 12, weight: '600' }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function atualizarGraficoDropOff() {
+            const registrosBase = obterRegistrosPorDataERotinaDropOff();
+            popularSelectGrupoDropOff(registrosBase);
+            renderizarGraficoDropOff(registrosBase);
+        }
+
+        // Eventos dos filtros locais do Gráfico 6
+        selectDropOffRotina.addEventListener('change', atualizarGraficoDropOff);
+        selectDropOffGrupo.addEventListener('change', () => {
+            renderizarGraficoDropOff(obterRegistrosPorDataERotinaDropOff());
+        });
+
+        // Eventos do Modal de Informação do Gráfico 6 ("i", "X", clique fora e Esc)
+        btnInfoDropOff.addEventListener('click', () => modalInfoDropOff.classList.add('open'));
+        btnCloseInfoDropOff.addEventListener('click', () => modalInfoDropOff.classList.remove('open'));
+        modalInfoDropOff.addEventListener('click', (e) => {
+            if (e.target === modalInfoDropOff) modalInfoDropOff.classList.remove('open');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalInfoDropOff.classList.contains('open')) {
+                modalInfoDropOff.classList.remove('open');
             }
         });
     </script>
