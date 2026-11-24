@@ -1020,6 +1020,65 @@
         #bi-base100-canvas-wrap {
             height: 320px;
         }
+        /* =========================================================
+           TELA 5: GRÁFICO 3 (VC POR SÉRIE — KPIs & LAYOUT)
+           ========================================================= */
+        .bi-kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+        .bi-kpi-box {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .bi-kpi-label {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .bi-kpi-value-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .bi-kpi-value {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        .bi-kpi-unit {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .bi-kpi-trend {
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: var(--surface-highlight);
+            color: var(--text-secondary);
+        }
+        .bi-kpi-trend.up {
+            color: var(--secondary-accent);
+            background: rgba(3, 218, 198, 0.12);
+        }
+        .bi-kpi-trend.down {
+            color: var(--danger-color);
+            background: rgba(207, 102, 121, 0.14);
+        }
+        #bi-vcserie-canvas-wrap {
+            height: 310px;
+        }
     </style>
 </head>
 <body>
@@ -1114,6 +1173,29 @@
                     <li><strong>e1RM Médio (1ª Série):</strong> média do 1RM estimado (Epley) considerando a 1ª série válida dos exercícios do grupo no período.</li>
                     <li><strong>Períodos sem treino:</strong> se um grupo ficar sem registro em uma semana/mês intermediário, a linha conecta os pontos adjacentes sem cair para zero.</li>
                     <li><strong>Leitura limpa:</strong> passe o mouse ou toque em uma linha para destacá-la; clique nos chips de grupos musculares para filtrar a visualização.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div id="modal-info-vcserie" class="modal-overlay">
+        <div class="modal-card">
+            <div class="bi-info-modal-header">
+                <h3>Sobre o Gráfico — VC por Série</h3>
+                <button type="button" id="btn-close-info-vcserie" class="btn-close-info-modal" title="Fechar">✕</button>
+            </div>
+            <div class="bi-info-body">
+                <p>
+                    Separa se a evolução do seu treino está vindo de <strong>Qualidade</strong> (mais peso ou repetições dentro de cada série) ou apenas de <strong>Quantidade</strong> (mais séries válidas no período).
+                </p>
+                <div class="bi-info-formula">
+                    VC / Série = Σ(Carga × Reps) / Séries Válidas<br>
+                    Carga Média/Rep = Σ(Carga × Reps) / Σ(Reps)
+                </div>
+                <ul>
+                    <li><strong>Linha em destaque (Qualidade):</strong> mostra o Volume-Carga médio por série válida (kg/série).</li>
+                    <li><strong>Barras ao fundo (Quantidade):</strong> representam o total de séries válidas no período, escaladas na metade inferior para não cruzar a curva.</li>
+                    <li><strong>1 Grupo Muscular por vez:</strong> evita distorcer a média misturando exercícios de alavancas muito diferentes.</li>
+                    <li><strong>Séries de Reconhecimento / Aquecimento:</strong> ficam automaticamente excluídas do cálculo.</li>
                 </ul>
             </div>
         </div>
@@ -1381,6 +1463,72 @@
 
             <div class="bi-chart-canvas-wrapper" id="bi-base100-canvas-wrap">
                 <canvas id="chart-base100"></canvas>
+            </div>
+        </section>
+        <!-- Gráfico 3: Volume-Carga por Série (Qualidade vs. Quantidade) -->
+        <section class="bi-chart-card" id="card-grafico-vcserie">
+            <div class="bi-chart-header">
+                <div class="bi-chart-title-wrap">
+                    <h3>3. Volume-Carga por Série (Qualidade vs. Quantidade)</h3>
+                    <p>Qualidade (kg/série na linha) vs. Quantidade (séries válidas nas barras)</p>
+                </div>
+                <button type="button" id="btn-info-vcserie" class="btn-chart-info" title="Sobre este gráfico">i</button>
+            </div>
+
+            <!-- KPIs rápidos -->
+            <div class="bi-kpi-row" id="bi-vcserie-kpis">
+                <div class="bi-kpi-box">
+                    <span class="bi-kpi-label">Média VC / Série no Período</span>
+                    <div class="bi-kpi-value-wrap">
+                        <span class="bi-kpi-value" id="kpi-vcserie-media">--</span>
+                        <span class="bi-kpi-unit">kg/série</span>
+                        <span class="bi-kpi-trend" id="kpi-vcserie-trend">--</span>
+                    </div>
+                </div>
+                <div class="bi-kpi-box">
+                    <span class="bi-kpi-label" id="kpi-vcserie-series-label">Média de Séries / Semana</span>
+                    <div class="bi-kpi-value-wrap">
+                        <span class="bi-kpi-value" id="kpi-vcserie-series">--</span>
+                        <span class="bi-kpi-unit">séries válidas</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtros locais -->
+            <div class="bi-chart-controls">
+                <!-- 1. Grupamento Muscular (obrigatório, sem "Todos") -->
+                <div class="bi-filter-item">
+                    <label for="bi-vcserie-grupo">Grupo Muscular (obrigatório):</label>
+                    <select id="bi-vcserie-grupo">
+                        <option value="">Sem grupos no período</option>
+                    </select>
+                </div>
+
+                <!-- 2. Exercício em cascata -->
+                <div class="bi-filter-item">
+                    <label for="bi-vcserie-exercicio">Exercício:</label>
+                    <select id="bi-vcserie-exercicio">
+                        <option value="TODOS">Todos do Grupo</option>
+                    </select>
+                </div>
+
+                <!-- 3. Agrupamento Temporal -->
+                <div class="bi-filter-item">
+                    <label>Agrupamento Temporal:</label>
+                    <div class="bi-segmented-toggle" id="bi-vcserie-gran-toggle">
+                        <button type="button" class="bi-seg-btn active" data-gran="semanal">Semanal</button>
+                        <button type="button" class="bi-seg-btn" data-gran="sessao">Por Sessão</button>
+                        <button type="button" class="bi-seg-btn" data-gran="mensal">Mensal</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="bi-vcserie-empty" class="bi-chart-empty">
+                Nenhum dado válido encontrado para este grupo/exercício no período filtrado.
+            </div>
+
+            <div class="bi-chart-canvas-wrapper" id="bi-vcserie-canvas-wrap">
+                <canvas id="chart-vcserie"></canvas>
             </div>
         </section>
     </div>
@@ -3016,6 +3164,7 @@
             dadosDashboardFiltrados = filtrarRegistrosGlobais();
             atualizarGraficoE1RM();
             atualizarGraficoBase100();
+            atualizarGraficoVCSerie();
         }
 
         async function carregarDadosDashboardBI() {
@@ -3999,6 +4148,470 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modalInfoBase100.classList.contains('open')) {
                 modalInfoBase100.classList.remove('open');
+            }
+        });
+        /* =========================================================================
+           GRÁFICO 3: VOLUME-CARGA POR SÉRIE (QUALIDADE VS. QUANTIDADE)
+           ========================================================================= */
+        const selectVcGrupo = document.getElementById('bi-vcserie-grupo');
+        const selectVcExercicio = document.getElementById('bi-vcserie-exercicio');
+        const granToggleVcSerie = document.getElementById('bi-vcserie-gran-toggle');
+        const canvasVcSerie = document.getElementById('chart-vcserie');
+        const canvasWrapVcSerie = document.getElementById('bi-vcserie-canvas-wrap');
+        const emptyStateVcSerie = document.getElementById('bi-vcserie-empty');
+
+        const kpiVcMediaEl = document.getElementById('kpi-vcserie-media');
+        const kpiVcTrendEl = document.getElementById('kpi-vcserie-trend');
+        const kpiVcSeriesEl = document.getElementById('kpi-vcserie-series');
+        const kpiVcSeriesLabelEl = document.getElementById('kpi-vcserie-series-label');
+
+        const btnInfoVcSerie = document.getElementById('btn-info-vcserie');
+        const modalInfoVcSerie = document.getElementById('modal-info-vcserie');
+        const btnCloseInfoVcSerie = document.getElementById('btn-close-info-vcserie');
+
+        let granularidadeVcSerie = 'semanal'; // 'semanal' | 'sessao' | 'mensal'
+        let chartVcSerieInstance = null;
+
+        function setGranularidadeVcSerieUI(novaGran) {
+            granularidadeVcSerie = novaGran;
+            granToggleVcSerie.querySelectorAll('.bi-seg-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.gran === novaGran);
+            });
+        }
+
+        function obterNumeroSemanaISO(dateObj) {
+            const tmp = new Date(Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()));
+            const dayNum = tmp.getUTCDay() || 7;
+            tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+            return Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+        }
+
+        function obterChavePeriodoVcSerie(dataIso, granularidade) {
+            if (!dataIso || !dataIso.includes('-')) return null;
+            const [ano, mes, dia] = dataIso.split('-').map(Number);
+
+            if (granularidade === 'sessao') {
+                return {
+                    key: dataIso,
+                    labelCurto: formatarDataCurta(dataIso, false),
+                    labelTooltip: `Sessão: ${formatarDataCompleta(dataIso)}`
+                };
+            }
+
+            if (granularidade === 'mensal') {
+                const mesNome = MESES_CURTOS_PT[mes - 1] || String(mes);
+                return {
+                    key: `${ano}-${String(mes).padStart(2, '0')}`,
+                    labelCurto: `${mesNome}/${String(ano).slice(-2)}`,
+                    labelTooltip: `Mês: ${mesNome}/${ano}`
+                };
+            }
+
+            // Semanal (Segunda a Domingo, com número da semana ISO)
+            const dt = new Date(ano, mes - 1, dia);
+            const dayOfWeek = dt.getDay();
+            const diffSeg = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            const seg = new Date(ano, mes - 1, dia + diffSeg);
+            const dom = new Date(seg.getFullYear(), seg.getMonth(), seg.getDate() + 6);
+            const semNum = obterNumeroSemanaISO(dt);
+
+            const fmtIso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            const fmtDM = (d) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+            return {
+                key: fmtIso(seg),
+                labelCurto: `Sem ${String(semNum).padStart(2, '0')}`,
+                labelTooltip: `Semana ${String(semNum).padStart(2, '0')} (${fmtDM(seg)} – ${fmtDM(dom)})`
+            };
+        }
+
+        function popularSelectGruposVcSerie() {
+            const valorAnterior = selectVcGrupo.value;
+            const gruposSet = new Set();
+
+            dadosDashboardFiltrados.forEach(docItem => {
+                if (!docItem.exercicio || !Array.isArray(docItem.series)) return;
+                if (!docItem.series.some(isSerieValidaE1RM)) return;
+                const grupo = classificarGrupoMuscularExercicio(docItem.exercicio, docItem.musculo);
+                gruposSet.add(grupo);
+            });
+
+            const listaGrupos = Array.from(gruposSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            selectVcGrupo.innerHTML = '';
+
+            if (listaGrupos.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'Nenhum grupo com série válida';
+                selectVcGrupo.appendChild(opt);
+                return '';
+            }
+
+            listaGrupos.forEach(grupo => {
+                const opt = document.createElement('option');
+                opt.value = grupo;
+                opt.textContent = grupo;
+                selectVcGrupo.appendChild(opt);
+            });
+
+            selectVcGrupo.value = listaGrupos.includes(valorAnterior) ? valorAnterior : listaGrupos[0];
+            return selectVcGrupo.value;
+        }
+
+        function popularSelectExerciciosVcSerie(grupoSelecionado, resetarParaTodos = false) {
+            const valorAnterior = resetarParaTodos ? 'TODOS' : (selectVcExercicio.value || 'TODOS');
+            const mapaEx = new Map();
+
+            if (grupoSelecionado) {
+                dadosDashboardFiltrados.forEach(docItem => {
+                    if (!docItem.exercicio || !Array.isArray(docItem.series)) return;
+                    if (!docItem.series.some(isSerieValidaE1RM)) return;
+                    const grupo = classificarGrupoMuscularExercicio(docItem.exercicio, docItem.musculo);
+                    if (grupo !== grupoSelecionado) return;
+
+                    const chave = normalizarTexto(docItem.exercicio);
+                    if (!mapaEx.has(chave)) {
+                        mapaEx.set(chave, docItem.exercicio.trim());
+                    }
+                });
+            }
+
+            const listaEx = Array.from(mapaEx.values()).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            selectVcExercicio.innerHTML = '<option value="TODOS">Todos do Grupo</option>';
+
+            listaEx.forEach(exNome => {
+                const opt = document.createElement('option');
+                opt.value = exNome;
+                opt.textContent = exNome;
+                selectVcExercicio.appendChild(opt);
+            });
+
+            const aindaExiste = listaEx.find(ex => normalizarTexto(ex) === normalizarTexto(valorAnterior));
+            selectVcExercicio.value = aindaExiste || 'TODOS';
+            return selectVcExercicio.value;
+        }
+
+        function montarSerieTemporalVcSerie(grupoSelecionado, exercicioSelecionado) {
+            if (!grupoSelecionado) return [];
+
+            const filtroExNorm = exercicioSelecionado && exercicioSelecionado !== 'TODOS'
+                ? normalizarTexto(exercicioSelecionado)
+                : null;
+
+            const porPeriodo = new Map();
+
+            dadosDashboardFiltrados.forEach(docItem => {
+                if (!docItem.dataExecucao || !docItem.exercicio || !Array.isArray(docItem.series)) return;
+
+                const grupo = classificarGrupoMuscularExercicio(docItem.exercicio, docItem.musculo);
+                if (grupo !== grupoSelecionado) return;
+
+                if (filtroExNorm && normalizarTexto(docItem.exercicio) !== filtroExNorm) return;
+
+                const validas = docItem.series.filter(isSerieValidaE1RM);
+                if (validas.length === 0) return;
+
+                const periodo = obterChavePeriodoVcSerie(docItem.dataExecucao, granularidadeVcSerie);
+                if (!periodo) return;
+
+                if (!porPeriodo.has(periodo.key)) {
+                    porPeriodo.set(periodo.key, {
+                        ...periodo,
+                        somaVC: 0,
+                        somaReps: 0,
+                        totalSeries: 0
+                    });
+                }
+
+                const cel = porPeriodo.get(periodo.key);
+                validas.forEach(s => {
+                    const kg = Number(s.kg);
+                    const reps = Number(s.reps);
+                    cel.somaVC += kg * reps;
+                    cel.somaReps += reps;
+                    cel.totalSeries += 1;
+                });
+            });
+
+            const ordenados = Array.from(porPeriodo.values()).sort((a, b) => a.key.localeCompare(b.key));
+
+            // Se cruzar anos, acrescenta o ano curto nos rótulos de Sessão ou Semana
+            const anosDistintos = new Set(ordenados.map(p => p.key.slice(0, 4)));
+            if (anosDistintos.size > 1 && granularidadeVcSerie !== 'mensal') {
+                ordenados.forEach(p => {
+                    p.labelCurto = `${p.labelCurto}/${p.key.slice(2, 4)}`;
+                });
+            }
+
+            return ordenados.map((p, idx, arr) => {
+                const vcPorSerie = p.somaVC / p.totalSeries;
+                const cargaMediaRep = p.somaReps > 0 ? p.somaVC / p.somaReps : 0;
+
+                let variacaoAnterior = null;
+                if (idx > 0) {
+                    const prevVc = arr[idx - 1].somaVC / arr[idx - 1].totalSeries;
+                    if (prevVc > 0) {
+                        variacaoAnterior = ((vcPorSerie - prevVc) / prevVc) * 100;
+                    }
+                }
+
+                return {
+                    ...p,
+                    vcPorSerie,
+                    cargaMediaRep,
+                    variacaoAnterior
+                };
+            });
+        }
+
+        function atualizarKPIsVcSerie(pontos) {
+            const sufixoLabel = granularidadeVcSerie === 'sessao'
+                ? 'Sessão'
+                : (granularidadeVcSerie === 'mensal' ? 'Mês' : 'Semana');
+            kpiVcSeriesLabelEl.textContent = `Média de Séries / ${sufixoLabel}`;
+
+            if (!pontos || pontos.length === 0) {
+                kpiVcMediaEl.textContent = '--';
+                kpiVcSeriesEl.textContent = '--';
+                kpiVcTrendEl.textContent = '--';
+                kpiVcTrendEl.className = 'bi-kpi-trend';
+                return;
+            }
+
+            const totalVC = pontos.reduce((acc, p) => acc + p.somaVC, 0);
+            const totalSeries = pontos.reduce((acc, p) => acc + p.totalSeries, 0);
+            const mediaVC = totalSeries > 0 ? totalVC / totalSeries : 0;
+            const mediaSeries = totalSeries / pontos.length;
+
+            kpiVcMediaEl.textContent = Math.round(mediaVC).toLocaleString('pt-BR');
+            kpiVcSeriesEl.textContent = formatarNumeroBR(mediaSeries, 1);
+
+            if (pontos.length >= 2 && pontos[0].vcPorSerie > 0) {
+                const deltaPct = ((pontos[pontos.length - 1].vcPorSerie - pontos[0].vcPorSerie) / pontos[0].vcPorSerie) * 100;
+                const sinal = deltaPct > 0 ? '+' : '';
+                const seta = deltaPct > 0.05 ? '▲' : (deltaPct < -0.05 ? '▼' : '•');
+                kpiVcTrendEl.textContent = `${seta} ${sinal}${formatarNumeroBR(deltaPct, 1)}%`;
+                kpiVcTrendEl.className = `bi-kpi-trend ${deltaPct > 0.05 ? 'up' : (deltaPct < -0.05 ? 'down' : '')}`;
+            } else {
+                kpiVcTrendEl.textContent = '1 ponto';
+                kpiVcTrendEl.className = 'bi-kpi-trend';
+            }
+        }
+
+        function renderizarGraficoVCSerie() {
+            const grupo = selectVcGrupo.value;
+            const exercicio = selectVcExercicio.value;
+            const pontos = montarSerieTemporalVcSerie(grupo, exercicio);
+
+            atualizarKPIsVcSerie(pontos);
+
+            if (chartVcSerieInstance) {
+                chartVcSerieInstance.destroy();
+                chartVcSerieInstance = null;
+            }
+
+            if (pontos.length === 0) {
+                canvasWrapVcSerie.style.display = 'none';
+                emptyStateVcSerie.classList.add('visible');
+                return;
+            }
+
+            emptyStateVcSerie.classList.remove('visible');
+            canvasWrapVcSerie.style.display = 'block';
+
+            const labels = pontos.map(p => p.labelCurto);
+            const dadosLinha = pontos.map(p => Number(p.vcPorSerie.toFixed(1)));
+            const dadosBarras = pontos.map(p => p.totalSeries);
+
+            // Índice do pico máximo para regra de > 12 pontos
+            let peakIndex = 0;
+            for (let i = 1; i < dadosLinha.length; i++) {
+                if (dadosLinha[i] > dadosLinha[peakIndex]) peakIndex = i;
+            }
+
+            // Separação visual estrita: barras ocupam no máx. ~45% inferior; linha fica limpa na metade superior
+            const maxSeries = Math.max(...dadosBarras, 1);
+            const yQuantidadeMax = Math.ceil(maxSeries * 2.2);
+
+            const minVC = Math.min(...dadosLinha);
+            const maxVC = Math.max(...dadosLinha);
+            const vcRange = maxVC > minVC ? (maxVC - minVC) : Math.max(10, maxVC * 0.25);
+            const yQualidadeMin = Math.max(0, minVC - vcRange * 1.25);
+            const yQualidadeMax = maxVC + vcRange * 0.35;
+
+            chartVcSerieInstance = new Chart(canvasVcSerie.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Qualidade (VC / Série)',
+                            data: dadosLinha,
+                            yAxisID: 'yQualidade',
+                            order: 1,
+                            borderColor: '#bb86fc',
+                            backgroundColor: '#bb86fc',
+                            borderWidth: 2.6,
+                            tension: 0.15,
+                            fill: false,
+                            pointRadius: 4.5,
+                            pointHoverRadius: 7,
+                            pointHitRadius: 18,
+                            pointBackgroundColor: '#bb86fc',
+                            pointBorderColor: '#121212',
+                            pointBorderWidth: 2,
+                            datalabels: {
+                                display: (ctx) => {
+                                    if (pontos.length <= 12) return true;
+                                    const idx = ctx.dataIndex;
+                                    return idx === 0 || idx === pontos.length - 1 || idx === peakIndex;
+                                },
+                                align: 'top',
+                                anchor: 'end',
+                                offset: 6,
+                                color: '#e0e0e0',
+                                font: { size: 11, weight: '700' },
+                                formatter: (val) => Math.round(val)
+                            }
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Quantidade (Séries Válidas)',
+                            data: dadosBarras,
+                            yAxisID: 'yQuantidade',
+                            order: 2,
+                            backgroundColor: 'rgba(3, 218, 198, 0.22)',
+                            hoverBackgroundColor: 'rgba(3, 218, 198, 0.38)',
+                            borderColor: 'rgba(3, 218, 198, 0.35)',
+                            borderWidth: 1,
+                            borderRadius: { topLeft: 4, topRight: 4 },
+                            barPercentage: 0.55,
+                            categoryPercentage: 0.72,
+                            datalabels: {
+                                display: false
+                            }
+                        }
+                    ]
+                },
+                plugins: [ChartDataLabels],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 26, right: 16, left: 16, bottom: 4 }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: '#a0a0a0',
+                                usePointStyle: true,
+                                boxWidth: 10,
+                                font: { size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#121212',
+                            borderColor: '#bb86fc',
+                            borderWidth: 1,
+                            titleColor: '#bb86fc',
+                            bodyColor: '#e0e0e0',
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                title: (items) => {
+                                    const idx = items[0]?.dataIndex;
+                                    return idx !== undefined ? pontos[idx].labelTooltip : '';
+                                },
+                                label: (ctx) => {
+                                    // Renderiza o bloco completo uma única vez (no dataset da linha)
+                                    if (ctx.datasetIndex !== 0) return null;
+                                    const p = pontos[ctx.dataIndex];
+                                    let varTexto = '';
+                                    if (p.variacaoAnterior !== null) {
+                                        const sinal = p.variacaoAnterior > 0 ? '+' : '';
+                                        varTexto = ` (${sinal}${formatarNumeroBR(p.variacaoAnterior, 1)}% vs anterior)`;
+                                    }
+                                    return [
+                                        `VC por Série: ${formatarNumeroBR(p.vcPorSerie, 1)} kg/série${varTexto}`,
+                                        `Séries Válidas: ${p.totalSeries} ${p.totalSeries === 1 ? 'série' : 'séries'}`,
+                                        `Carga Média/Rep: ${formatarNumeroBR(p.cargaMediaRep, 1)} kg`,
+                                        `Volume-Carga Total: ${Math.round(p.somaVC).toLocaleString('pt-BR')} kg`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: {
+                                color: '#a0a0a0',
+                                font: { size: 11 }
+                            }
+                        },
+                        yQualidade: {
+                            display: false,
+                            position: 'left',
+                            min: yQualidadeMin,
+                            max: yQualidadeMax,
+                            grid: { display: false }
+                        },
+                        yQuantidade: {
+                            display: false,
+                            position: 'right',
+                            min: 0,
+                            max: yQuantidadeMax,
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function atualizarGraficoVCSerie() {
+            const grupoAtivo = popularSelectGruposVcSerie();
+            popularSelectExerciciosVcSerie(grupoAtivo, false);
+            renderizarGraficoVCSerie();
+        }
+
+        // Eventos dos filtros locais do Gráfico 3
+        selectVcGrupo.addEventListener('change', () => {
+            popularSelectExerciciosVcSerie(selectVcGrupo.value, true);
+            setGranularidadeVcSerieUI('semanal');
+            renderizarGraficoVCSerie();
+        });
+
+        selectVcExercicio.addEventListener('change', () => {
+            const exVal = selectVcExercicio.value;
+            setGranularidadeVcSerieUI(exVal === 'TODOS' ? 'semanal' : 'sessao');
+            renderizarGraficoVCSerie();
+        });
+
+        granToggleVcSerie.querySelectorAll('.bi-seg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                setGranularidadeVcSerieUI(btn.dataset.gran);
+                renderizarGraficoVCSerie();
+            });
+        });
+
+        // Eventos do Modal de Informação ("i" e "X")
+        btnInfoVcSerie.addEventListener('click', () => modalInfoVcSerie.classList.add('open'));
+        btnCloseInfoVcSerie.addEventListener('click', () => modalInfoVcSerie.classList.remove('open'));
+        modalInfoVcSerie.addEventListener('click', (e) => {
+            if (e.target === modalInfoVcSerie) modalInfoVcSerie.classList.remove('open');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalInfoVcSerie.classList.contains('open')) {
+                modalInfoVcSerie.classList.remove('open');
             }
         });
     </script>
