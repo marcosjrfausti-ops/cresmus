@@ -1269,12 +1269,11 @@
                     Protagonista = +1,0 série válida<br>
                     Secundário = +0,5 série válida<br>
                     Terciário = +0,25 série válida<br>
-                    Séries/sem = Total Fracionado / Semanas com treino
+                    Séries/sem = Total Fracionado / máx(1; Dias decorridos ÷ 7)
                 </div>
                 <ul>
                     <li><strong>Pesos fixos (sem percentuais do MME):</strong> os percentuais do <code>mme</code> dividem apenas Volume-Carga (kg); aqui cada série válida atribui peso fixo por papel muscular (um composto soma mais de 1,0 entre os músculos envolvidos).</li>
-                    <li><strong>Semanas reais no divisor:</strong> considera apenas as semanas calendário (Seg–Dom) que possuem treinos registrados dentro do filtro, evitando distorções em meses ainda em andamento.</li>
-                    <li><strong>Sem carga ou repetições:</strong> conta exclusivamente séries válidas (reconhecimento/aquecimento excluídos).</li>
+                    <li><strong>Semanas reais no divisor:</strong> usa os dias corridos do intervalo filtrado (limitados à data de hoje) divididos por 7, com piso de 1,0 semana — evitando que semanas incompletas achatem as barras.</li>
                     <li><strong>Cores na ponta da barra:</strong> cinza (&lt; 8 abaixo do piso), ciano (8–14 faixa ideal) e âmbar (&gt; 14 acima do teto).</li>
                     <li><strong>Macrogrupos (padrão):</strong> agrupa Peitoral, Costas (sem Trapézio), Panturrilha, Antebraço, Glúteo, Lombar e Abdômen, mantendo as 3 cabeças do Deltoide e o Trapézio separados.</li>
                 </ul>
@@ -4841,10 +4840,11 @@
         }
 
         function obterStatusMetaFrac(totalSemanal) {
-            if (totalSemanal < 8) {
+            const valorExibido = Number(totalSemanal.toFixed(1));
+            if (valorExibido < 8) {
                 return { label: 'Abaixo do piso (< 8)', cor: '#a0a0a0' };
             }
-            if (totalSemanal <= 14) {
+            if (valorExibido <= 14) {
                 return { label: 'Faixa ideal (8–14)', cor: '#03dac6' };
             }
             return { label: 'Acima do teto (> 14)', cor: '#ffb74d' };
@@ -4867,18 +4867,55 @@
                 .filter(Boolean);
         }
 
+        function parseIsoParaUtcMs(dataIso) {
+            if (!dataIso || !/^\d{4}-\d{2}-\d{2}$/.test(dataIso)) return null;
+            const [ano, mes, dia] = dataIso.split('-').map(Number);
+            return Date.UTC(ano, mes - 1, dia);
+        }
+
+        function obterHojeIsoLocal() {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            return `${ano}-${mes}-${dia}`;
+        }
+
         function calcularSemanasPeriodoFrac(registrosComValidas) {
-            const semanasDistintas = new Set();
+            const hojeMs = parseIsoParaUtcMs(obterHojeIsoLocal());
+            const datasOrdenadas = registrosComValidas
+                .map(r => r.dataExecucao)
+                .filter(d => parseIsoParaUtcMs(d) !== null)
+                .sort((a, b) => a.localeCompare(b));
 
-            registrosComValidas.forEach(r => {
-                const periodoSemanal = obterChavePeriodoBase100(r.dataExecucao, 'semanal');
-                if (periodoSemanal && periodoSemanal.key) {
-                    semanasDistintas.add(periodoSemanal.key);
-                }
-            });
+            const minRegistroMs = datasOrdenadas.length > 0 ? parseIsoParaUtcMs(datasOrdenadas[0]) : null;
+            const maxRegistroMs = datasOrdenadas.length > 0 ? parseIsoParaUtcMs(datasOrdenadas[datasOrdenadas.length - 1]) : null;
 
-            const semanas = Math.max(1, semanasDistintas.size);
-            return { semanas };
+            const startFiltroMs = parseIsoParaUtcMs(biGlobalStart.value);
+            const endFiltroMs = parseIsoParaUtcMs(biGlobalEnd.value);
+
+            // Início: data inicial do filtro ou 1º treino válido no recorte
+            const inicioMs = startFiltroMs !== null ? startFiltroMs : minRegistroMs;
+
+            // Fim: limitado à data de hoje
+            let fimMs = null;
+            if (endFiltroMs !== null) {
+                fimMs = Math.min(endFiltroMs, hojeMs);
+            } else if (startFiltroMs !== null) {
+                fimMs = hojeMs;
+            } else if (maxRegistroMs !== null) {
+                fimMs = Math.min(maxRegistroMs, hojeMs);
+            }
+
+            if (inicioMs === null || fimMs === null) {
+                return { semanas: 1, diasDecorridos: 0 };
+            }
+
+            const MS_POR_DIA = 86400000;
+            const diasDecorridosNoFiltro = Math.max(1, Math.floor((fimMs - inicioMs) / MS_POR_DIA) + 1);
+            const semanas = Math.max(1, diasDecorridosNoFiltro / 7);
+
+            return { semanas, diasDecorridos: diasDecorridosNoFiltro };
         }
 
         function construirDadosSeriesFracionadas() {
@@ -4936,7 +4973,7 @@
                     });
                 }
 
-                // Protagonista(s): peso fixo +1.0 por série válida
+                // Protagonista(s): peso fixo +1.0 por série válida (sem multiplicar por pctProtagonista)
                 aplicarPapel(mme.protagonista, 'diretas', PESOS_SERIES_FRAC.protagonista);
 
                 // Sinergistas (apenas no modo Fracionado): pesos fixos +0.5 e +0.25
@@ -4989,11 +5026,9 @@
 
                 ctx.save();
 
-                // Faixa translúcida entre 8 e 14
                 ctx.fillStyle = 'rgba(3, 218, 198, 0.065)';
                 ctx.fillRect(x8, chartArea.top, x14 - x8, chartArea.bottom - chartArea.top);
 
-                // Linhas verticais tracejadas discretas em 8 e 14
                 ctx.strokeStyle = 'rgba(3, 218, 198, 0.30)';
                 ctx.lineWidth = 1;
                 ctx.setLineDash([4, 4]);
@@ -5005,7 +5040,6 @@
                     ctx.stroke();
                 });
 
-                // Micro-rótulos "8" e "14" no topo da área do gráfico
                 ctx.setLineDash([]);
                 ctx.font = '700 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
                 ctx.fillStyle = 'rgba(3, 218, 198, 0.78)';
@@ -5018,12 +5052,12 @@
             }
         };
 
-        // Plugin: Valor total (1 casa decimal) + micro-ponto de status à direita da ponta da barra
+        // Plugin: Valor total (1 casa decimal) + ponto de status à direita da ponta da barra
         const seriesFracionadasTotalLabelsPlugin = {
             id: 'seriesFracionadasTotalLabels',
             afterDatasetsDraw(chart) {
                 const { ctx, scales } = chart;
-                const linhas = chart.config._linhasFrac || [];
+                const linhas = chart.data?.datasets?.[0]?._linhasFrac || [];
                 if (!scales?.x || !scales?.y || linhas.length === 0) return;
 
                 ctx.save();
@@ -5032,19 +5066,34 @@
                 ctx.textBaseline = 'middle';
 
                 linhas.forEach((linha, idx) => {
-                    const xEnd = scales.x.getPixelForValue(linha.total);
-                    const yPos = scales.y.getPixelForValue(idx);
+                    let xEnd = scales.x.getPixelForValue(0);
+                    let yPos = scales.y.getPixelForValue(idx);
+                    let encontrouBar = false;
+
+                    chart.data.datasets.forEach((_, dsIdx) => {
+                        if (!chart.isDatasetVisible(dsIdx)) return;
+                        const barEl = chart.getDatasetMeta(dsIdx)?.data?.[idx];
+                        if (barEl && !Number.isNaN(barEl.x) && !Number.isNaN(barEl.y)) {
+                            xEnd = Math.max(xEnd, barEl.x);
+                            yPos = barEl.y;
+                            encontrouBar = true;
+                        }
+                    });
+
+                    if (!encontrouBar) {
+                        xEnd = scales.x.getPixelForValue(linha.total);
+                    }
                     if (Number.isNaN(xEnd) || Number.isNaN(yPos)) return;
 
-                    // Micro-ponto indicador de status
+                    // Pequeno ponto colorido de status
                     ctx.beginPath();
                     ctx.fillStyle = linha.status.cor;
-                    ctx.arc(xEnd + 8, yPos, 3, 0, Math.PI * 2);
+                    ctx.arc(xEnd + 9, yPos, 3, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Valor total com 1 casa decimal
+                    // Valor total com 1 casa decimal na cor do status
                     ctx.fillStyle = linha.status.cor;
-                    ctx.fillText(formatarNumeroBR(linha.total, 1), xEnd + 15, yPos + 0.5);
+                    ctx.fillText(formatarNumeroBR(linha.total, 1), xEnd + 16, yPos + 0.5);
                 });
 
                 ctx.restore();
@@ -5059,7 +5108,9 @@
             if (totalRegistros === 0) {
                 fracSubtitleEl.textContent = 'Média semanal • sem registros no período';
             } else {
-                fracSubtitleEl.textContent = `Média semanal • ${semanas} ${semanas === 1 ? 'semana' : 'semanas'}`;
+                const semanasFormatado = formatarNumeroBR(semanas, 1);
+                const unidadeSemana = Number(semanas.toFixed(1)) === 1 ? 'semana' : 'semanas';
+                fracSubtitleEl.textContent = `Média semanal • ${semanasFormatado} ${unidadeSemana}`;
             }
 
             if (chartFracInstance) {
@@ -5079,7 +5130,6 @@
             emptyStateFrac.classList.remove('visible');
             canvasWrapFrac.style.display = 'block';
 
-            // Altura dinâmica para evitar truncamento/sobreposição no mobile
             const alturaCalculada = Math.max(170, linhas.length * 36 + 38);
             canvasWrapFrac.style.height = `${alturaCalculada}px`;
 
@@ -5091,6 +5141,7 @@
                 {
                     label: 'Séries Diretas',
                     data: linhas.map(l => Number(l.diretas.toFixed(2))),
+                    _linhasFrac: linhas,
                     backgroundColor: '#bb86fc',
                     hoverBackgroundColor: '#cca2ff',
                     borderRadius: 4,
@@ -5113,7 +5164,6 @@
 
             const config = {
                 type: 'bar',
-                _linhasFrac: linhas,
                 data: { labels, datasets },
                 plugins: [seriesFracionadasMetaPlugin, seriesFracionadasTotalLabelsPlugin],
                 options: {
@@ -5121,7 +5171,7 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     layout: {
-                        padding: { top: 20, right: 52, left: 4, bottom: 4 }
+                        padding: { top: 20, right: 56, left: 4, bottom: 4 }
                     },
                     interaction: {
                         mode: 'index',
@@ -5146,7 +5196,6 @@
                                     return `${l.musculo} — ${formatarNumeroBR(l.total, 1)} séries/sem`;
                                 },
                                 label: (ctx) => {
-                                    // Renderiza o resumo completo uma única vez
                                     if (ctx.datasetIndex !== 0) return null;
                                     const l = linhas[ctx.dataIndex];
                                     const out = [
@@ -5174,7 +5223,7 @@
                     scales: {
                         x: {
                             stacked: true,
-                            display: false, // Remove completamente eixo numérico, ticks e grade
+                            display: false,
                             min: 0,
                             max: xMax
                         },
