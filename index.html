@@ -369,11 +369,21 @@
         .muscle-group { margin-bottom: 32px; }
         .muscle-title { font-size: 1.2rem; color: var(--text-primary); margin-bottom: 16px; border-left: 4px solid var(--accent-color); padding-left: 8px; letter-spacing: 1px;}
 
-        .carousel {
+        carousel {
+            position: relative;
             display: flex; overflow-x: auto; scroll-snap-type: x mandatory;
             gap: 16px; padding-bottom: 12px; scrollbar-width: none;
+            cursor: grab;
         }
         .carousel::-webkit-scrollbar { display: none; }
+        .carousel.dragging {
+            cursor: grabbing;
+            scroll-snap-type: none;
+            user-select: none;
+        }
+        .carousel:has(.single-card) {
+            cursor: default;
+        }
         
         .carousel-card {
             position: relative;
@@ -2608,6 +2618,103 @@
                 remainingCards.forEach(c => c.classList.remove('single-card'));
             }
         }
+        let carouselAtivo = null;
+        let startX = 0;
+        let startScrollLeft = 0;
+        let arrastou = false;
+        let cardInicialIdx = 0;
+
+        function obterIndiceCardCentral(carousel) {
+            const cards = Array.from(carousel.querySelectorAll('.carousel-card'));
+            if (cards.length <= 1) return 0;
+            const centroViewport = carousel.scrollLeft + carousel.clientWidth / 2;
+            let melhorIdx = 0;
+            let menorDist = Infinity;
+
+            cards.forEach((card, idx) => {
+                const centroCard = card.offsetLeft + card.clientWidth / 2;
+                const dist = Math.abs(centroViewport - centroCard);
+                if (dist < menorDist) {
+                    menorDist = dist;
+                    melhorIdx = idx;
+                }
+            });
+            return melhorIdx;
+        }
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return; // Apenas botão esquerdo do mouse
+            const carousel = e.target.closest('.carousel');
+            if (!carousel) return;
+
+            // Ignora cliques em botões/inputs para não atrapalhar ações dos cards
+            if (e.target.closest('button, input, select, textarea, a')) return;
+
+            // Só ativa se houver overflow horizontal
+            if (carousel.scrollWidth <= carousel.clientWidth) return;
+
+            clearTimeout(carousel._snapTimeout);
+            carouselAtivo = carousel;
+            startX = e.clientX;
+            startScrollLeft = carousel.scrollLeft;
+            arrastou = false;
+            cardInicialIdx = obterIndiceCardCentral(carousel);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!carouselAtivo) return;
+
+            const deltaX = e.clientX - startX;
+            if (!arrastou && Math.abs(deltaX) > 6) {
+                arrastou = true;
+                carouselAtivo.classList.add('dragging');
+            }
+
+            if (arrastou) {
+                e.preventDefault();
+                carouselAtivo.scrollLeft = startScrollLeft - deltaX;
+            }
+        });
+
+        function finalizarArrasteCarrossel(e) {
+            if (!carouselAtivo) return;
+
+            const carousel = carouselAtivo;
+            const foiArraste = arrastou;
+            const deltaX = e ? (e.clientX - startX) : 0;
+
+            carouselAtivo = null;
+            arrastou = false;
+
+            if (foiArraste) {
+                const cards = Array.from(carousel.querySelectorAll('.carousel-card'));
+                let alvoIdx = obterIndiceCardCentral(carousel);
+
+                // Puxão curto (> 45px) já avança ou volta 1 card sem precisar cruzar metade da tela
+                if (alvoIdx === cardInicialIdx && Math.abs(deltaX) > 45) {
+                    if (deltaX < 0 && cardInicialIdx < cards.length - 1) {
+                        alvoIdx = cardInicialIdx + 1;
+                    } else if (deltaX > 0 && cardInicialIdx > 0) {
+                        alvoIdx = cardInicialIdx - 1;
+                    }
+                }
+
+                const cardAlvo = cards[alvoIdx];
+                if (cardAlvo) {
+                    const destinoLeft = cardAlvo.offsetLeft - (carousel.clientWidth - cardAlvo.clientWidth) / 2;
+                    carousel.scrollTo({ left: destinoLeft, behavior: 'smooth' });
+                }
+
+                carousel._snapTimeout = setTimeout(() => {
+                    if (carouselAtivo !== carousel) carousel.classList.remove('dragging');
+                }, 260);
+            } else {
+                carousel.classList.remove('dragging');
+            }
+        }
+
+        window.addEventListener('mouseup', finalizarArrasteCarrossel);
+        window.addEventListener('blur', () => finalizarArrasteCarrossel(null));
 
         function adicionarCardExercicioTela2(exerciseName, preloadedSeries = null, autoScroll = true) {
             if (!exerciseName) return;
