@@ -3515,6 +3515,7 @@
             const listaRotinas = Array.from(rotinasSet).sort();
             preencherSelect(biGlobalRotina, listaRotinas, "TODAS", "Todas as Rotinas");
             preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
+            carregarPesoCorporalUsuario();
             popularSelectRotinaBase100(listaRotinas);
             popularSelectRotinaSimetria(listaRotinas);
         }
@@ -3584,6 +3585,18 @@
                 selectSimetriaRotina.value = biGlobalRotina.value || 'TODAS';
                 atualizarGraficoSimetria();
             }
+        });
+        biGlobalUsuario.addEventListener('change', () => {
+            carregarPesoCorporalUsuario();
+            atualizarGraficoSimetria();
+        });
+
+        document.getElementById('btn-reset-global-filter').addEventListener('click', () => {
+            biGlobalStart.value = '';
+            biGlobalEnd.value = '';
+            biGlobalRotina.value = 'TODAS';
+            if (selectSimetriaRotina) selectSimetriaRotina.value = 'TODAS';
+            aplicarFiltrosGlobaisBI();
         });
 
         document.getElementById('btn-reset-global-filter').addEventListener('click', () => {
@@ -5547,7 +5560,26 @@
         const modalInfoSimetria = document.getElementById('modal-info-simetria');
         const btnCloseInfoSimetria = document.getElementById('btn-close-info-simetria');
 
-        const STORAGE_KEY_PESO_CORPORAL = 'tracker_peso_corporal_kg';
+        const PESO_CORPORAL_PADRAO = 55;
+        let chartSimetriaInstance = null;
+
+        function obterChavePesoCorporalUsuario() {
+            const usuarioAtual = (biGlobalUsuario?.value || usuarioEmail || usuarioAtivo || 'padrao')
+                .trim()
+                .toLowerCase();
+            return `pesoCorporal_${usuarioAtual}`;
+        }
+
+        function carregarPesoCorporalUsuario() {
+            try {
+                const salvo = localStorage.getItem(obterChavePesoCorporalUsuario());
+                const parsed = salvo !== null ? parseFloat(salvo) : NaN;
+                const valor = Number.isFinite(parsed) && parsed >= 0 ? parsed : PESO_CORPORAL_PADRAO;
+                inputSimetriaPeso.value = String(valor);
+            } catch (_) {
+                inputSimetriaPeso.value = String(PESO_CORPORAL_PADRAO);
+            }
+        }
         const PESO_CORPORAL_PADRAO = 55;
         let chartSimetriaInstance = null;
 
@@ -5555,24 +5587,30 @@
         // A ordem importa: regras mais específicas (ex.: Búlgaro no Smith) vêm antes das genéricas (Smith).
         const FATORES_PESO_CORPORAL_K = [
             { keywords: ['bulgaro', 'afundo', 'passada'], k: 0.70 },
-            { keywords: ['agachamento livre', 'agachamento no smith', 'agachamento smith', 'hack'], k: 0.85 },
+            { keywords: ['agachamento livre', 'agachamento no smith', 'agachamento smith', 'agachamento taca', 'hack'], k: 0.85 },
             { keywords: ['gemeos em pe', 'panturrilha em pe'], k: 0.85 },
             { keywords: ['barra fixa', 'paralelas', 'mergulho'], k: 0.95 },
             { keywords: ['flexao de braco', 'flexoes de braco'], exclude: ['punho'], k: 0.65 },
             { keywords: ['banco romano', 'hiperextensao'], k: 0.50 }
         ];
 
-        // Inicializa o input de peso corporal a partir do localStorage
-        (function inicializarPesoCorporalSalvo() {
+        function obterChavePesoCorporalUsuario() {
+            const usuarioAtual = (biGlobalUsuario?.value || usuarioEmail || usuarioAtivo || 'padrao')
+                .trim()
+                .toLowerCase();
+            return `pesoCorporal_${usuarioAtual}`;
+        }
+
+        function carregarPesoCorporalUsuario() {
             try {
-                const salvo = localStorage.getItem(STORAGE_KEY_PESO_CORPORAL);
+                const salvo = localStorage.getItem(obterChavePesoCorporalUsuario());
                 const parsed = salvo !== null ? parseFloat(salvo) : NaN;
-                const valorInicial = Number.isFinite(parsed) && parsed >= 0 ? parsed : PESO_CORPORAL_PADRAO;
-                inputSimetriaPeso.value = String(valorInicial);
+                const valor = Number.isFinite(parsed) && parsed >= 0 ? parsed : PESO_CORPORAL_PADRAO;
+                inputSimetriaPeso.value = String(valor);
             } catch (_) {
                 inputSimetriaPeso.value = String(PESO_CORPORAL_PADRAO);
             }
-        })();
+        }
 
         function obterPesoCorporalInput() {
             const val = parseFloat(String(inputSimetriaPeso.value).replace(',', '.'));
@@ -5880,7 +5918,7 @@
             const parsed = parseFloat(String(inputSimetriaPeso.value).replace(',', '.'));
             if (Number.isFinite(parsed) && parsed >= 0) {
                 try {
-                    localStorage.setItem(STORAGE_KEY_PESO_CORPORAL, String(parsed));
+                    localStorage.setItem(obterChavePesoCorporalUsuario(), String(parsed));
                 } catch (_) { /* ignore storage quota errors */ }
             }
             atualizarGraficoSimetria();
