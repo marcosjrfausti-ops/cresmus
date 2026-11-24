@@ -1133,6 +1133,55 @@
             height: 360px;
             transition: height 0.2s ease;
         }
+        /* =========================================================
+           TELA 5: GRÁFICO 5 (SIMETRIA SUPERIORES VS. INFERIORES)
+           ========================================================= */
+        .bi-simetria-peso-item {
+            flex: 0 1 140px !important;
+        }
+        .bi-simetria-peso-item input[type="number"] {
+            font-weight: 700;
+            text-align: center;
+        }
+        .bi-simetria-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+        #bi-simetria-canvas-wrap {
+            width: 100%;
+            max-width: 260px;
+            height: 240px;
+            margin: 0 auto;
+        }
+        .bi-simetria-legend {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 24px;
+            padding-top: 2px;
+        }
+        .bi-simetria-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.92rem;
+            color: var(--text-primary);
+        }
+        .bi-simetria-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .bi-simetria-dot.sup { background: #bb86fc; }
+        .bi-simetria-dot.inf { background: #03dac6; }
+        .bi-simetria-pct {
+            font-weight: 800;
+            color: var(--text-primary);
+        }
     </style>
 </head>
 <body>
@@ -1280,6 +1329,31 @@
             </div>
         </div>
     </div>
+    <!-- Modal de Informação: Gráfico 5 (Simetria Superiores vs. Inferiores) -->
+    <div id="modal-info-simetria" class="modal-overlay">
+        <div class="modal-card">
+            <div class="bi-info-modal-header">
+                <h3>Sobre — Simetria (Carga Efetiva)</h3>
+                <button type="button" id="btn-close-info-simetria" class="btn-close-info-modal" title="Fechar">✕</button>
+            </div>
+            <div class="bi-info-body">
+                <p>
+                    Mede a proporção real de volume de trabalho entre <strong>Superiores</strong> e <strong>Inferiores</strong>, corrigindo exercícios que deslocam o próprio peso corporal.
+                </p>
+                <div class="bi-info-formula">
+                    Carga Efetiva = Carga Externa + (k × Peso Corporal)<br>
+                    VC Efetivo = Carga Efetiva × Repetições
+                </div>
+                <ul>
+                    <li><strong>Fatores de Peso Corporal (k):</strong> Búlgaro/Afundo/Passada (<code>0,70</code>), Agachamento Livre/Smith/Hack (<code>0,85</code>), Gêmeos em Pé (<code>0,85</code>), Barra Fixa/Paralelas/Mergulho (<code>0,95</code>), Flexão de Braço (<code>0,65</code>), Banco Romano/Hiperextensão (<code>0,50</code>). Demais exercícios usam <code>k = 0</code>.</li>
+                    <li><strong>Toggle de Correção:</strong> desligá-lo força <code>k = 0</code> em todos os exercícios para comparar o impacto do peso corporal.</li>
+                    <li><strong>Exclusão de Core:</strong> exercícios com <strong>Abdômen</strong> ou <strong>Lombar</strong> como protagonistas ficam fora da razão para não distorcer a simetria.</li>
+                    <li><strong>Séries válidas:</strong> séries de reconhecimento e aquecimento são excluídas automaticamente.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
 
     <!-- TELA 0: Login / Cadastro -->
     <div id="screen-0" class="screen active">
@@ -1669,6 +1743,62 @@
                 <canvas id="chart-frac"></canvas>
             </div>
         </section>
+        <!-- Gráfico 5: Simetria Superiores vs. Inferiores (Carga Efetiva) -->
+        <section class="bi-chart-card" id="card-grafico-simetria">
+            <div class="bi-chart-header">
+                <div class="bi-chart-title-wrap">
+                    <h3>5. Simetria Superiores vs. Inferiores (Carga Efetiva)</h3>
+                    <p>Proporção de Volume-Carga Efetivo • Core excluído</p>
+                </div>
+                <button type="button" id="btn-info-simetria" class="btn-chart-info" title="Sobre este gráfico">i</button>
+            </div>
+
+            <div class="bi-chart-controls">
+                <!-- Filtro de Rotina -->
+                <div class="bi-filter-item">
+                    <label for="bi-simetria-rotina">Rotina:</label>
+                    <select id="bi-simetria-rotina">
+                        <option value="TODAS">Todas as Rotinas</option>
+                    </select>
+                </div>
+
+                <!-- Input compacto de Peso Corporal -->
+                <div class="bi-filter-item bi-simetria-peso-item">
+                    <label for="bi-simetria-peso">Peso Atual (kg):</label>
+                    <input type="number" id="bi-simetria-peso" step="0.1" min="0" value="55">
+                </div>
+
+                <!-- Toggle discreto de Correção de Peso Corporal -->
+                <label class="bi-trend-toggle-label">
+                    <input type="checkbox" id="bi-simetria-correcao-toggle" checked>
+                    <span>Correção de Peso Corporal</span>
+                </label>
+            </div>
+
+            <div id="bi-simetria-empty" class="bi-chart-empty">
+                Nenhuma série válida de Superiores ou Inferiores encontrada no filtro selecionado.
+            </div>
+
+            <div class="bi-simetria-body" id="bi-simetria-body">
+                <div class="bi-chart-canvas-wrapper" id="bi-simetria-canvas-wrap">
+                    <canvas id="chart-simetria"></canvas>
+                </div>
+
+                <!-- Legenda enxuta com nome do grupo e porcentagem -->
+                <div class="bi-simetria-legend" id="bi-simetria-legend">
+                    <span class="bi-simetria-legend-item">
+                        <span class="bi-simetria-dot sup"></span>
+                        <span>Superiores</span>
+                        <span class="bi-simetria-pct" id="simetria-pct-sup">0,0%</span>
+                    </span>
+                    <span class="bi-simetria-legend-item">
+                        <span class="bi-simetria-dot inf"></span>
+                        <span>Inferiores</span>
+                        <span class="bi-simetria-pct" id="simetria-pct-inf">0,0%</span>
+                    </span>
+                </div>
+            </div>
+        </section>        
     </div>
 
     <!-- TELA 6: Seleção de Rotina para Alterar -->
@@ -3269,17 +3399,18 @@
         }
 
         function popularSelectsDoDashboard() {
-    const rotinasSet = new Set();
+            const rotinasSet = new Set();
 
-    rawTreinosExecutados.forEach(item => {
-        if (item.nomeRotina) rotinasSet.add(item.nomeRotina.toUpperCase());
-    });
+            rawTreinosExecutados.forEach(item => {
+                if (item.nomeRotina) rotinasSet.add(item.nomeRotina.toUpperCase());
+            });
 
-    const listaRotinas = Array.from(rotinasSet).sort();
-    preencherSelect(biGlobalRotina, listaRotinas, "TODAS", "Todas as Rotinas");
-    preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
-    popularSelectRotinaBase100(listaRotinas);
-}
+            const listaRotinas = Array.from(rotinasSet).sort();
+            preencherSelect(biGlobalRotina, listaRotinas, "TODAS", "Todas as Rotinas");
+            preencherSelect(biGlobalUsuario, [usuarioEmail], usuarioEmail, "Seu Perfil");
+            popularSelectRotinaBase100(listaRotinas);
+            popularSelectRotinaSimetria(listaRotinas);
+        }}
         function filtrarRegistrosGlobais() {
             const gStart = biGlobalStart.value;
             const gEnd = biGlobalEnd.value;
@@ -3304,6 +3435,7 @@
             atualizarGraficoBase100();
             atualizarGraficoVCSerie();
             atualizarGraficoSeriesFracionadas();
+            atualizarGraficoSimetria();
         }
 
         async function carregarDadosDashboardBI() {
@@ -3336,14 +3468,18 @@
             }
         }
 
-        [biGlobalStart, biGlobalEnd, biGlobalRotina].forEach(el => {
-            el.addEventListener('change', aplicarFiltrosGlobaisBI);
+        biGlobalRotina.addEventListener('change', () => {
+            if (selectSimetriaRotina) {
+                selectSimetriaRotina.value = biGlobalRotina.value || 'TODAS';
+                atualizarGraficoSimetria();
+            }
         });
 
         document.getElementById('btn-reset-global-filter').addEventListener('click', () => {
             biGlobalStart.value = '';
             biGlobalEnd.value = '';
             biGlobalRotina.value = 'TODAS';
+            if (selectSimetriaRotina) selectSimetriaRotina.value = 'TODAS';
             aplicarFiltrosGlobaisBI();
         });
 
@@ -5282,6 +5418,372 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modalInfoFrac.classList.contains('open')) {
                 modalInfoFrac.classList.remove('open');
+            }
+        });
+        /* =========================================================================
+           GRÁFICO 5: SIMETRIA SUPERIORES VS. INFERIORES (CARGA EFETIVA)
+           ========================================================================= */
+        const selectSimetriaRotina = document.getElementById('bi-simetria-rotina');
+        const inputSimetriaPeso = document.getElementById('bi-simetria-peso');
+        const toggleSimetriaCorrecao = document.getElementById('bi-simetria-correcao-toggle');
+        const bodySimetria = document.getElementById('bi-simetria-body');
+        const emptyStateSimetria = document.getElementById('bi-simetria-empty');
+        const canvasSimetria = document.getElementById('chart-simetria');
+        const pctSupEl = document.getElementById('simetria-pct-sup');
+        const pctInfEl = document.getElementById('simetria-pct-inf');
+
+        const btnInfoSimetria = document.getElementById('btn-info-simetria');
+        const modalInfoSimetria = document.getElementById('modal-info-simetria');
+        const btnCloseInfoSimetria = document.getElementById('btn-close-info-simetria');
+
+        const STORAGE_KEY_PESO_CORPORAL = 'tracker_peso_corporal_kg';
+        const PESO_CORPORAL_PADRAO = 55;
+        let chartSimetriaInstance = null;
+
+        // Mapa configurável de fatores de peso corporal (k).
+        // A ordem importa: regras mais específicas (ex.: Búlgaro no Smith) vêm antes das genéricas (Smith).
+        const FATORES_PESO_CORPORAL_K = [
+            { keywords: ['bulgaro', 'afundo', 'passada'], k: 0.70 },
+            { keywords: ['agachamento livre', 'agachamento no smith', 'agachamento smith', 'hack'], k: 0.85 },
+            { keywords: ['gemeos em pe', 'panturrilha em pe'], k: 0.85 },
+            { keywords: ['barra fixa', 'paralelas', 'mergulho'], k: 0.95 },
+            { keywords: ['flexao de braco', 'flexoes de braco'], exclude: ['punho'], k: 0.65 },
+            { keywords: ['banco romano', 'hiperextensao'], k: 0.50 }
+        ];
+
+        // Inicializa o input de peso corporal a partir do localStorage
+        (function inicializarPesoCorporalSalvo() {
+            try {
+                const salvo = localStorage.getItem(STORAGE_KEY_PESO_CORPORAL);
+                const parsed = salvo !== null ? parseFloat(salvo) : NaN;
+                const valorInicial = Number.isFinite(parsed) && parsed >= 0 ? parsed : PESO_CORPORAL_PADRAO;
+                inputSimetriaPeso.value = String(valorInicial);
+            } catch (_) {
+                inputSimetriaPeso.value = String(PESO_CORPORAL_PADRAO);
+            }
+        })();
+
+        function obterPesoCorporalInput() {
+            const val = parseFloat(String(inputSimetriaPeso.value).replace(',', '.'));
+            return Number.isFinite(val) && val >= 0 ? val : 0;
+        }
+
+        function obterPesoCorporalDoRegistro(docItem, pesoFallback) {
+            const historico = docItem?.pesoCorporal ?? docItem?.pesoCorporalKg;
+            const parsed = Number(historico);
+            if (Number.isFinite(parsed) && parsed > 0) return parsed;
+            return pesoFallback;
+        }
+
+        function obterFatorPesoCorporal(nomeExercicio) {
+            const norm = normalizarParaClassificacao(nomeExercicio);
+            if (!norm) return 0;
+
+            for (const regra of FATORES_PESO_CORPORAL_K) {
+                if (Array.isArray(regra.exclude) && regra.exclude.some(ex => norm.includes(ex))) {
+                    continue;
+                }
+                if (regra.keywords.some(kw => norm.includes(kw))) {
+                    return regra.k;
+                }
+            }
+            return 0;
+        }
+
+        function isSerieValidaSimetria(serieObj, kBase) {
+            if (!serieObj) return false;
+            const nome = normalizarTexto(serieObj.serie || '');
+            if (nome.includes('reconhecimento') || nome.includes('aquecimento')) return false;
+            const kg = Number(serieObj.kg);
+            const reps = Number(serieObj.reps);
+            if (!Number.isFinite(kg) || !Number.isFinite(reps) || reps <= 0 || kg < 0) return false;
+            return kg > 0 || kBase > 0;
+        }
+
+        // Classifica pelo músculo protagonista (excluindo Core: Abdômen e Lombar)
+        function classificarMacrogrupoSimetria(docItem) {
+            const protagonista = docItem?.mme?.protagonista || docItem?.musculo || '';
+            const normProt = normalizarParaClassificacao(protagonista);
+            const normMusc = normalizarParaClassificacao(docItem?.musculo || '');
+            const alvo = normProt || normMusc;
+
+            if (!alvo) return null;
+
+            // 1. Exclusão explícita de Core como protagonista
+            if (
+                alvo.includes('abdom') ||
+                alvo.includes('obliquo') ||
+                alvo.includes('transverso') ||
+                alvo === 'core' ||
+                alvo.includes('lombar') ||
+                alvo.includes('eretor')
+            ) {
+                return 'core';
+            }
+
+            // 2. Inferiores
+            if (
+                alvo.includes('quadriceps') ||
+                alvo.includes('isquiotibiais') ||
+                alvo.includes('posterior de coxa') ||
+                alvo.includes('gluteo') ||
+                alvo.includes('panturrilha') ||
+                alvo.includes('gastrocnemio') ||
+                alvo.includes('soleo') ||
+                alvo.includes('adutor') ||
+                alvo.includes('abdutor') ||
+                alvo.includes('pernas')
+            ) {
+                return 'inferiores';
+            }
+
+            // 3. Superiores
+            if (
+                alvo.includes('peito') ||
+                alvo.includes('peitoral') ||
+                alvo.includes('costas') ||
+                alvo.includes('dorsal') ||
+                alvo.includes('romboide') ||
+                alvo.includes('trapezio') ||
+                alvo.includes('deltoide') ||
+                alvo.includes('ombro') ||
+                alvo.includes('biceps') ||
+                alvo.includes('triceps') ||
+                alvo.includes('antebraco') ||
+                alvo.includes('braquiorradial') ||
+                alvo.includes('punho') ||
+                alvo.includes('braquial')
+            ) {
+                return 'superiores';
+            }
+
+            return null;
+        }
+
+        function popularSelectRotinaSimetria(listaRotinas) {
+            const valorAtual = selectSimetriaRotina.value || 'TODAS';
+            selectSimetriaRotina.innerHTML = '<option value="TODAS">Todas as Rotinas</option>';
+            listaRotinas.forEach(rot => {
+                const opt = document.createElement('option');
+                opt.value = rot;
+                opt.textContent = rot;
+                selectSimetriaRotina.appendChild(opt);
+            });
+
+            if (Array.from(selectSimetriaRotina.options).some(o => o.value === valorAtual)) {
+                selectSimetriaRotina.value = valorAtual;
+            } else {
+                selectSimetriaRotina.value = 'TODAS';
+            }
+        }
+
+        function obterRegistrosFiltradosSimetria() {
+            const gStart = biGlobalStart.value;
+            const gEnd = biGlobalEnd.value;
+            const rotinaLocal = selectSimetriaRotina.value || 'TODAS';
+
+            return rawTreinosExecutados.filter(docItem => {
+                if (rotinaLocal !== 'TODAS') {
+                    if ((docItem.nomeRotina || '').toUpperCase() !== rotinaLocal.toUpperCase()) return false;
+                }
+                const dataDoc = docItem.dataExecucao || '';
+                if (gStart && dataDoc < gStart) return false;
+                if (gEnd && dataDoc > gEnd) return false;
+                return true;
+            });
+        }
+
+        function formatarKgInteiroBR(valor) {
+            return `${Math.round(valor).toLocaleString('pt-BR')} kg`;
+        }
+
+        function construirDadosSimetria() {
+            const registros = obterRegistrosFiltradosSimetria();
+            const usarCorrecao = toggleSimetriaCorrecao.checked;
+            const pesoInput = obterPesoCorporalInput();
+
+            const resumo = {
+                superiores: { nome: 'Superiores', vcTotal: 0, vcExterno: 0, vcCorporal: 0, seriesValidas: 0, pct: 0 },
+                inferiores: { nome: 'Inferiores', vcTotal: 0, vcExterno: 0, vcCorporal: 0, seriesValidas: 0, pct: 0 }
+            };
+
+            registros.forEach(docItem => {
+                if (!Array.isArray(docItem.series) || docItem.series.length === 0) return;
+
+                const macro = classificarMacrogrupoSimetria(docItem);
+                if (macro !== 'superiores' && macro !== 'inferiores') return;
+
+                const kBase = obterFatorPesoCorporal(docItem.exercicio);
+                const kEfetivo = usarCorrecao ? kBase : 0;
+                const pesoCorporal = obterPesoCorporalDoRegistro(docItem, pesoInput);
+
+                const validas = docItem.series.filter(s => isSerieValidaSimetria(s, kBase));
+                if (validas.length === 0) return;
+
+                const destino = resumo[macro];
+
+                validas.forEach(s => {
+                    const cargaExterna = Number(s.kg);
+                    const reps = Number(s.reps);
+                    const cargaCorporal = kEfetivo * pesoCorporal;
+                    const cargaEfetiva = cargaExterna + cargaCorporal;
+
+                    destino.vcExterno += cargaExterna * reps;
+                    destino.vcCorporal += cargaCorporal * reps;
+                    destino.vcTotal += cargaEfetiva * reps;
+                    destino.seriesValidas += 1;
+                });
+            });
+
+            const totalGeral = resumo.superiores.vcTotal + resumo.inferiores.vcTotal;
+            if (totalGeral > 0) {
+                resumo.superiores.pct = (resumo.superiores.vcTotal / totalGeral) * 100;
+                resumo.inferiores.pct = (resumo.inferiores.vcTotal / totalGeral) * 100;
+            }
+
+            return {
+                totalGeral,
+                itens: [resumo.superiores, resumo.inferiores]
+            };
+        }
+
+        // Plugin inline: exibe apenas o Volume-Carga Efetivo Total no centro da rosca
+        const simetriaCenterTextPlugin = {
+            id: 'simetriaCenterText',
+            afterDraw(chart) {
+                const meta = chart.getDatasetMeta(0);
+                const firstArc = meta?.data?.[0];
+                if (!firstArc) return;
+
+                const texto = chart.config._centerTotalText || '';
+                if (!texto) return;
+
+                const { ctx } = chart;
+                const centerX = firstArc.x;
+                const centerY = firstArc.y;
+                const maxWidth = (firstArc.innerRadius || 60) * 1.72;
+
+                ctx.save();
+                let fontSize = 19;
+                ctx.font = `800 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+                while (fontSize > 12 && ctx.measureText(texto).width > maxWidth) {
+                    fontSize -= 1;
+                    ctx.font = `800 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+                }
+
+                ctx.fillStyle = '#e0e0e0';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(texto, centerX, centerY);
+                ctx.restore();
+            }
+        };
+
+        function atualizarGraficoSimetria() {
+            const { totalGeral, itens } = construirDadosSimetria();
+            const [sup, inf] = itens;
+
+            if (chartSimetriaInstance) {
+                chartSimetriaInstance.destroy();
+                chartSimetriaInstance = null;
+            }
+
+            if (totalGeral <= 0) {
+                bodySimetria.style.display = 'none';
+                emptyStateSimetria.classList.add('visible');
+                return;
+            }
+
+            emptyStateSimetria.classList.remove('visible');
+            bodySimetria.style.display = 'flex';
+
+            pctSupEl.textContent = `${formatarNumeroBR(sup.pct, 1)}%`;
+            pctInfEl.textContent = `${formatarNumeroBR(inf.pct, 1)}%`;
+
+            const config = {
+                type: 'doughnut',
+                _centerTotalText: formatarKgInteiroBR(totalGeral),
+                data: {
+                    labels: ['Superiores', 'Inferiores'],
+                    datasets: [
+                        {
+                            data: [
+                                Number(sup.vcTotal.toFixed(1)),
+                                Number(inf.vcTotal.toFixed(1))
+                            ],
+                            backgroundColor: ['#bb86fc', '#03dac6'],
+                            hoverBackgroundColor: ['#cca2ff', '#2ce8d6'],
+                            borderColor: '#1e1e1e',
+                            borderWidth: 3,
+                            hoverOffset: 6
+                        }
+                    ]
+                },
+                plugins: [simetriaCenterTextPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    layout: { padding: 8 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#121212',
+                            borderColor: '#bb86fc',
+                            borderWidth: 1,
+                            titleColor: '#bb86fc',
+                            bodyColor: '#e0e0e0',
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                title: (tooltipItems) => {
+                                    const idx = tooltipItems[0]?.dataIndex;
+                                    if (idx === undefined) return '';
+                                    const item = itens[idx];
+                                    return `${item.nome} — ${formatarNumeroBR(item.pct, 1)}%`;
+                                },
+                                label: (ctx) => {
+                                    const item = itens[ctx.dataIndex];
+                                    const plural = item.seriesValidas === 1 ? 'série' : 'séries';
+                                    return [
+                                        `VC Efetivo Total: ${formatarKgInteiroBR(item.vcTotal)}`,
+                                        `Carga Externa: ${formatarKgInteiroBR(item.vcExterno)}`,
+                                        `Peso Corporal: ${formatarKgInteiroBR(item.vcCorporal)}`,
+                                        `Séries Válidas: ${item.seriesValidas} ${plural}`
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            chartSimetriaInstance = new Chart(canvasSimetria.getContext('2d'), config);
+        }
+
+        // Eventos reativos do Gráfico 5
+        selectSimetriaRotina.addEventListener('change', atualizarGraficoSimetria);
+        toggleSimetriaCorrecao.addEventListener('change', atualizarGraficoSimetria);
+
+        inputSimetriaPeso.addEventListener('input', () => {
+            const parsed = parseFloat(String(inputSimetriaPeso.value).replace(',', '.'));
+            if (Number.isFinite(parsed) && parsed >= 0) {
+                try {
+                    localStorage.setItem(STORAGE_KEY_PESO_CORPORAL, String(parsed));
+                } catch (_) { /* ignore storage quota errors */ }
+            }
+            atualizarGraficoSimetria();
+        });
+
+        // Eventos do Modal de Informação do Gráfico 5
+        btnInfoSimetria.addEventListener('click', () => modalInfoSimetria.classList.add('open'));
+        btnCloseInfoSimetria.addEventListener('click', () => modalInfoSimetria.classList.remove('open'));
+        modalInfoSimetria.addEventListener('click', (e) => {
+            if (e.target === modalInfoSimetria) modalInfoSimetria.classList.remove('open');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalInfoSimetria.classList.contains('open')) {
+                modalInfoSimetria.classList.remove('open');
             }
         });
     </script>
