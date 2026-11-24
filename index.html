@@ -1222,6 +1222,87 @@
             height: 300px;
             transition: height 0.2s ease;
         }
+        /* =========================================================
+           TELA 5: GRÁFICO 7 (TERMÔMETRO DE PRONTIDÃO — MM3)
+           ========================================================= */
+        .bi-prontidao-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .bi-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            border-radius: 999px;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .bi-status-pill::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: currentColor;
+            flex-shrink: 0;
+        }
+        .bi-status-pill.status-pronto-alta {
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.45);
+        }
+        .bi-status-pill.status-pronto-estavel {
+            color: #60a5fa;
+            background: rgba(96, 165, 250, 0.12);
+            border-color: rgba(96, 165, 250, 0.45);
+        }
+        .bi-status-pill.status-atencao {
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.14);
+            border-color: rgba(245, 158, 11, 0.5);
+        }
+        .bi-status-pill.status-alerta {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.55);
+        }
+
+        .bi-prontidao-legend {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 14px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .bi-prontidao-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .bi-prontidao-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .bi-prontidao-dot.alta    { background: #10b981; }
+        .bi-prontidao-dot.estavel { background: #60a5fa; }
+        .bi-prontidao-dot.atencao { background: #f59e0b; }
+        .bi-prontidao-dot.alerta  { background: #ef4444; }
+
+        #bi-prontidao-canvas-wrap {
+            height: 310px;
+        }
     </style>
 </head>
 <body>
@@ -1413,6 +1494,32 @@
                     <li><strong>&lt; 10% (Conservador / Margem sobrando):</strong> queda muito baixa ou negativa; possível 1ª série longe da falha ou carga subestimada.</li>
                     <li><strong>10% a 35% (Fadiga Produtiva):</strong> esforço consistente preservando qualidade mecânica ao longo das séries.</li>
                     <li><strong>&gt; 35% (Alerta de Fadiga / Volume Lixo):</strong> queda brusca; vale revisar tempo de descanso entre séries ou excesso de volume.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de Informação: Gráfico 7 (Termômetro de Prontidão) -->
+    <div id="modal-info-prontidao" class="modal-overlay">
+        <div class="modal-card">
+            <div class="bi-info-modal-header">
+                <h3>Sobre — Termômetro de Prontidão</h3>
+                <button type="button" id="btn-close-info-prontidao" class="btn-close-info-modal" title="Fechar">✕</button>
+            </div>
+            <div class="bi-info-body">
+                <p>
+                    Monitora sua <strong>prontidão neuromuscular</strong> comparando a força real da 1ª série válida (momento de maior frescor) contra a média móvel das <strong>3 sessões anteriores (MM3)</strong> do mesmo exercício.
+                </p>
+                <div class="bi-info-formula">
+                    e1RM = Carga × (1 + Reps / 30)<br>
+                    Δ% = ((e1RM_Atual − MM3) / MM3) × 100
+                </div>
+                <ul>
+                    <li><strong>Histórico completo para MM3:</strong> mesmo com filtro de data ativo, as 3 sessões anteriores são buscadas no histórico completo para não perder os primeiros pontos do período.</li>
+                    <li><strong>Agregação segura:</strong> com múltiplos exercícios selecionados, o <code>Δ%</code> é calculado individualmente por exercício antes da média aritmética do dia.</li>
+                    <li><strong>&gt; +1% (Verde/Ciano):</strong> força em alta / pronto.</li>
+                    <li><strong>−5% a +1% (Azul suave):</strong> força estável / pronto.</li>
+                    <li><strong>&lt; −5% isolado (Âmbar):</strong> queda pontual — observar recuperação.</li>
+                    <li><strong>&lt; −5% em 2+ sessões seguidas (Vermelho):</strong> alerta de fadiga / recuperação insuficiente.</li>
                 </ul>
             </div>
         </div>
@@ -1911,7 +2018,62 @@
             <div class="bi-chart-canvas-wrapper" id="bi-dropoff-canvas-wrap">
                 <canvas id="chart-dropoff"></canvas>
             </div>
-        </section
+        </section>
+        <!-- Gráfico 7: Termômetro de Prontidão (Média Móvel de 3 Sessões) -->
+        <section class="bi-chart-card" id="card-grafico-prontidao">
+            <div class="bi-chart-header">
+                <div class="bi-chart-title-wrap">
+                    <h3>7. Termômetro de Prontidão (MM 3)</h3>
+                    <p>Variação de força real (1ª série válida) vs. média das 3 sessões anteriores</p>
+                </div>
+                <div class="bi-prontidao-header-actions">
+                    <span id="bi-prontidao-status-pill" class="bi-status-pill">Sem dados</span>
+                    <button type="button" id="btn-info-prontidao" class="btn-chart-info" title="Sobre este gráfico">i</button>
+                </div>
+            </div>
+
+            <div class="bi-chart-controls">
+                <!-- Filtro local 1: Grupamento Muscular -->
+                <div class="bi-filter-item">
+                    <label for="bi-prontidao-grupo">Grupamento Muscular:</label>
+                    <select id="bi-prontidao-grupo">
+                        <option value="TODOS">Todos</option>
+                    </select>
+                </div>
+
+                <!-- Filtro local 2: Exercício (dinâmico conforme grupamento) -->
+                <div class="bi-filter-item">
+                    <label for="bi-prontidao-exercicio">Exercício:</label>
+                    <select id="bi-prontidao-exercicio">
+                        <option value="TODOS">Todos</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Legenda semântica compacta -->
+            <div class="bi-prontidao-legend">
+                <span class="bi-prontidao-legend-item">
+                    <span class="bi-prontidao-dot alta"></span>&gt; +1% Alta
+                </span>
+                <span class="bi-prontidao-legend-item">
+                    <span class="bi-prontidao-dot estavel"></span>−5% a +1% Estável
+                </span>
+                <span class="bi-prontidao-legend-item">
+                    <span class="bi-prontidao-dot atencao"></span>&lt; −5% Isolada
+                </span>
+                <span class="bi-prontidao-legend-item">
+                    <span class="bi-prontidao-dot alerta"></span>&lt; −5% (2+ seguidas)
+                </span>
+            </div>
+
+            <div id="bi-prontidao-empty" class="bi-chart-empty">
+                São necessárias pelo menos 2 sessões válidas do mesmo exercício para calcular a variação de prontidão.
+            </div>
+
+            <div class="bi-chart-canvas-wrapper" id="bi-prontidao-canvas-wrap">
+                <canvas id="chart-prontidao"></canvas>
+            </div>
+        </section>
     </div>
 
     <!-- TELA 6: Seleção de Rotina para Alterar -->
@@ -3649,6 +3811,7 @@
             atualizarGraficoSeriesFracionadas();
             atualizarGraficoSimetria();
             atualizarGraficoDropOff();
+            atualizarGraficoProntidao();
         }
 
         async function carregarDadosDashboardBI() {
@@ -3710,6 +3873,8 @@
             if (selectSimetriaRotina) selectSimetriaRotina.value = 'TODAS';
             if (selectDropOffRotina) selectDropOffRotina.value = 'TODAS';
             if (selectDropOffGrupo) selectDropOffGrupo.value = 'TODOS';
+            if (selectProntidaoGrupo) selectProntidaoGrupo.value = 'TODOS';
+            if (selectProntidaoExercicio) selectProntidaoExercicio.value = 'TODOS';
             aplicarFiltrosGlobaisBI();
         });       
 
@@ -6460,6 +6625,547 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modalInfoDropOff.classList.contains('open')) {
                 modalInfoDropOff.classList.remove('open');
+            }
+        });
+        /* =========================================================================
+           GRÁFICO 7: TERMÔMETRO DE PRONTIDÃO (MÉDIA MÓVEL DE 3 SESSÕES)
+           ========================================================================= */
+        const selectProntidaoGrupo = document.getElementById('bi-prontidao-grupo');
+        const selectProntidaoExercicio = document.getElementById('bi-prontidao-exercicio');
+        const statusPillProntidao = document.getElementById('bi-prontidao-status-pill');
+        const canvasProntidao = document.getElementById('chart-prontidao');
+        const canvasWrapProntidao = document.getElementById('bi-prontidao-canvas-wrap');
+        const emptyStateProntidao = document.getElementById('bi-prontidao-empty');
+
+        const btnInfoProntidao = document.getElementById('btn-info-prontidao');
+        const modalInfoProntidao = document.getElementById('modal-info-prontidao');
+        const btnCloseInfoProntidao = document.getElementById('btn-close-info-prontidao');
+
+        let chartProntidaoInstance = null;
+        let prontidaoResizeTimer = null;
+
+        function calcularEpleyProntidao(kg, reps) {
+            return kg * (1 + (reps / 30));
+        }
+
+        function formatarDeltaPctProntidao(val) {
+            const arred = Number(val.toFixed(1));
+            const sinal = arred > 0 ? '+' : '';
+            return `${sinal}${formatarNumeroBR(arred, 1)}%`;
+        }
+
+        function obterEstiloProntidao(deltaPct, quedasConsecutivas) {
+            if (deltaPct < -5) {
+                if (quedasConsecutivas >= 2) {
+                    return {
+                        cor: '#ef4444',
+                        corHover: '#f87171',
+                        statusTooltip: 'Alerta de Fadiga (recuperação insuficiente)',
+                        badgeTexto: 'Alerta de Fadiga (2+ quedas seguidas)',
+                        badgeClasse: 'status-alerta'
+                    };
+                }
+                return {
+                    cor: '#f59e0b',
+                    corHover: '#fbbf24',
+                    statusTooltip: 'Atenção (queda isolada)',
+                    badgeTexto: 'Atenção (queda isolada)',
+                    badgeClasse: 'status-atencao'
+                };
+            }
+
+            if (deltaPct > 1) {
+                return {
+                    cor: '#10b981',
+                    corHover: '#34d399',
+                    statusTooltip: 'Pronto (força em alta)',
+                    badgeTexto: 'Pronto',
+                    badgeClasse: 'status-pronto-alta'
+                };
+            }
+
+            return {
+                cor: '#60a5fa',
+                corHover: '#93c5fd',
+                statusTooltip: 'Pronto (força estável)',
+                badgeTexto: 'Pronto',
+                badgeClasse: 'status-pronto-estavel'
+            };
+        }
+
+        function atualizarBadgeStatusProntidao(ultimoPonto) {
+            statusPillProntidao.className = 'bi-status-pill';
+            if (!ultimoPonto) {
+                statusPillProntidao.textContent = 'Sem dados';
+                return;
+            }
+            statusPillProntidao.textContent = ultimoPonto.estilo.badgeTexto;
+            statusPillProntidao.classList.add(ultimoPonto.estilo.badgeClasse);
+        }
+
+        // Busca o histórico completo (sem recorte de data) respeitando apenas o filtro global de Rotina,
+        // para que o cálculo da MM3 tenha acesso às 3 sessões anteriores antes do recorte visual de data.
+        function obterHistoricoCompletoProntidao() {
+            const gRotina = biGlobalRotina.value;
+            return rawTreinosExecutados.filter(docItem => {
+                if (!docItem.dataExecucao || !docItem.exercicio || !Array.isArray(docItem.series)) return false;
+                if (gRotina && gRotina !== 'TODAS') {
+                    if ((docItem.nomeRotina || '').toUpperCase() !== gRotina.toUpperCase()) return false;
+                }
+                return docItem.series.some(isSerieValidaE1RM);
+            });
+        }
+
+        // Calcula o deltaPct individual por exercício sobre todo o histórico cronológico
+        function calcularHistoricoDeltasPorExercicio(registrosHistorico) {
+            // Ordena para manter determinismo quando houver múltiplos documentos no mesmo dia
+            const ordenados = [...registrosHistorico].sort((a, b) => {
+                const cmpData = (a.dataExecucao || '').localeCompare(b.dataExecucao || '');
+                if (cmpData !== 0) return cmpData;
+                return (a.atualizadoEm || '').localeCompare(b.atualizadoEm || '');
+            });
+
+            // 1) Consolida 1ª série válida por (exercício, data)
+            const mapaExercicios = new Map(); // exNorm -> { nome, grupo, porData: Map(dataIso -> { kg, reps, e1rm }) }
+
+            ordenados.forEach(docItem => {
+                const validas = docItem.series.filter(isSerieValidaE1RM);
+                if (validas.length === 0) return;
+
+                const exNorm = normalizarTexto(docItem.exercicio);
+                const grupo = classificarGrupoMuscularExercicio(docItem.exercicio, docItem.musculo);
+
+                if (!mapaExercicios.has(exNorm)) {
+                    mapaExercicios.set(exNorm, {
+                        exNorm,
+                        nome: docItem.exercicio.trim(),
+                        grupo,
+                        porData: new Map()
+                    });
+                }
+
+                const exEntry = mapaExercicios.get(exNorm);
+
+                // Mantém a 1ª série válida da primeira execução registrada naquela data
+                if (!exEntry.porData.has(docItem.dataExecucao)) {
+                    const primeiraValida = validas.find(s => /^1[ªa]/.test(normalizarTexto(s.serie))) || validas[0];
+                    const kg = Number(primeiraValida.kg);
+                    const reps = Number(primeiraValida.reps);
+                    const e1rm = calcularEpleyProntidao(kg, reps);
+
+                    exEntry.porData.set(docItem.dataExecucao, {
+                        dataIso: docItem.dataExecucao,
+                        kg,
+                        reps,
+                        e1rm
+                    });
+                }
+            });
+
+            // 2) Calcula MM3 e deltaPct individual para cada ocorrência a partir da 2ª sessão do exercício
+            const eventosComDelta = [];
+
+            mapaExercicios.forEach(exEntry => {
+                const sessoes = Array.from(exEntry.porData.values())
+                    .sort((a, b) => a.dataIso.localeCompare(b.dataIso));
+
+                for (let i = 1; i < sessoes.length; i++) {
+                    const inicioJanela = Math.max(0, i - 3);
+                    const anteriores = sessoes.slice(inicioJanela, i);
+                    const baseCount = anteriores.length; // 1, 2 ou 3
+                    const mm3 = anteriores.reduce((acc, s) => acc + s.e1rm, 0) / baseCount;
+
+                    if (mm3 <= 0) continue;
+
+                    const atual = sessoes[i];
+                    const deltaPct = ((atual.e1rm - mm3) / mm3) * 100;
+
+                    eventosComDelta.push({
+                        dataIso: atual.dataIso,
+                        exNorm: exEntry.exNorm,
+                        exercicio: exEntry.nome,
+                        grupo: exEntry.grupo,
+                        e1rmAtual: atual.e1rm,
+                        mm3,
+                        deltaPct,
+                        kg: atual.kg,
+                        reps: atual.reps,
+                        baseCount,
+                        baseEmFormacao: baseCount < 3
+                    });
+                }
+            });
+
+            return eventosComDelta;
+        }
+
+        function popularFiltrosProntidao(eventosComDelta, resetarExercicio = false) {
+            const gStart = biGlobalStart.value;
+            const gEnd = biGlobalEnd.value;
+
+            // Considera eventos que têm ao menos 1 ponto no recorte de data atual (fallback para todos se vazio)
+            const eventosNoRecorte = eventosComDelta.filter(ev => {
+                if (gStart && ev.dataIso < gStart) return false;
+                if (gEnd && ev.dataIso > gEnd) return false;
+                return true;
+            });
+            const baseSelects = eventosNoRecorte.length > 0 ? eventosNoRecorte : eventosComDelta;
+
+            // 1) Grupamento Muscular
+            const grupoAnterior = selectProntidaoGrupo.value || 'TODOS';
+            const gruposSet = new Set(baseSelects.map(ev => ev.grupo));
+            const gruposOrdenados = Array.from(gruposSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+            selectProntidaoGrupo.innerHTML = '<option value="TODOS">Todos</option>';
+            gruposOrdenados.forEach(grupo => {
+                const opt = document.createElement('option');
+                opt.value = grupo;
+                opt.textContent = grupo;
+                selectProntidaoGrupo.appendChild(opt);
+            });
+            selectProntidaoGrupo.value = gruposOrdenados.includes(grupoAnterior) ? grupoAnterior : 'TODOS';
+
+            const grupoAtivo = selectProntidaoGrupo.value;
+
+            // 2) Exercício (dinâmico pertencente ao grupamento selecionado)
+            const exercicioAnterior = resetarExercicio ? 'TODOS' : (selectProntidaoExercicio.value || 'TODOS');
+            const mapaEx = new Map();
+
+            baseSelects.forEach(ev => {
+                if (grupoAtivo !== 'TODOS' && ev.grupo !== grupoAtivo) return;
+                if (!mapaEx.has(ev.exNorm)) {
+                    mapaEx.set(ev.exNorm, ev.exercicio);
+                }
+            });
+
+            const exerciciosOrdenados = Array.from(mapaEx.values()).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            selectProntidaoExercicio.innerHTML = '<option value="TODOS">Todos</option>';
+            exerciciosOrdenados.forEach(nomeEx => {
+                const opt = document.createElement('option');
+                opt.value = nomeEx;
+                opt.textContent = nomeEx;
+                selectProntidaoExercicio.appendChild(opt);
+            });
+
+            const exAindaExiste = exerciciosOrdenados.find(
+                ex => normalizarTexto(ex) === normalizarTexto(exercicioAnterior)
+            );
+            selectProntidaoExercicio.value = exAindaExiste || 'TODOS';
+        }
+
+        function construirSerieProntidao(eventosComDelta) {
+            const grupoSelecionado = selectProntidaoGrupo.value || 'TODOS';
+            const exercicioSelecionado = selectProntidaoExercicio.value || 'TODOS';
+            const modoIndividual = exercicioSelecionado !== 'TODOS';
+            const alvoExNorm = modoIndividual ? normalizarTexto(exercicioSelecionado) : null;
+
+            // Filtra pelos seletores locais mantendo o histórico completo de datas
+            const eventosFiltrados = eventosComDelta.filter(ev => {
+                if (grupoSelecionado !== 'TODOS' && ev.grupo !== grupoSelecionado) return false;
+                if (modoIndividual && ev.exNorm !== alvoExNorm) return false;
+                return true;
+            });
+
+            // Agrupa por data de sessão
+            const porData = new Map();
+            eventosFiltrados.forEach(ev => {
+                if (!porData.has(ev.dataIso)) {
+                    porData.set(ev.dataIso, []);
+                }
+                porData.get(ev.dataIso).push(ev);
+            });
+
+            const datasOrdenadas = Array.from(porData.keys()).sort((a, b) => a.localeCompare(b));
+
+            // Calcula agregação diária + sequência de quedas consecutivas (< -5%) no histórico contínuo
+            let quedasConsecutivas = 0;
+            const serieCompleta = datasOrdenadas.map(dataIso => {
+                const lista = porData.get(dataIso);
+                const deltaMedio = lista.reduce((acc, item) => acc + item.deltaPct, 0) / lista.length;
+
+                if (deltaMedio < -5) {
+                    quedasConsecutivas += 1;
+                } else {
+                    quedasConsecutivas = 0;
+                }
+
+                const estilo = obterEstiloProntidao(deltaMedio, quedasConsecutivas);
+
+                let melhorEx = lista[0];
+                let piorEx = lista[0];
+                let qtdBaseFormacao = 0;
+
+                lista.forEach(item => {
+                    if (item.deltaPct > melhorEx.deltaPct) melhorEx = item;
+                    if (item.deltaPct < piorEx.deltaPct) piorEx = item;
+                    if (item.baseEmFormacao) qtdBaseFormacao += 1;
+                });
+
+                return {
+                    dataIso,
+                    dataCompleta: formatarDataCompleta(dataIso),
+                    deltaPct: Number(deltaMedio.toFixed(1)),
+                    quedasConsecutivas,
+                    estilo,
+                    modoIndividual,
+                    detalheUnico: lista[0],
+                    qtdExercicios: lista.length,
+                    melhorEx,
+                    piorEx,
+                    qtdBaseFormacao
+                };
+            });
+
+            // Aplica o recorte visual do filtro global de data SOMENTE após o cálculo de MM3 e streak
+            const gStart = biGlobalStart.value;
+            const gEnd = biGlobalEnd.value;
+
+            const pontosVisiveis = serieCompleta.filter(p => {
+                if (gStart && p.dataIso < gStart) return false;
+                if (gEnd && p.dataIso > gEnd) return false;
+                return true;
+            });
+
+            const anosDistintos = new Set(pontosVisiveis.map(p => p.dataIso.slice(0, 4)));
+            const incluirAno = anosDistintos.size > 1;
+            pontosVisiveis.forEach(p => {
+                p.labelX = formatarDataCurta(p.dataIso, incluirAno);
+            });
+
+            return pontosVisiveis;
+        }
+
+        // Plugin inline: desenha apenas as 2 linhas de referência horizontais (0% contínua e -5% pontilhada)
+        const prontidaoReferenceLinesPlugin = {
+            id: 'prontidaoReferenceLines',
+            beforeDatasetsDraw(chart) {
+                const { ctx, chartArea, scales } = chart;
+                if (!chartArea || !scales?.y) return;
+
+                const yZero = scales.y.getPixelForValue(0);
+                const yLimite = scales.y.getPixelForValue(-5);
+
+                ctx.save();
+
+                // 1) Linha sutil contínua em 0%
+                if (yZero >= chartArea.top && yZero <= chartArea.bottom) {
+                    ctx.beginPath();
+                    ctx.setLineDash([]);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+                    ctx.lineWidth = 1;
+                    ctx.moveTo(chartArea.left, yZero);
+                    ctx.lineTo(chartArea.right, yZero);
+                    ctx.stroke();
+                }
+
+                // 2) Linha pontilhada discreta em -5% (limiar de queda)
+                if (yLimite >= chartArea.top && yLimite <= chartArea.bottom) {
+                    ctx.beginPath();
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeStyle = 'rgba(245, 158, 11, 0.50)';
+                    ctx.lineWidth = 1.2;
+                    ctx.moveTo(chartArea.left, yLimite);
+                    ctx.lineTo(chartArea.right, yLimite);
+                    ctx.stroke();
+
+                    ctx.setLineDash([]);
+                    ctx.font = '600 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                    ctx.fillStyle = 'rgba(245, 158, 11, 0.72)';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('-5%', chartArea.left + 4, yLimite - 3);
+                }
+
+                ctx.restore();
+            }
+        };
+
+        function renderizarGraficoProntidao(eventosCache = null) {
+            const eventosComDelta = eventosCache || calcularHistoricoDeltasPorExercicio(obterHistoricoCompletoProntidao());
+            const pontos = construirSerieProntidao(eventosComDelta);
+
+            if (chartProntidaoInstance) {
+                chartProntidaoInstance.destroy();
+                chartProntidaoInstance = null;
+            }
+
+            if (pontos.length === 0) {
+                atualizarBadgeStatusProntidao(null);
+                canvasWrapProntidao.style.display = 'none';
+                emptyStateProntidao.classList.add('visible');
+                return;
+            }
+
+            emptyStateProntidao.classList.remove('visible');
+            canvasWrapProntidao.style.display = 'block';
+            atualizarBadgeStatusProntidao(pontos[pontos.length - 1]);
+
+            const labels = pontos.map(p => p.labelX);
+            const valores = pontos.map(p => p.deltaPct);
+            const cores = pontos.map(p => p.estilo.cor);
+            const coresHover = pontos.map(p => p.estilo.corHover);
+
+            // Folga vertical garantindo visibilidade de 0%, -5% e rótulos acima/abaixo das barras
+            const maxVal = Math.max(...valores, 2);
+            const minVal = Math.min(...valores, -6);
+            const amplitude = Math.max(maxVal - minVal, 10);
+            const yMax = maxVal + amplitude * 0.22;
+            const yMin = minVal - amplitude * 0.22;
+
+            const modoCompactoLabels = window.innerWidth < 540 || pontos.length > 12;
+
+            chartProntidaoInstance = new Chart(canvasProntidao.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Prontidão (Δ%)',
+                            data: valores,
+                            backgroundColor: cores,
+                            hoverBackgroundColor: coresHover,
+                            borderRadius: (ctx) => {
+                                const val = ctx.raw ?? 0;
+                                return val >= 0
+                                    ? { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }
+                                    : { topLeft: 0, topRight: 0, bottomLeft: 4, bottomRight: 4 };
+                            },
+                            borderSkipped: false,
+                            maxBarThickness: 36,
+                            barPercentage: 0.68,
+                            categoryPercentage: 0.8,
+                            datalabels: {
+                                display: (ctx) => {
+                                    const idx = ctx.dataIndex;
+                                    const val = ctx.dataset.data[idx];
+                                    if (!modoCompactoLabels) return true;
+                                    return idx === pontos.length - 1 || val < -5;
+                                },
+                                anchor: (ctx) => (ctx.dataset.data[ctx.dataIndex] >= 0 ? 'end' : 'start'),
+                                align: (ctx) => (ctx.dataset.data[ctx.dataIndex] >= 0 ? 'top' : 'bottom'),
+                                offset: 4,
+                                clamp: true,
+                                color: (ctx) => pontos[ctx.dataIndex].estilo.cor,
+                                font: { size: 11, weight: '700' },
+                                formatter: (val) => formatarDeltaPctProntidao(val)
+                            }
+                        }
+                    ]
+                },
+                plugins: [ChartDataLabels, prontidaoReferenceLinesPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 22, right: 12, left: 12, bottom: 10 }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#121212',
+                            borderColor: '#bb86fc',
+                            borderWidth: 1,
+                            titleColor: '#bb86fc',
+                            bodyColor: '#e0e0e0',
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                title: (items) => {
+                                    const idx = items[0]?.dataIndex;
+                                    return idx !== undefined ? `Sessão: ${pontos[idx].dataCompleta}` : '';
+                                },
+                                label: (ctx) => {
+                                    const p = pontos[ctx.dataIndex];
+                                    const linhas = [
+                                        `Variação de Prontidão: ${formatarDeltaPctProntidao(p.deltaPct)}`,
+                                        `Status: ${p.estilo.statusTooltip}`
+                                    ];
+
+                                    if (p.modoIndividual) {
+                                        const d = p.detalheUnico;
+                                        linhas.push(`e1RM Atual: ${formatarNumeroBR(d.e1rmAtual, 1)} kg vs. MM3: ${formatarNumeroBR(d.mm3, 1)} kg`);
+                                        linhas.push(`1ª Série Válida: ${formatarValorCompacto(d.kg)} kg × ${d.reps} reps`);
+                                        if (d.baseEmFormacao) {
+                                            linhas.push(`Base em formação: ${d.baseCount}/3 sessões`);
+                                        }
+                                    } else {
+                                        linhas.push(`Exercícios considerados: ${p.qtdExercicios}`);
+                                        if (p.qtdExercicios === 1) {
+                                            const d = p.detalheUnico;
+                                            linhas.push(`Exercício: ${d.exercicio} (${formatarDeltaPctProntidao(d.deltaPct)})`);
+                                            if (d.baseEmFormacao) {
+                                                linhas.push(`Base em formação: ${d.baseCount}/3 sessões`);
+                                            }
+                                        } else {
+                                            linhas.push(`Melhor desvio: ${p.melhorEx.exercicio} (${formatarDeltaPctProntidao(p.melhorEx.deltaPct)})`);
+                                            linhas.push(`Pior desvio: ${p.piorEx.exercicio} (${formatarDeltaPctProntidao(p.piorEx.deltaPct)})`);
+                                            if (p.qtdBaseFormacao > 0) {
+                                                linhas.push(`Base em formação: ${p.qtdBaseFormacao} de ${p.qtdExercicios} exercício(s)`);
+                                            }
+                                        }
+                                    }
+
+                                    return linhas;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: {
+                                color: '#a0a0a0',
+                                font: { size: 11 }
+                            }
+                        },
+                        y: {
+                            display: false, // Oculta ticks, título e linhas de grade do eixo Y
+                            min: yMin,
+                            max: yMax
+                        }
+                    }
+                }
+            });
+        }
+
+        function atualizarGraficoProntidao(resetarExercicio = false) {
+            const eventosComDelta = calcularHistoricoDeltasPorExercicio(obterHistoricoCompletoProntidao());
+            popularFiltrosProntidao(eventosComDelta, resetarExercicio);
+            renderizarGraficoProntidao(eventosComDelta);
+        }
+
+        // Eventos dos filtros locais do Gráfico 7
+        selectProntidaoGrupo.addEventListener('change', () => {
+            atualizarGraficoProntidao(true);
+        });
+
+        selectProntidaoExercicio.addEventListener('change', () => {
+            renderizarGraficoProntidao();
+        });
+
+        // Reavalia exibição de rótulos ao redimensionar para/de telas estreitas
+        window.addEventListener('resize', () => {
+            if (!screens.s5.classList.contains('active')) return;
+            clearTimeout(prontidaoResizeTimer);
+            prontidaoResizeTimer = setTimeout(() => {
+                if (chartProntidaoInstance) renderizarGraficoProntidao();
+            }, 180);
+        });
+
+        // Eventos do Modal de Informação do Gráfico 7 ("i", "X", clique fora e Esc)
+        btnInfoProntidao.addEventListener('click', () => modalInfoProntidao.classList.add('open'));
+        btnCloseInfoProntidao.addEventListener('click', () => modalInfoProntidao.classList.remove('open'));
+        modalInfoProntidao.addEventListener('click', (e) => {
+            if (e.target === modalInfoProntidao) modalInfoProntidao.classList.remove('open');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalInfoProntidao.classList.contains('open')) {
+                modalInfoProntidao.classList.remove('open');
             }
         });
     </script>
