@@ -9,6 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
     <!-- jsPDF para geração do Relatório Tático em PDF -->
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <!-- Tesseract.js (OCR local gratuito no navegador para prints do Samsung Health) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
     <style>
         /* Variáveis de Tema Escuro */
@@ -1393,6 +1395,494 @@
             padding: 10px 12px;
             text-align: center;
         }
+        /* =========================================================
+           MÓDULO DE SONO: HOME (UPLOAD), CONFERÊNCIA, MODAL "i" E G8
+           ========================================================= */
+        .sono-home-card {
+            width: 100%;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .sono-home-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .sono-home-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--secondary-accent);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .sono-home-sub {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .sono-upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .sono-upload-box {
+            position: relative;
+            background: var(--bg-color);
+            border: 1.5px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            min-height: 92px;
+            transition: border-color 0.2s, background-color 0.2s;
+            user-select: none;
+        }
+        .sono-upload-box:hover {
+            border-color: var(--accent-color);
+            background: #171717;
+        }
+        .sono-upload-box.loaded {
+            border-style: solid;
+            border-color: var(--secondary-accent);
+            background: rgba(3, 218, 198, 0.07);
+        }
+        .sono-upload-tag {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            letter-spacing: 0.6px;
+        }
+        .sono-upload-desc {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+        }
+        .sono-upload-status {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--secondary-accent);
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-top: 2px;
+        }
+        .sono-clear-file {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1px solid var(--danger-color);
+            background: rgba(207, 102, 121, 0.15);
+            color: var(--danger-color);
+            font-size: 0.72rem;
+            font-weight: 700;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .sono-upload-box.loaded .sono-clear-file {
+            display: flex;
+        }
+        .sono-extract-btn {
+            width: 100%;
+            background: var(--secondary-accent);
+            color: #000000;
+            border: none;
+            padding: 13px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+            transition: filter 0.2s, opacity 0.2s;
+        }
+        .sono-extract-btn:hover:not(:disabled) {
+            filter: brightness(1.08);
+        }
+        .sono-extract-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .sono-progress-wrap {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .sono-progress-wrap.visible {
+            display: flex;
+        }
+        .sono-progress-track {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-color);
+            border-radius: 999px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        .sono-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-color), var(--secondary-accent));
+            transition: width 0.2s ease;
+        }
+        .sono-progress-label {
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* ---- MODAL DE CONFERÊNCIA PÓS-OCR ---- */
+        .sono-modal-card {
+            max-width: 540px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .sono-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            gap: 8px;
+        }
+        .sono-modal-header h3 {
+            font-size: 1.05rem;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .sono-modal-close {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .sono-modal-close:hover {
+            color: var(--text-primary);
+            border-color: var(--text-primary);
+        }
+        .sono-audit-banner {
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.8rem;
+            line-height: 1.45;
+            border: 1px solid var(--border-color);
+        }
+        .sono-audit-banner.ok {
+            background: rgba(76, 175, 80, 0.12);
+            border-color: rgba(76, 175, 80, 0.45);
+            color: #81c784;
+        }
+        .sono-audit-banner.warn {
+            background: rgba(255, 183, 77, 0.12);
+            border-color: rgba(255, 183, 77, 0.55);
+            color: #ffd54f;
+        }
+        .sono-section-label {
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--secondary-accent);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            margin-top: 4px;
+            border-left: 3px solid var(--secondary-accent);
+            padding-left: 8px;
+        }
+        .sono-form-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .sono-field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .sono-field label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        .sono-field input,
+        .sono-field select {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color-scheme: dark;
+            width: 100%;
+        }
+        .sono-field input.sono-suspect,
+        .sono-field select.sono-suspect {
+            border-color: #ffb74d;
+            background: rgba(255, 183, 77, 0.08);
+        }
+        .sono-inline-pair {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sono-inline-pair span {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+        .sono-nota-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sono-nota-badge {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+            color: #000000;
+        }
+        .sono-phase-row {
+            display: grid;
+            grid-template-columns: 82px 1fr 1fr 78px;
+            gap: 6px;
+            align-items: center;
+            background: var(--bg-color);
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #282828;
+        }
+        .sono-phase-name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .sono-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .sono-factor-edit-row {
+            display: grid;
+            grid-template-columns: 1.2fr 0.7fr 1fr;
+            gap: 8px;
+            align-items: center;
+            background: var(--bg-color);
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #282828;
+        }
+        .sono-factor-edit-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* ---- GRÁFICO 8: RAIO-X DA NOITE E CARDS COM BOTÃO "i" ---- */
+        .sono-xray-box {
+            background: var(--bg-color);
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 6px;
+        }
+        .sono-xray-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+        }
+        .sono-xray-score-block {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+        .sono-xray-score-num {
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .sono-xray-score-pill {
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #000000;
+        }
+        .sono-xray-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+        .sono-xray-meta strong {
+            color: var(--text-primary);
+        }
+        .sono-phases-bar {
+            width: 100%;
+            height: 16px;
+            border-radius: 999px;
+            overflow: hidden;
+            display: flex;
+            background: #252525;
+        }
+        .sono-phase-seg {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .sono-phases-legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+            gap: 8px;
+        }
+        .sono-phase-legend-item {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+        }
+        .sono-factors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+            gap: 10px;
+        }
+        .sono-factor-card {
+            position: relative;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .sono-factor-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .sono-factor-title {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        .sono-btn-info {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 1px solid var(--accent-color);
+            background: rgba(187, 134, 252, 0.12);
+            color: var(--accent-color);
+            font-size: 0.74rem;
+            font-weight: 800;
+            font-style: italic;
+            font-family: Georgia, serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .sono-btn-info:hover {
+            background: var(--accent-color);
+            color: #000000;
+        }
+        .sono-factor-val {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        .sono-factor-pill {
+            align-self: flex-start;
+            padding: 3px 9px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+        .sono-pill-insuficiente {
+            background: rgba(255, 152, 0, 0.18);
+            color: #ffb74d;
+            border: 1px solid rgba(255, 152, 0, 0.4);
+        }
+        .sono-pill-razoavel {
+            background: rgba(255, 213, 79, 0.16);
+            color: #ffd54f;
+            border: 1px solid rgba(255, 213, 79, 0.4);
+        }
+        .sono-pill-bom {
+            background: rgba(76, 175, 80, 0.16);
+            color: #81c784;
+            border: 1px solid rgba(76, 175, 80, 0.4);
+        }
+        .sono-pill-excelente {
+            background: rgba(79, 195, 247, 0.16);
+            color: #4fc3f7;
+            border: 1px solid rgba(79, 195, 247, 0.45);
+        }
+        .sono-info-dynamic {
+            background: var(--bg-color);
+            border-left: 3px solid var(--secondary-accent);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 0.86rem;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+        .sono-info-static {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+        @media (max-width: 480px) {
+            .sono-phase-row {
+                grid-template-columns: 74px 1fr 1fr 66px;
+                padding: 8px 6px;
+            }
+            .sono-factor-edit-row {
+                grid-template-columns: 1fr 68px 110px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1661,6 +2151,165 @@
             </div>
         </div>
     </div>
+    <!-- Modal: Conferência e Edição dos Dados Extraídos do Sono -->
+    <div id="modal-sono-conferencia" class="modal-overlay">
+        <div class="modal-card sono-modal-card">
+            <div class="sono-modal-header">
+                <h3>Conferir Dados do Sono</h3>
+                <button type="button" id="btn-close-sono-conf" class="sono-modal-close" title="Fechar">✕</button>
+            </div>
+
+            <div id="sono-audit-banner" class="sono-audit-banner ok">
+                Pronto para conferência.
+            </div>
+
+            <div class="sono-section-label">Resumo & Horários</div>
+            <div class="sono-form-grid-2">
+                <div class="sono-field">
+                    <label for="sono-conf-data">Data do Registro</label>
+                    <input type="date" id="sono-conf-data">
+                </div>
+                <div class="sono-field">
+                    <label for="sono-conf-nota">Nota (0–100)</label>
+                    <div class="sono-nota-row">
+                        <input type="number" id="sono-conf-nota" min="0" max="100" step="1">
+                        <span id="sono-conf-nota-badge" class="sono-nota-badge">--</span>
+                    </div>
+                </div>
+                <div class="sono-field">
+                    <label for="sono-conf-inicio">Hora Início</label>
+                    <input type="time" id="sono-conf-inicio">
+                </div>
+                <div class="sono-field">
+                    <label for="sono-conf-fim">Hora Fim</label>
+                    <input type="time" id="sono-conf-fim">
+                </div>
+                <div class="sono-field">
+                    <label>Tempo Total (SH_1)</label>
+                    <div class="sono-inline-pair">
+                        <input type="number" id="sono-conf-total-h" min="0" max="24"><span>h</span>
+                        <input type="number" id="sono-conf-total-m" min="0" max="59"><span>min</span>
+                    </div>
+                </div>
+                <div class="sono-field">
+                    <label>Tempo Real (SH_2)</label>
+                    <div class="sono-inline-pair">
+                        <input type="number" id="sono-conf-real-h" min="0" max="24"><span>h</span>
+                        <input type="number" id="sono-conf-real-m" min="0" max="59"><span>min</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sono-section-label">Fases do Sono (SH_1)</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div class="sono-phase-row">
+                    <span class="sono-phase-name"><span class="sono-dot" style="background:#ff5c8d;"></span>Acordado</span>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-acordado-h" min="0" max="24"><span>h</span></div></div>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-acordado-m" min="0" max="59"><span>m</span></div></div>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-acordado-pct" min="0" max="100"><span>%</span></div></div>
+                </div>
+                <div class="sono-phase-row">
+                    <span class="sono-phase-name"><span class="sono-dot" style="background:#b39ddb;"></span>REM</span>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-rem-h" min="0" max="24"><span>h</span></div></div>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-rem-m" min="0" max="59"><span>m</span></div></div>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-rem-pct" min="0" max="100"><span>%</span></div></div>
+                </div>
+                <div class="sono-phase-row">
+                    <span class="sono-phase-name"><span class="sono-dot" style="background:#7c6eff;"></span>Leve</span>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-leve-h" min="0" max="24"><span>h</span></div></div>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-leve-m" min="0" max="59"><span>m</span></div></div>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-leve-pct" min="0" max="100"><span>%</span></div></div>
+                </div>
+                <div class="sono-phase-row">
+                    <span class="sono-phase-name"><span class="sono-dot" style="background:#4a3aff;"></span>Profundo</span>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-profundo-h" min="0" max="24"><span>h</span></div></div>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-profundo-m" min="0" max="59"><span>m</span></div></div>
+                    <div class="sono-field"><div class="sono-inline-pair"><input type="number" id="sono-conf-profundo-pct" min="0" max="100"><span>%</span></div></div>
+                </div>
+            </div>
+
+            <div class="sono-section-label">Fatores da Pontuação (SH_2)</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div class="sono-factor-edit-row">
+                    <span class="sono-factor-edit-label">Tempo de sono (h)</span>
+                    <div class="sono-field"><input type="number" id="sono-conf-f-tempo-val" min="0" max="24" step="1"></div>
+                    <div class="sono-field">
+                        <select id="sono-conf-f-tempo-status">
+                            <option value="Insuficiente">Insuficiente</option>
+                            <option value="Razoável">Razoável</option>
+                            <option value="Bom">Bom</option>
+                            <option value="Excelente">Excelente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sono-factor-edit-row">
+                    <span class="sono-factor-edit-label">Recuperação física (%)</span>
+                    <div class="sono-field"><input type="number" id="sono-conf-f-fisica-val" min="0" max="100" step="1"></div>
+                    <div class="sono-field">
+                        <select id="sono-conf-f-fisica-status">
+                            <option value="Insuficiente">Insuficiente</option>
+                            <option value="Razoável">Razoável</option>
+                            <option value="Bom">Bom</option>
+                            <option value="Excelente">Excelente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sono-factor-edit-row">
+                    <span class="sono-factor-edit-label">Descanso (%)</span>
+                    <div class="sono-field"><input type="number" id="sono-conf-f-descanso-val" min="0" max="100" step="1"></div>
+                    <div class="sono-field">
+                        <select id="sono-conf-f-descanso-status">
+                            <option value="Insuficiente">Insuficiente</option>
+                            <option value="Razoável">Razoável</option>
+                            <option value="Bom">Bom</option>
+                            <option value="Excelente">Excelente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sono-factor-edit-row">
+                    <span class="sono-factor-edit-label">Recuperação mental (%)</span>
+                    <div class="sono-field"><input type="number" id="sono-conf-f-mental-val" min="0" max="100" step="1"></div>
+                    <div class="sono-field">
+                        <select id="sono-conf-f-mental-status">
+                            <option value="Insuficiente">Insuficiente</option>
+                            <option value="Razoável">Razoável</option>
+                            <option value="Bom">Bom</option>
+                            <option value="Excelente">Excelente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="sono-factor-edit-row">
+                    <span class="sono-factor-edit-label">Ciclos do sono (vezes)</span>
+                    <div class="sono-field"><input type="number" id="sono-conf-f-ciclos-val" min="0" max="20" step="1"></div>
+                    <div class="sono-field">
+                        <select id="sono-conf-f-ciclos-status">
+                            <option value="Insuficiente">Insuficiente</option>
+                            <option value="Razoável">Razoável</option>
+                            <option value="Bom">Bom</option>
+                            <option value="Excelente">Excelente</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" id="btn-cancel-sono-conf" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btn-save-sono-conf" class="btn-primary">Salvar Noite</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Informação ("i"): Detalhe de cada Fator de Sono -->
+    <div id="modal-info-sono-fator" class="modal-overlay">
+        <div class="modal-card" style="max-width: 460px;">
+            <div class="sono-modal-header">
+                <h3 id="sono-info-modal-title">Fator do Sono</h3>
+                <button type="button" id="btn-close-sono-info" class="sono-modal-close" title="Fechar">✕</button>
+            </div>
+            <div id="sono-info-modal-dynamic" class="sono-info-dynamic"></div>
+            <div id="sono-info-modal-static" class="sono-info-static"></div>
+        </div>
+    </div>
     
 
     <!-- TELA 0: Login / Cadastro -->
@@ -1692,6 +2341,42 @@
         <button id="btn-cronograma" class="btn-main">CRONOGRAMA</button>
         <hr class="divider">
         <button id="btn-dashboard" class="btn-main btn-dashboard-home">📊 DASHBOARD</button>
+        <hr class="divider">
+        <div id="sono-home-card" class="sono-home-card">
+            <div class="sono-home-header">
+                <span class="sono-home-title">Sono — Samsung Health</span>
+                <span class="sono-home-sub">Leitura local (sem salvar fotos)</span>
+            </div>
+
+            <div class="sono-upload-grid">
+                <div id="sono-drop-sh1" class="sono-upload-box">
+                    <button type="button" id="sono-clear-sh1" class="sono-clear-file" title="Remover SH_1">✕</button>
+                    <input type="file" id="sono-input-sh1" accept="image/*" hidden>
+                    <span class="sono-upload-tag">SH_1</span>
+                    <span class="sono-upload-desc">Fases & Tempo Total</span>
+                    <span id="sono-status-sh1" class="sono-upload-status">Toque para escolher</span>
+                </div>
+
+                <div id="sono-drop-sh2" class="sono-upload-box">
+                    <button type="button" id="sono-clear-sh2" class="sono-clear-file" title="Remover SH_2">✕</button>
+                    <input type="file" id="sono-input-sh2" accept="image/*" hidden>
+                    <span class="sono-upload-tag">SH_2</span>
+                    <span class="sono-upload-desc">Nota & 5 Fatores</span>
+                    <span id="sono-status-sh2" class="sono-upload-status">Toque para escolher</span>
+                </div>
+            </div>
+
+            <button type="button" id="btn-extrair-sono" class="sono-extract-btn" disabled>
+                EXTRAIR DADOS DO SONO
+            </button>
+
+            <div id="sono-progress-wrap" class="sono-progress-wrap">
+                <div class="sono-progress-track">
+                    <div id="sono-progress-bar" class="sono-progress-fill"></div>
+                </div>
+                <span id="sono-progress-label" class="sono-progress-label">Preparando leitura...</span>
+            </div>
+        </div>
         <div class="nav-back" id="btn-logout" style="margin-top: 24px;">← Trocar Perfil / Sair</div>
     </div>
 
@@ -2214,6 +2899,69 @@
                 <canvas id="chart-prontidao"></canvas>
             </div>
         </section>
+        <!-- 8. Sono & Recuperação (Samsung Health) -->
+    <section id="card-grafico-8-sono" class="bi-card full-width" style="margin-top: 20px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+        <div class="bi-card-header">
+            <div class="bi-card-title-row">
+                <h4 class="bi-card-title">8. Sono & Recuperação</h4>
+            </div>
+            <p class="bi-card-subtitle">Barras: Tempo de Sono (Meta 7h–9h) | Linha: Nota Diária (0–100) • Clique em um dia para abrir o Raio-X</p>
+        </div>
+
+        <div class="bi-local-filter">
+            <span class="filter-tag">Noite no Raio-X:</span>
+            <select id="f8-night-select">
+                <option value="">Sem registros de sono no período</option>
+            </select>
+        </div>
+
+        <div class="bi-kpi-banner">
+            <div class="bi-kpi-box">
+                <span class="bi-kpi-label">Média de Sono</span>
+                <span class="bi-kpi-value accent" id="kpi-sono-media-horas">--</span>
+            </div>
+            <div class="bi-kpi-box">
+                <span class="bi-kpi-label">Nota Média</span>
+                <span class="bi-kpi-value" id="kpi-sono-media-nota">--</span>
+            </div>
+            <div class="bi-kpi-box">
+                <span class="bi-kpi-label">Profundo + REM</span>
+                <span class="bi-kpi-value" id="kpi-sono-media-restaurador">--</span>
+            </div>
+        </div>
+
+        <div class="bi-chart-canvas-wrapper chart-wrapper tall-wrapper" style="position: relative; width: 100%; height: 320px;">
+            <canvas id="chart-8-sono"></canvas>
+            <div id="empty-chart-8" class="chart-empty-overlay">
+                Nenhum registro de sono salvo para o período selecionado. Envie SH_1 e SH_2 na Home para começar.
+            </div>
+        </div>
+
+        <!-- Raio-X da Noite Selecionada -->
+        <div id="sono-xray-container" class="sono-xray-box" style="display: none;">
+            <div class="sono-xray-header">
+                <div>
+                    <div id="sono-xray-date" style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:4px;">--</div>
+                    <div class="sono-xray-score-block">
+                        <span id="sono-xray-score" class="sono-xray-score-num">--</span>
+                        <span id="sono-xray-status" class="sono-xray-score-pill">--</span>
+                    </div>
+                </div>
+                <div class="sono-xray-meta">
+                    <span>Horário: <strong id="sono-xray-horario">--</strong></span>
+                    <span>Tempo Total: <strong id="sono-xray-total">--</strong></span>
+                    <span>Tempo Real: <strong id="sono-xray-real">--</strong></span>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div id="sono-phases-bar" class="sono-phases-bar"></div>
+                <div id="sono-phases-legend" class="sono-phases-legend"></div>
+            </div>
+
+            <div id="sono-factors-grid" class="sono-factors-grid"></div>
+        </div>
+    </section>
     </div>
 
     <!-- TELA 6: Seleção de Rotina para Alterar -->
@@ -8492,6 +9240,1049 @@
         }
 
         btnConfirmGeneratePdf.addEventListener('click', gerarRelatorioTaticoPDF);
+        /* =========================================================================
+           MÓDULO DE SONO: OCR ZONAL (SAMSUNG HEALTH), FIRESTORE E GRÁFICO 8
+           ========================================================================= */
+
+        // >>> TEXTOS FIXOS INFORMATIVOS DOS 5 CARDS (SUBSTITUA QUANDO QUISER) <<<
+        const SONO_TEXTOS_INFORMATIVOS = {
+            tempoSono: "aguardando input",
+            recuperacaoFisica: "aguardando input",
+            descanso: "aguardando input",
+            recuperacaoMental: "aguardando input",
+            ciclosSono: "aguardando input"
+        };
+
+        // Dimensão de referência dos prints (1080 x 2271) e mapa de coordenadas [x0, top, x1, bottom]
+        // (com margens direitas ampliadas em SH_1 para suportar >10h e fases >1h)
+        const SONO_BASE_W = 1080;
+        const SONO_BASE_H = 2271;
+
+        const SONO_ZONES = {
+            SH_1: [
+                { key: 'data',        bbox: [48,  358, 360, 426], psm: 7 },
+                { key: 'tempoTotal',  bbox: [63,  542, 460, 650], psm: 7 },
+                { key: 'acordado',    bbox: [244, 667, 620, 721], psm: 7 },
+                { key: 'rem',         bbox: [173, 724, 620, 775], psm: 7 },
+                { key: 'leve',        bbox: [173, 786, 620, 837], psm: 7 },
+                { key: 'profundo',    bbox: [236, 843, 620, 889], psm: 7 }
+            ],
+            SH_2: [
+                { key: 'data',              bbox: [315, 216,  753, 315],  psm: 7 },
+                { key: 'nota',              bbox: [0,   380,  247, 537],  psm: 7, whitelist: '0123456789' },
+                { key: 'horario',           bbox: [37,  622,  284, 687],  psm: 7, whitelist: '0123456789:- ' },
+                { key: 'tempoReal',         bbox: [20,  687,  253, 758],  psm: 7 },
+                { key: 'cardTempoSono',     bbox: [77,  1033, 509, 1280], psm: 6 },
+                { key: 'cardRecupFisica',   bbox: [568, 1036, 983, 1292], psm: 6 },
+                { key: 'cardDescanso',      bbox: [82,  1360, 514, 1618], psm: 6 },
+                { key: 'cardRecupMental',   bbox: [568, 1365, 986, 1621], psm: 6 },
+                { key: 'cardCiclos',        bbox: [80,  1692, 512, 1956], psm: 6 }
+            ]
+        };
+
+        // Escala oficial de notas e cores
+        function sonoClassificarNota(nota) {
+            const n = Number(nota) || 0;
+            if (n >= 85) return { label: 'Excelente', cor: '#4fc3f7' };           // Azul leve
+            if (n >= 75) return { label: 'Boa', cor: '#4caf50' };                 // Verde
+            if (n >= 60) return { label: 'Razoável', cor: '#ffd54f' };            // Amarelo
+            return { label: 'Precisa de Atenção', cor: '#ff9800' };               // Laranja
+        }
+
+        function sonoClassePillFator(status) {
+            const s = normalizarTexto(status);
+            if (s.includes('excelent')) return 'sono-pill-excelente';
+            if (s.includes('bom') || s.includes('boa')) return 'sono-pill-bom';
+            if (s.includes('razoav')) return 'sono-pill-razoavel';
+            return 'sono-pill-insuficiente';
+        }
+
+        function sonoFormatarMinutos(totalMin) {
+            const mTot = Math.max(0, Math.round(Number(totalMin) || 0));
+            const h = Math.floor(mTot / 60);
+            const m = mTot % 60;
+            if (h > 0 && m > 0) return `${h}h ${m}min`;
+            if (h > 0) return `${h}h`;
+            return `${m}min`;
+        }
+
+        function sonoFormatarDataBR(iso) {
+            if (!iso || !iso.includes('-')) return iso || '--';
+            const [a, m, d] = iso.split('-');
+            return `${d}/${m}/${a}`;
+        }
+
+        function sonoFormatarDataCurta(iso) {
+            if (!iso || !iso.includes('-')) return iso || '--';
+            const [, m, d] = iso.split('-');
+            return `${d}/${m}`;
+        }
+
+        function sonoHojeIso() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function sonoMinutosParaHM(totalMin) {
+            const t = Math.max(0, Math.round(Number(totalMin) || 0));
+            return { h: Math.floor(t / 60), m: t % 60 };
+        }
+
+        function sonoDiferencaHorarioMin(inicioStr, fimStr) {
+            if (!inicioStr || !fimStr || !inicioStr.includes(':') || !fimStr.includes(':')) return null;
+            const [h1, m1] = inicioStr.split(':').map(Number);
+            const [h2, m2] = fimStr.split(':').map(Number);
+            if ([h1, m1, h2, m2].some(Number.isNaN)) return null;
+            let diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+            if (diff < 0) diff += 24 * 60;
+            return diff;
+        }
+
+        /* --- Parsers de texto OCR --- */
+        function sonoParseData(texto) {
+            const limpo = normalizarTexto(texto);
+            const meses = {
+                jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
+                jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12
+            };
+            const match = limpo.match(/(\d{1,2})\s*(?:de\s*)?([a-z]{3})/);
+            if (!match) return '';
+            const dia = Number(match[1]);
+            const mes = meses[match[2]];
+            if (!mes || dia < 1 || dia > 31) return '';
+
+            const hoje = new Date();
+            let ano = hoje.getFullYear();
+            // Ajuste para virada de ano (ex.: print de dezembro lido em janeiro)
+            if (mes === 12 && hoje.getMonth() === 0) ano -= 1;
+
+            return `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        }
+
+        function sonoParseDuracao(texto) {
+            const semPct = String(texto || '').replace(/\([^)]*\)/g, '').replace(/\d+\s*%/g, '');
+            const hMatch = semPct.match(/(\d{1,2})\s*h/i);
+            const mMatch = semPct.match(/(\d{1,2})\s*m/i);
+            const h = hMatch ? Number(hMatch[1]) : 0;
+            const m = mMatch ? Number(mMatch[1]) : 0;
+            return h * 60 + m;
+        }
+
+        function sonoParseFase(texto) {
+            const str = String(texto || '');
+            const pctParen = str.match(/\(\s*(\d{1,3})\s*%?\s*\)/);
+            const pctSimples = str.match(/(\d{1,3})\s*%/);
+            const pct = pctParen ? Number(pctParen[1]) : (pctSimples ? Number(pctSimples[1]) : 0);
+            const minutos = sonoParseDuracao(str);
+            return { minutos, pct: Math.min(100, Math.max(0, pct)) };
+        }
+
+        function sonoParseNota(texto) {
+            const match = String(texto || '').match(/\d{1,3}/);
+            if (!match) return 0;
+            let n = Number(match[0]);
+            if (n > 100) n = Number(String(n).slice(0, 2));
+            return Math.min(100, Math.max(0, n));
+        }
+
+        function sonoParseHorario(texto) {
+            const matches = [...String(texto || '').matchAll(/(\d{1,2})\s*[:.;]\s*(\d{2})/g)];
+            const validos = matches
+                .map(m => ({ h: Number(m[1]), m: Number(m[2]) }))
+                .filter(t => t.h >= 0 && t.h <= 23 && t.m >= 0 && t.m <= 59)
+                .map(t => `${String(t.h).padStart(2, '0')}:${String(t.m).padStart(2, '0')}`);
+            return {
+                inicio: validos[0] || '',
+                fim: validos[1] || ''
+            };
+        }
+
+        function sonoParseCardFator(texto, tipo) {
+            const str = String(texto || '');
+            const norm = normalizarTexto(str);
+
+            let status = 'Bom';
+            if (norm.includes('insuf') || norm.includes('aten')) status = 'Insuficiente';
+            else if (norm.includes('razoav') || norm.includes('regul')) status = 'Razoável';
+            else if (norm.includes('excel') || norm.includes('otim')) status = 'Excelente';
+            else if (norm.includes('bom') || norm.includes('boa')) status = 'Bom';
+
+            let valor = 0;
+            if (tipo === 'horas') {
+                const m = str.match(/(\d{1,2})\s*h/i) || str.match(/\b(\d{1,2})\b/);
+                valor = m ? Number(m[1]) : 0;
+            } else if (tipo === 'pct') {
+                const m = str.match(/(\d{1,3})\s*%/) || str.match(/\b(\d{1,3})\b/);
+                valor = m ? Math.min(100, Number(m[1])) : 0;
+            } else {
+                const m = str.match(/(\d{1,2})\s*vez/i) || str.match(/\b(\d{1,2})\b/);
+                valor = m ? Number(m[1]) : 0;
+            }
+
+            return { valor, status };
+        }
+
+        /* --- Pré-processamento de imagem em Canvas (recorte proporcional + inversão de alto contraste) --- */
+        function sonoCarregarImagem(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    resolve(img);
+                };
+                img.onerror = (err) => {
+                    URL.revokeObjectURL(url);
+                    reject(err);
+                };
+                img.src = url;
+            });
+        }
+
+        function sonoRecortarETratar(img, bbox) {
+            const [x0, y0, x1, y1] = bbox;
+            const sx = (x0 / SONO_BASE_W) * img.naturalWidth;
+            const sy = (y0 / SONO_BASE_H) * img.naturalHeight;
+            const sw = ((x1 - x0) / SONO_BASE_W) * img.naturalWidth;
+            const sh = ((y1 - y0) / SONO_BASE_H) * img.naturalHeight;
+
+            const scale = 2.5;
+            const pad = 18;
+            const cw = Math.max(10, Math.round(sw * scale));
+            const ch = Math.max(10, Math.round(sh * scale));
+
+            const canvas = document.createElement('canvas');
+            canvas.width = cw + pad * 2;
+            canvas.height = ch + pad * 2;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, sx, sy, sw, sh, pad, pad, cw, ch);
+
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imgData.data;
+
+            // Inverte tema escuro -> papel branco com texto escuro, eliminando fundo das pílulas
+            for (let i = 0; i < data.length; i += 4) {
+                const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                const inv = Math.max(0, Math.min(255, Math.round(255 - ((lum - 68) * (255 / 118)))));
+                data[i] = inv;
+                data[i + 1] = inv;
+                data[i + 2] = inv;
+                data[i + 3] = 255;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            return canvas;
+        }
+
+        /* --- Upload na Home (SH_1 e SH_2) --- */
+        const sonoDropSh1 = document.getElementById('sono-drop-sh1');
+        const sonoDropSh2 = document.getElementById('sono-drop-sh2');
+        const sonoInputSh1 = document.getElementById('sono-input-sh1');
+        const sonoInputSh2 = document.getElementById('sono-input-sh2');
+        const sonoStatusSh1 = document.getElementById('sono-status-sh1');
+        const sonoStatusSh2 = document.getElementById('sono-status-sh2');
+        const sonoClearSh1 = document.getElementById('sono-clear-sh1');
+        const sonoClearSh2 = document.getElementById('sono-clear-sh2');
+        const btnExtrairSono = document.getElementById('btn-extrair-sono');
+        const sonoProgressWrap = document.getElementById('sono-progress-wrap');
+        const sonoProgressBar = document.getElementById('sono-progress-bar');
+        const sonoProgressLabel = document.getElementById('sono-progress-label');
+
+        let sonoFileSh1 = null;
+        let sonoFileSh2 = null;
+        let sonoLastDateMismatch = false;
+
+        function sonoAtualizarEstadoUploadHome() {
+            if (sonoFileSh1) {
+                sonoDropSh1.classList.add('loaded');
+                sonoStatusSh1.textContent = `✓ ${sonoFileSh1.name}`;
+            } else {
+                sonoDropSh1.classList.remove('loaded');
+                sonoStatusSh1.textContent = 'Toque para escolher';
+            }
+
+            if (sonoFileSh2) {
+                sonoDropSh2.classList.add('loaded');
+                sonoStatusSh2.textContent = `✓ ${sonoFileSh2.name}`;
+            } else {
+                sonoDropSh2.classList.remove('loaded');
+                sonoStatusSh2.textContent = 'Toque para escolher';
+            }
+
+            btnExtrairSono.disabled = !(sonoFileSh1 && sonoFileSh2);
+        }
+
+        function sonoLimparUploadsHome() {
+            sonoFileSh1 = null;
+            sonoFileSh2 = null;
+            sonoInputSh1.value = '';
+            sonoInputSh2.value = '';
+            sonoAtualizarEstadoUploadHome();
+        }
+
+        sonoDropSh1.addEventListener('click', () => sonoInputSh1.click());
+        sonoDropSh2.addEventListener('click', () => sonoInputSh2.click());
+
+        sonoClearSh1.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sonoFileSh1 = null;
+            sonoInputSh1.value = '';
+            sonoAtualizarEstadoUploadHome();
+        });
+        sonoClearSh2.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sonoFileSh2 = null;
+            sonoInputSh2.value = '';
+            sonoAtualizarEstadoUploadHome();
+        });
+
+        sonoInputSh1.addEventListener('change', (e) => {
+            sonoFileSh1 = e.target.files?.[0] || null;
+            sonoAtualizarEstadoUploadHome();
+        });
+        sonoInputSh2.addEventListener('change', (e) => {
+            sonoFileSh2 = e.target.files?.[0] || null;
+            sonoAtualizarEstadoUploadHome();
+        });
+
+        /* --- Execução sequencial do OCR Zonal --- */
+        btnExtrairSono.addEventListener('click', async () => {
+            if (!sonoFileSh1 || !sonoFileSh2) return;
+            if (!window.Tesseract) {
+                showToast('Biblioteca de OCR não carregada. Verifique sua conexão.');
+                return;
+            }
+
+            btnExtrairSono.disabled = true;
+            btnExtrairSono.textContent = 'LENDO PRINTS...';
+            sonoProgressWrap.classList.add('visible');
+            sonoProgressBar.style.width = '5%';
+            sonoProgressLabel.textContent = 'Inicializando motor de leitura (OCR)...';
+
+            let worker = null;
+            try {
+                const [img1, img2] = await Promise.all([
+                    sonoCarregarImagem(sonoFileSh1),
+                    sonoCarregarImagem(sonoFileSh2)
+                ]);
+
+                worker = await window.Tesseract.createWorker('por');
+
+                const totalPassos = SONO_ZONES.SH_1.length + SONO_ZONES.SH_2.length;
+                let passoAtual = 0;
+
+                const raw1 = {};
+                const raw2 = {};
+
+                async function lerListaZonas(img, zonas, destino, prefixo) {
+                    for (const z of zonas) {
+                        passoAtual++;
+                        const pct = Math.round((passoAtual / totalPassos) * 100);
+                        sonoProgressBar.style.width = `${pct}%`;
+                        sonoProgressLabel.textContent = `Lendo ${prefixo} (${passoAtual}/${totalPassos})...`;
+
+                        await worker.setParameters({
+                            tessedit_pageseg_mode: String(z.psm || 7),
+                            tessedit_char_whitelist: z.whitelist || ''
+                        });
+
+                        const recorte = sonoRecortarETratar(img, z.bbox);
+                        const { data } = await worker.recognize(recorte);
+                        destino[z.key] = (data?.text || '').trim();
+                    }
+                }
+
+                await lerListaZonas(img1, SONO_ZONES.SH_1, raw1, 'SH_1');
+                await lerListaZonas(img2, SONO_ZONES.SH_2, raw2, 'SH_2');
+
+                const dataSh1 = sonoParseData(raw1.data);
+                const dataSh2 = sonoParseData(raw2.data);
+                sonoLastDateMismatch = Boolean(dataSh1 && dataSh2 && dataSh1 !== dataSh2);
+
+                const tempoTotalMin = sonoParseDuracao(raw1.tempoTotal);
+                const tempoRealMin = sonoParseDuracao(raw2.tempoReal);
+                const acordado = sonoParseFase(raw1.acordado);
+                const rem = sonoParseFase(raw1.rem);
+                const leve = sonoParseFase(raw1.leve);
+                const profundo = sonoParseFase(raw1.profundo);
+                const nota = sonoParseNota(raw2.nota);
+                const horario = sonoParseHorario(raw2.horario);
+
+                const fTempo = sonoParseCardFator(raw2.cardTempoSono, 'horas');
+                const fFisica = sonoParseCardFator(raw2.cardRecupFisica, 'pct');
+                const fDescanso = sonoParseCardFator(raw2.cardDescanso, 'pct');
+                const fMental = sonoParseCardFator(raw2.cardRecupMental, 'pct');
+                const fCiclos = sonoParseCardFator(raw2.cardCiclos, 'vezes');
+
+                sonoAbrirModalConferencia({
+                    data: dataSh2 || dataSh1 || sonoHojeIso(),
+                    nota,
+                    horaInicio: horario.inicio,
+                    horaFim: horario.fim,
+                    tempoTotalMin,
+                    tempoRealMin,
+                    fases: { acordado, rem, leve, profundo },
+                    fatores: {
+                        tempoSono: fTempo,
+                        recuperacaoFisica: fFisica,
+                        descanso: fDescanso,
+                        recuperacaoMental: fMental,
+                        ciclosSono: fCiclos
+                    }
+                });
+            } catch (err) {
+                console.error('Erro na leitura OCR do sono:', err);
+                showToast('Erro ao ler os prints. Tente novamente.');
+            } finally {
+                if (worker) {
+                    try { await worker.terminate(); } catch (_) {}
+                }
+                sonoProgressWrap.classList.remove('visible');
+                sonoProgressBar.style.width = '0%';
+                btnExtrairSono.textContent = 'EXTRAIR DADOS DO SONO';
+                sonoAtualizarEstadoUploadHome();
+            }
+        });
+
+        /* --- Modal de Conferência e Auditoria Matemática em Tempo Real --- */
+        const modalSonoConf = document.getElementById('modal-sono-conferencia');
+        const sonoAuditBanner = document.getElementById('sono-audit-banner');
+        const btnCloseSonoConf = document.getElementById('btn-close-sono-conf');
+        const btnCancelSonoConf = document.getElementById('btn-cancel-sono-conf');
+        const btnSaveSonoConf = document.getElementById('btn-save-sono-conf');
+
+        const sConf = {
+            data: document.getElementById('sono-conf-data'),
+            nota: document.getElementById('sono-conf-nota'),
+            notaBadge: document.getElementById('sono-conf-nota-badge'),
+            inicio: document.getElementById('sono-conf-inicio'),
+            fim: document.getElementById('sono-conf-fim'),
+            totalH: document.getElementById('sono-conf-total-h'),
+            totalM: document.getElementById('sono-conf-total-m'),
+            realH: document.getElementById('sono-conf-real-h'),
+            realM: document.getElementById('sono-conf-real-m'),
+            acordadoH: document.getElementById('sono-conf-acordado-h'),
+            acordadoM: document.getElementById('sono-conf-acordado-m'),
+            acordadoPct: document.getElementById('sono-conf-acordado-pct'),
+            remH: document.getElementById('sono-conf-rem-h'),
+            remM: document.getElementById('sono-conf-rem-m'),
+            remPct: document.getElementById('sono-conf-rem-pct'),
+            leveH: document.getElementById('sono-conf-leve-h'),
+            leveM: document.getElementById('sono-conf-leve-m'),
+            levePct: document.getElementById('sono-conf-leve-pct'),
+            profundoH: document.getElementById('sono-conf-profundo-h'),
+            profundoM: document.getElementById('sono-conf-profundo-m'),
+            profundoPct: document.getElementById('sono-conf-profundo-pct'),
+            fTempoVal: document.getElementById('sono-conf-f-tempo-val'),
+            fTempoStatus: document.getElementById('sono-conf-f-tempo-status'),
+            fFisicaVal: document.getElementById('sono-conf-f-fisica-val'),
+            fFisicaStatus: document.getElementById('sono-conf-f-fisica-status'),
+            fDescansoVal: document.getElementById('sono-conf-f-descanso-val'),
+            fDescansoStatus: document.getElementById('sono-conf-f-descanso-status'),
+            fMentalVal: document.getElementById('sono-conf-f-mental-val'),
+            fMentalStatus: document.getElementById('sono-conf-f-mental-status'),
+            fCiclosVal: document.getElementById('sono-conf-f-ciclos-val'),
+            fCiclosStatus: document.getElementById('sono-conf-f-ciclos-status')
+        };
+
+        function sonoColetarPayloadModal() {
+            const totalMin = (Number(sConf.totalH.value) || 0) * 60 + (Number(sConf.totalM.value) || 0);
+            const realMin = (Number(sConf.realH.value) || 0) * 60 + (Number(sConf.realM.value) || 0);
+            const nota = Math.min(100, Math.max(0, Math.round(Number(sConf.nota.value) || 0)));
+            const classNota = sonoClassificarNota(nota);
+
+            return {
+                usuario: usuarioAtivo,
+                dataRegistro: sConf.data.value,
+                nota,
+                statusNota: classNota.label,
+                horaInicio: sConf.inicio.value,
+                horaFim: sConf.fim.value,
+                tempoTotalMin: totalMin,
+                tempoRealMin: realMin,
+                fases: {
+                    acordado: {
+                        minutos: (Number(sConf.acordadoH.value) || 0) * 60 + (Number(sConf.acordadoM.value) || 0),
+                        pct: Number(sConf.acordadoPct.value) || 0
+                    },
+                    rem: {
+                        minutos: (Number(sConf.remH.value) || 0) * 60 + (Number(sConf.remM.value) || 0),
+                        pct: Number(sConf.remPct.value) || 0
+                    },
+                    leve: {
+                        minutos: (Number(sConf.leveH.value) || 0) * 60 + (Number(sConf.leveM.value) || 0),
+                        pct: Number(sConf.levePct.value) || 0
+                    },
+                    profundo: {
+                        minutos: (Number(sConf.profundoH.value) || 0) * 60 + (Number(sConf.profundoM.value) || 0),
+                        pct: Number(sConf.profundoPct.value) || 0
+                    }
+                },
+                fatores: {
+                    tempoSono: { valor: Number(sConf.fTempoVal.value) || 0, status: sConf.fTempoStatus.value },
+                    recuperacaoFisica: { valor: Number(sConf.fFisicaVal.value) || 0, status: sConf.fFisicaStatus.value },
+                    descanso: { valor: Number(sConf.fDescansoVal.value) || 0, status: sConf.fDescansoStatus.value },
+                    recuperacaoMental: { valor: Number(sConf.fMentalVal.value) || 0, status: sConf.fMentalStatus.value },
+                    ciclosSono: { valor: Number(sConf.fCiclosVal.value) || 0, status: sConf.fCiclosStatus.value }
+                },
+                atualizadoEm: new Date().toISOString()
+            };
+        }
+
+        function sonoExecutarAuditoriaModal() {
+            // Limpa destaques anteriores
+            modalSonoConf.querySelectorAll('.sono-suspect').forEach(el => el.classList.remove('sono-suspect'));
+
+            const dados = sonoColetarPayloadModal();
+            const classNota = sonoClassificarNota(dados.nota);
+            sConf.notaBadge.textContent = classNota.label;
+            sConf.notaBadge.style.backgroundColor = classNota.cor;
+
+            const alertas = [];
+
+            if (sonoLastDateMismatch) {
+                alertas.push('Datas lidas em SH_1 e SH_2 divergiram — confirme a Data do Registro.');
+                sConf.data.classList.add('sono-suspect');
+            }
+
+            if (!dados.dataRegistro) {
+                alertas.push('Preencha a data do registro.');
+                sConf.data.classList.add('sono-suspect');
+            }
+
+            if (dados.nota <= 0) {
+                alertas.push('Confira a Nota do sono.');
+                sConf.nota.classList.add('sono-suspect');
+            }
+
+            const diffHor = sonoDiferencaHorarioMin(dados.horaInicio, dados.horaFim);
+            if (diffHor === null) {
+                alertas.push('Horário de início/fim incompleto.');
+                sConf.inicio.classList.add('sono-suspect');
+                sConf.fim.classList.add('sono-suspect');
+            } else if (Math.abs(diffHor - dados.tempoTotalMin) > 2) {
+                alertas.push(`Intervalo (${sonoFormatarMinutos(diffHor)}) difere do Tempo Total (${sonoFormatarMinutos(dados.tempoTotalMin)}).`);
+                sConf.inicio.classList.add('sono-suspect');
+                sConf.fim.classList.add('sono-suspect');
+                sConf.totalH.classList.add('sono-suspect');
+                sConf.totalM.classList.add('sono-suspect');
+            }
+
+            const realEsperado = dados.tempoTotalMin - dados.fases.acordado.minutos;
+            if (dados.tempoRealMin > 0 && Math.abs(realEsperado - dados.tempoRealMin) > 2) {
+                alertas.push(`Tempo Total − Acordado (${sonoFormatarMinutos(realEsperado)}) difere do Tempo Real (${sonoFormatarMinutos(dados.tempoRealMin)}).`);
+                sConf.realH.classList.add('sono-suspect');
+                sConf.realM.classList.add('sono-suspect');
+                sConf.acordadoM.classList.add('sono-suspect');
+            }
+
+            const somaPct = dados.fases.acordado.pct + dados.fases.rem.pct + dados.fases.leve.pct + dados.fases.profundo.pct;
+            if (somaPct < 98 || somaPct > 102) {
+                alertas.push(`Soma das fases está em ${somaPct}% (esperado ~100%).`);
+                [sConf.acordadoPct, sConf.remPct, sConf.levePct, sConf.profundoPct].forEach(el => el.classList.add('sono-suspect'));
+            }
+
+            if (alertas.length === 0) {
+                sonoAuditBanner.className = 'sono-audit-banner ok';
+                sonoAuditBanner.textContent = '✓ Auditoria OK: horários, tempo real e soma das fases fecharam corretamente.';
+            } else {
+                sonoAuditBanner.className = 'sono-audit-banner warn';
+                sonoAuditBanner.innerHTML = '⚠ Revise os campos destacados:<br>• ' + alertas.join('<br>• ');
+            }
+        }
+
+        function sonoAbrirModalConferencia(d) {
+            sConf.data.value = d.data || sonoHojeIso();
+            sConf.nota.value = d.nota ?? 0;
+            sConf.inicio.value = d.horaInicio || '';
+            sConf.fim.value = d.horaFim || '';
+
+            const tot = sonoMinutosParaHM(d.tempoTotalMin);
+            sConf.totalH.value = tot.h;
+            sConf.totalM.value = tot.m;
+
+            const real = sonoMinutosParaHM(d.tempoRealMin);
+            sConf.realH.value = real.h;
+            sConf.realM.value = real.m;
+
+            const ac = sonoMinutosParaHM(d.fases.acordado.minutos);
+            sConf.acordadoH.value = ac.h; sConf.acordadoM.value = ac.m; sConf.acordadoPct.value = d.fases.acordado.pct;
+
+            const rm = sonoMinutosParaHM(d.fases.rem.minutos);
+            sConf.remH.value = rm.h; sConf.remM.value = rm.m; sConf.remPct.value = d.fases.rem.pct;
+
+            const lv = sonoMinutosParaHM(d.fases.leve.minutos);
+            sConf.leveH.value = lv.h; sConf.leveM.value = lv.m; sConf.levePct.value = d.fases.leve.pct;
+
+            const pr = sonoMinutosParaHM(d.fases.profundo.minutos);
+            sConf.profundoH.value = pr.h; sConf.profundoM.value = pr.m; sConf.profundoPct.value = d.fases.profundo.pct;
+
+            sConf.fTempoVal.value = d.fatores.tempoSono.valor;
+            sConf.fTempoStatus.value = d.fatores.tempoSono.status;
+            sConf.fFisicaVal.value = d.fatores.recuperacaoFisica.valor;
+            sConf.fFisicaStatus.value = d.fatores.recuperacaoFisica.status;
+            sConf.fDescansoVal.value = d.fatores.descanso.valor;
+            sConf.fDescansoStatus.value = d.fatores.descanso.status;
+            sConf.fMentalVal.value = d.fatores.recuperacaoMental.valor;
+            sConf.fMentalStatus.value = d.fatores.recuperacaoMental.status;
+            sConf.fCiclosVal.value = d.fatores.ciclosSono.valor;
+            sConf.fCiclosStatus.value = d.fatores.ciclosSono.status;
+
+            sonoExecutarAuditoriaModal();
+            modalSonoConf.classList.add('open');
+        }
+
+        function sonoFecharModalConferencia() {
+            modalSonoConf.classList.remove('open');
+        }
+
+        modalSonoConf.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('input', () => {
+                if (el === sConf.data) sonoLastDateMismatch = false;
+                sonoExecutarAuditoriaModal();
+            });
+            el.addEventListener('change', () => {
+                if (el === sConf.data) sonoLastDateMismatch = false;
+                sonoExecutarAuditoriaModal();
+            });
+        });
+
+        btnCloseSonoConf.addEventListener('click', sonoFecharModalConferencia);
+        btnCancelSonoConf.addEventListener('click', sonoFecharModalConferencia);
+        modalSonoConf.addEventListener('click', (e) => {
+            if (e.target === modalSonoConf) sonoFecharModalConferencia();
+        });
+
+        btnSaveSonoConf.addEventListener('click', async () => {
+            if (!usuarioAtivo) {
+                showToast('Faça login antes de salvar.');
+                return;
+            }
+            const payload = sonoColetarPayloadModal();
+            if (!payload.dataRegistro) {
+                showToast('Informe a data do registro de sono.');
+                return;
+            }
+
+            btnSaveSonoConf.disabled = true;
+            btnSaveSonoConf.textContent = 'SALVANDO...';
+            try {
+                // Chave única por usuário + data: evita duplicidade e permite sobrescrever correções
+                const docId = `${usuarioAtivo}_${payload.dataRegistro}`;
+                await setDoc(doc(db, 'registros_sono', docId), payload);
+
+                // Atualiza cache local caso o Dashboard já tenha sido aberto
+                const idx = rawRegistrosSono.findIndex(r => r.dataRegistro === payload.dataRegistro);
+                if (idx >= 0) rawRegistrosSono[idx] = { id: docId, ...payload };
+                else rawRegistrosSono.push({ id: docId, ...payload });
+
+                sonoLimparUploadsHome();
+                sonoFecharModalConferencia();
+                showToast(`Sono de ${sonoFormatarDataBR(payload.dataRegistro)} salvo com sucesso!`);
+            } catch (err) {
+                console.error('Erro ao salvar sono no Firestore:', err);
+                showToast('Erro ao salvar no Firestore. Verifique as regras de permissão.');
+            } finally {
+                btnSaveSonoConf.disabled = false;
+                btnSaveSonoConf.textContent = 'Salvar Noite';
+            }
+        });
+
+        /* --- Modal "i" dos Fatores de Sono --- */
+        const modalInfoSonoFator = document.getElementById('modal-info-sono-fator');
+        const sonoInfoModalTitle = document.getElementById('sono-info-modal-title');
+        const sonoInfoModalDynamic = document.getElementById('sono-info-modal-dynamic');
+        const sonoInfoModalStatic = document.getElementById('sono-info-modal-static');
+        const btnCloseSonoInfo = document.getElementById('btn-close-sono-info');
+
+        function sonoGerarResumoDinamicoFator(chave, reg) {
+            const f = reg.fatores?.[chave] || { valor: 0, status: '--' };
+            if (chave === 'tempoSono') {
+                return `Você dormiu por ${sonoFormatarMinutos(reg.tempoTotalMin)} (tempo real: ${sonoFormatarMinutos(reg.tempoRealMin)}) — Classificação: ${f.status}.`;
+            }
+            if (chave === 'recuperacaoFisica') {
+                const pr = reg.fases?.profundo || { minutos: 0, pct: 0 };
+                return `Recuperação física em ${f.valor}% (${f.status}) • Sono profundo: ${sonoFormatarMinutos(pr.minutos)} (${pr.pct}%).`;
+            }
+            if (chave === 'descanso') {
+                const ac = reg.fases?.acordado || { minutos: 0, pct: 0 };
+                return `Descanso em ${f.valor}% (${f.status}) • Tempo acordado durante a noite: ${sonoFormatarMinutos(ac.minutos)} (${ac.pct}%).`;
+            }
+            if (chave === 'recuperacaoMental') {
+                const rm = reg.fases?.rem || { minutos: 0, pct: 0 };
+                return `Recuperação mental em ${f.valor}% (${f.status}) • Sono REM: ${sonoFormatarMinutos(rm.minutos)} (${rm.pct}%).`;
+            }
+            return `Você completou ${f.valor} ciclo(s) de sono — Classificação: ${f.status}.`;
+        }
+
+        function sonoAbrirModalInfoFator(titulo, chave, reg) {
+            sonoInfoModalTitle.textContent = titulo;
+            sonoInfoModalDynamic.textContent = sonoGerarResumoDinamicoFator(chave, reg);
+            sonoInfoModalStatic.textContent = SONO_TEXTOS_INFORMATIVOS[chave] || 'aguardando input';
+            modalInfoSonoFator.classList.add('open');
+        }
+
+        btnCloseSonoInfo.addEventListener('click', () => modalInfoSonoFator.classList.remove('open'));
+        modalInfoSonoFator.addEventListener('click', (e) => {
+            if (e.target === modalInfoSonoFator) modalInfoSonoFator.classList.remove('open');
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                modalInfoSonoFator.classList.remove('open');
+                modalSonoConf.classList.remove('open');
+            }
+        });
+
+        /* --- Gráfico 8 no Dashboard BI: Evolução do Sono + Raio-X da Noite --- */
+        let rawRegistrosSono = [];
+        let sonoChart8Instance = null;
+        let sonoFiltradosAtuais = [];
+
+        const f8NightSelect = document.getElementById('f8-night-select');
+        const sonoXrayContainer = document.getElementById('sono-xray-container');
+
+        // Plugin visual da faixa ideal de 7h a 9h no Gráfico 8
+        const sonoMetaBandPlugin = {
+            id: 'sonoMetaBand',
+            beforeDatasetsDraw(chart) {
+                const { ctx, chartArea, scales } = chart;
+                if (!chartArea || !scales?.yHoras) return;
+
+                const y9 = scales.yHoras.getPixelForValue(9);
+                const y7 = scales.yHoras.getPixelForValue(7);
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(3, 218, 198, 0.09)';
+                ctx.fillRect(chartArea.left, y9, chartArea.right - chartArea.left, y7 - y9);
+
+                ctx.strokeStyle = 'rgba(3, 218, 198, 0.45)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 4]);
+                [y7, y9].forEach(yPos => {
+                    ctx.beginPath();
+                    ctx.moveTo(chartArea.left, yPos);
+                    ctx.lineTo(chartArea.right, yPos);
+                    ctx.stroke();
+                });
+
+                ctx.setLineDash([]);
+                ctx.font = '700 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.fillStyle = '#03dac6';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('Meta 7h–9h', chartArea.right - 6, y9 - 3);
+                ctx.restore();
+            }
+        };
+
+        async function carregarDadosSonoBI() {
+            if (!usuarioAtivo) return;
+            try {
+                const q = query(collection(db, 'registros_sono'), where('usuario', '==', usuarioAtivo));
+                const snap = await getDocs(q);
+                rawRegistrosSono = [];
+                snap.forEach(d => rawRegistrosSono.push({ id: d.id, ...d.data() }));
+                renderizarGrafico8Sono();
+            } catch (err) {
+                console.error('Erro ao carregar registros_sono:', err);
+            }
+        }
+
+        function sonoRenderizarRaioX(dataIso) {
+            const reg = sonoFiltradosAtuais.find(r => r.dataRegistro === dataIso);
+            if (!reg) {
+                sonoXrayContainer.style.display = 'none';
+                return;
+            }
+            sonoXrayContainer.style.display = 'flex';
+
+            const classNota = sonoClassificarNota(reg.nota);
+            document.getElementById('sono-xray-date').textContent = `Raio-X da noite — ${sonoFormatarDataBR(reg.dataRegistro)}`;
+
+            const scoreEl = document.getElementById('sono-xray-score');
+            scoreEl.textContent = reg.nota;
+            scoreEl.style.color = classNota.cor;
+
+            const statusEl = document.getElementById('sono-xray-status');
+            statusEl.textContent = classNota.label;
+            statusEl.style.backgroundColor = classNota.cor;
+
+            document.getElementById('sono-xray-horario').textContent =
+                (reg.horaInicio && reg.horaFim) ? `${reg.horaInicio} – ${reg.horaFim}` : '--';
+            document.getElementById('sono-xray-total').textContent = sonoFormatarMinutos(reg.tempoTotalMin);
+            document.getElementById('sono-xray-real').textContent = sonoFormatarMinutos(reg.tempoRealMin);
+
+            // Barra e legenda das 4 fases
+            const fasesMeta = [
+                { key: 'acordado', label: 'Acordado', cor: '#ff5c8d' },
+                { key: 'rem',      label: 'REM',      cor: '#b39ddb' },
+                { key: 'leve',     label: 'Leve',     cor: '#7c6eff' },
+                { key: 'profundo', label: 'Profundo', cor: '#4a3aff' }
+            ];
+            const barEl = document.getElementById('sono-phases-bar');
+            const legEl = document.getElementById('sono-phases-legend');
+            barEl.innerHTML = '';
+            legEl.innerHTML = '';
+
+            fasesMeta.forEach(fm => {
+                const fObj = reg.fases?.[fm.key] || { minutos: 0, pct: 0 };
+                const seg = document.createElement('div');
+                seg.className = 'sono-phase-seg';
+                seg.style.width = `${Math.max(0, fObj.pct)}%`;
+                seg.style.backgroundColor = fm.cor;
+                seg.title = `${fm.label}: ${sonoFormatarMinutos(fObj.minutos)} (${fObj.pct}%)`;
+                barEl.appendChild(seg);
+
+                const item = document.createElement('div');
+                item.className = 'sono-phase-legend-item';
+                item.innerHTML = `
+                    <span class="sono-dot" style="background:${fm.cor};"></span>
+                    <div>
+                        <div style="color:var(--text-secondary); font-size:0.72rem;">${fm.label}</div>
+                        <div style="font-weight:700; color:var(--text-primary);">${sonoFormatarMinutos(fObj.minutos)} (${fObj.pct}%)</div>
+                    </div>
+                `;
+                legEl.appendChild(item);
+            });
+
+            // 5 Cards de Fatores com botão "i"
+            const fatoresMeta = [
+                { key: 'tempoSono',         titulo: 'Tempo de sono',       sufixo: ' h' },
+                { key: 'recuperacaoFisica', titulo: 'Recuperação física',  sufixo: '%' },
+                { key: 'descanso',          titulo: 'Descanso',            sufixo: '%' },
+                { key: 'recuperacaoMental', titulo: 'Recuperação mental',  sufixo: '%' },
+                { key: 'ciclosSono',        titulo: 'Ciclos do sono',      sufixo: ' vezes' }
+            ];
+            const gridEl = document.getElementById('sono-factors-grid');
+            gridEl.innerHTML = '';
+
+            fatoresMeta.forEach(fm => {
+                const fat = reg.fatores?.[fm.key] || { valor: 0, status: 'Insuficiente' };
+                const card = document.createElement('div');
+                card.className = 'sono-factor-card';
+                card.innerHTML = `
+                    <div class="sono-factor-top">
+                        <span class="sono-factor-title">${fm.titulo}</span>
+                        <button type="button" class="sono-btn-info" title="Ver explicação de ${fm.titulo}">i</button>
+                    </div>
+                    <div class="sono-factor-val">${fat.valor}${fm.sufixo}</div>
+                    <span class="sono-factor-pill ${sonoClassePillFator(fat.status)}">${fat.status}</span>
+                `;
+                card.querySelector('.sono-btn-info').addEventListener('click', () => {
+                    sonoAbrirModalInfoFator(fm.titulo, fm.key, reg);
+                });
+                gridEl.appendChild(card);
+            });
+        }
+
+        function renderizarGrafico8Sono() {
+            const gStart = document.getElementById('bi-global-start')?.value || '';
+            const gEnd = document.getElementById('bi-global-end')?.value || '';
+
+            sonoFiltradosAtuais = rawRegistrosSono
+                .filter(r => {
+                    const d = r.dataRegistro || '';
+                    if (gStart && d < gStart) return false;
+                    if (gEnd && d > gEnd) return false;
+                    return Boolean(d);
+                })
+                .sort((a, b) => a.dataRegistro.localeCompare(b.dataRegistro));
+
+            const emptyEl = document.getElementById('empty-chart-8');
+            const kpiHoras = document.getElementById('kpi-sono-media-horas');
+            const kpiNota = document.getElementById('kpi-sono-media-nota');
+            const kpiRest = document.getElementById('kpi-sono-media-restaurador');
+
+            if (sonoChart8Instance) {
+                sonoChart8Instance.destroy();
+                sonoChart8Instance = null;
+            }
+
+            if (sonoFiltradosAtuais.length === 0) {
+                if (emptyEl) emptyEl.classList.add('visible');
+                kpiHoras.textContent = '--';
+                kpiNota.textContent = '--';
+                kpiNota.style.color = 'var(--text-primary)';
+                kpiRest.textContent = '--';
+                f8NightSelect.innerHTML = '<option value="">Sem registros de sono no período</option>';
+                sonoXrayContainer.style.display = 'none';
+                return;
+            }
+
+            if (emptyEl) emptyEl.classList.remove('visible');
+
+            // KPIs do período
+            const n = sonoFiltradosAtuais.length;
+            const mediaMin = sonoFiltradosAtuais.reduce((acc, r) => acc + (Number(r.tempoTotalMin) || 0), 0) / n;
+            const mediaNota = Math.round(sonoFiltradosAtuais.reduce((acc, r) => acc + (Number(r.nota) || 0), 0) / n);
+            const mediaRestMin = sonoFiltradosAtuais.reduce((acc, r) =>
+                acc + (Number(r.fases?.profundo?.minutos) || 0) + (Number(r.fases?.rem?.minutos) || 0), 0) / n;
+            const mediaRestPct = Math.round(sonoFiltradosAtuais.reduce((acc, r) =>
+                acc + (Number(r.fases?.profundo?.pct) || 0) + (Number(r.fases?.rem?.pct) || 0), 0) / n);
+
+            const classMedia = sonoClassificarNota(mediaNota);
+            kpiHoras.textContent = sonoFormatarMinutos(mediaMin);
+            kpiNota.textContent = `${mediaNota} • ${classMedia.label}`;
+            kpiNota.style.color = classMedia.cor;
+            kpiRest.textContent = `${mediaRestPct}% (${sonoFormatarMinutos(mediaRestMin)})`;
+
+            // Popula seletor de noite (mais recente primeiro)
+            const selecaoAnterior = f8NightSelect.value;
+            f8NightSelect.innerHTML = '';
+            [...sonoFiltradosAtuais].reverse().forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.dataRegistro;
+                opt.textContent = `${sonoFormatarDataBR(r.dataRegistro)} — Nota ${r.nota} (${sonoFormatarMinutos(r.tempoTotalMin)})`;
+                f8NightSelect.appendChild(opt);
+            });
+            const noiteSelecionada = sonoFiltradosAtuais.some(r => r.dataRegistro === selecaoAnterior)
+                ? selecaoAnterior
+                : sonoFiltradosAtuais[sonoFiltradosAtuais.length - 1].dataRegistro;
+            f8NightSelect.value = noiteSelecionada;
+            sonoRenderizarRaioX(noiteSelecionada);
+
+            // Monta Gráfico 8 (Barras: Horas + Linha: Nota com pontos coloridos)
+            const labels = sonoFiltradosAtuais.map(r => sonoFormatarDataCurta(r.dataRegistro));
+            const horasData = sonoFiltradosAtuais.map(r => Number(((r.tempoTotalMin || 0) / 60).toFixed(2)));
+            const notasData = sonoFiltradosAtuais.map(r => Number(r.nota) || 0);
+            const coresPontos = notasData.map(v => sonoClassificarNota(v).cor);
+            const maxH = Math.max(10, Math.ceil(Math.max(...horasData) + 1));
+
+            const ctx = document.getElementById('chart-8-sono').getContext('2d');
+            sonoChart8Instance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Nota do Sono (0–100)',
+                            data: notasData,
+                            yAxisID: 'yNota',
+                            borderColor: '#e0e0e0',
+                            borderWidth: 2,
+                            tension: 0.22,
+                            pointRadius: 6,
+                            pointHoverRadius: 8,
+                            pointBackgroundColor: coresPontos,
+                            pointBorderColor: '#121212',
+                            pointBorderWidth: 1.5,
+                            order: 1,
+                            datalabels: {
+                                display: (c) => sonoFiltradosAtuais.length <= 14 || c.dataIndex === sonoFiltradosAtuais.length - 1,
+                                color: (c) => coresPontos[c.dataIndex],
+                                backgroundColor: 'rgba(18, 18, 18, 0.85)',
+                                borderRadius: 4,
+                                padding: { top: 2, bottom: 2, left: 4, right: 4 },
+                                anchor: 'end',
+                                align: 'top',
+                                offset: 5,
+                                font: { weight: 'bold', size: 11 },
+                                formatter: (val) => `${val}`
+                            }
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Tempo de Sono (h)',
+                            data: horasData,
+                            yAxisID: 'yHoras',
+                            backgroundColor: 'rgba(187, 134, 252, 0.55)',
+                            borderColor: '#bb86fc',
+                            borderWidth: 1,
+                            borderRadius: 6,
+                            maxBarThickness: 38,
+                            order: 2,
+                            datalabels: {
+                                display: () => sonoFiltradosAtuais.length <= 12,
+                                color: '#ffffff',
+                                anchor: 'center',
+                                align: 'center',
+                                font: { weight: 'bold', size: 10 },
+                                formatter: (_, c) => {
+                                    const m = sonoFiltradosAtuais[c.dataIndex]?.tempoTotalMin || 0;
+                                    const hm = sonoMinutosParaHM(m);
+                                    return `${hm.h}h${String(hm.m).padStart(2, '0')}`;
+                                }
+                            }
+                        }
+                    ]
+                },
+                plugins: [sonoMetaBandPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { top: 26 } },
+                    onClick: (_, elements) => {
+                        if (!elements || elements.length === 0) return;
+                        const regClicado = sonoFiltradosAtuais[elements[0].index];
+                        if (regClicado) {
+                            f8NightSelect.value = regClicado.dataRegistro;
+                            sonoRenderizarRaioX(regClicado.dataRegistro);
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: '#e0e0e0', boxWidth: 12, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => {
+                                    const r = sonoFiltradosAtuais[items[0].dataIndex];
+                                    return r ? `${sonoFormatarDataBR(r.dataRegistro)} (${r.horaInicio || '--'} – ${r.horaFim || '--'})` : '';
+                                },
+                                label: (ctxItem) => {
+                                    const r = sonoFiltradosAtuais[ctxItem.dataIndex];
+                                    if (!r) return '';
+                                    if (ctxItem.dataset.yAxisID === 'yNota') {
+                                        const c = sonoClassificarNota(r.nota);
+                                        return ` Nota: ${r.nota} (${c.label})`;
+                                    }
+                                    return ` Tempo de sono: ${sonoFormatarMinutos(r.tempoTotalMin)} (Real: ${sonoFormatarMinutos(r.tempoRealMin)})`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#a0a0a0', font: { size: 10 } },
+                            grid: { display: false },
+                            border: { color: '#333333' }
+                        },
+                        yHoras: {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            max: maxH,
+                            ticks: { color: '#a0a0a0', callback: (v) => `${v}h`, font: { size: 10 } },
+                            grid: { color: 'rgba(255,255,255,0.06)' }
+                        },
+                        yNota: {
+                            type: 'linear',
+                            position: 'right',
+                            display: false,
+                            min: 0,
+                            max: 115
+                        }
+                    }
+                }
+            });
+        }
+
+        f8NightSelect.addEventListener('change', (e) => {
+            sonoRenderizarRaioX(e.target.value);
+        });
+
+        // Sincronização automática com os botões e filtros globais existentes do Dashboard
+        document.getElementById('btn-dashboard')?.addEventListener('click', carregarDadosSonoBI);
+        document.getElementById('btn-refresh-bi')?.addEventListener('click', carregarDadosSonoBI);
+        document.getElementById('bi-global-start')?.addEventListener('change', renderizarGrafico8Sono);
+        document.getElementById('bi-global-end')?.addEventListener('change', renderizarGrafico8Sono);
+        document.getElementById('btn-reset-global-filter')?.addEventListener('click', () => {
+            setTimeout(renderizarGrafico8Sono, 0);
+        });
     </script>
 </body>
 </html>
