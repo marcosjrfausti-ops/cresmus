@@ -7,6 +7,8 @@
     <!-- Chart.js + Plugin para exibir valores direto nos pontos da linha -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <!-- jsPDF para geração do Relatório Tático em PDF -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
     <style>
         /* Variáveis de Tema Escuro */
@@ -1303,6 +1305,94 @@
         #bi-prontidao-canvas-wrap {
             height: 310px;
         }
+        /* =========================================================
+           TELA 5: BOTÃO E MODAL DE EXPORTAÇÃO PDF (RELATÓRIO TÁTICO)
+           ========================================================= */
+        .bi-top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-bi-pdf {
+            background: var(--accent-color);
+            color: #000000;
+            border: 1px solid var(--accent-color);
+            padding: 9px 14px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            transition: filter 0.2s, transform 0.15s;
+        }
+        .btn-bi-pdf:hover:not(:disabled) {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+        .btn-bi-pdf:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pdf-modal-card {
+            max-width: 500px;
+        }
+        .pdf-date-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .pdf-sessions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .pdf-sessions-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 10px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .pdf-session-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 11px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+        }
+        .pdf-session-chip input {
+            accent-color: var(--accent-color);
+            cursor: pointer;
+        }
+        .pdf-session-chip.selected {
+            color: var(--text-primary);
+            border-color: var(--accent-color);
+            background: var(--surface-highlight);
+        }
+        .pdf-preview-summary {
+            font-size: 0.82rem;
+            color: var(--secondary-accent);
+            background: rgba(3, 218, 198, 0.08);
+            border: 1px solid rgba(3, 218, 198, 0.3);
+            border-radius: 8px;
+            padding: 10px 12px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -1524,6 +1614,53 @@
             </div>
         </div>
     </div>
+    <!-- Modal: Configurar e Gerar Relatório Tático em PDF -->
+    <div id="modal-export-pdf" class="modal-overlay">
+        <div class="modal-card pdf-modal-card">
+            <div class="bi-info-modal-header">
+                <h3>Gerar Relatório PDF (Tático)</h3>
+                <button type="button" id="btn-close-pdf-modal" class="btn-close-info-modal" title="Fechar">✕</button>
+            </div>
+
+            <div class="pdf-date-row">
+                <div class="bi-filter-item">
+                    <label for="pdf-date-start">Data Inicial:</label>
+                    <input type="date" id="pdf-date-start">
+                </div>
+                <div class="bi-filter-item">
+                    <label for="pdf-date-end">Data Final:</label>
+                    <input type="date" id="pdf-date-end">
+                </div>
+            </div>
+
+            <div class="bi-filter-item">
+                <label for="pdf-select-rotina">Rotina (Treino):</label>
+                <select id="pdf-select-rotina">
+                    <option value="TODAS">Todas as Rotinas</option>
+                </select>
+            </div>
+
+            <div class="bi-filter-item">
+                <div class="pdf-sessions-header">
+                    <label>Sessões a incluir:</label>
+                    <div class="bi-chips-actions">
+                        <button type="button" id="btn-pdf-sessions-all" class="bi-chip-action-btn">Todas</button>
+                        <button type="button" id="btn-pdf-sessions-none" class="bi-chip-action-btn">Limpar</button>
+                    </div>
+                </div>
+                <div id="pdf-sessions-container" class="pdf-sessions-wrap"></div>
+            </div>
+
+            <div id="pdf-preview-summary" class="pdf-preview-summary">
+                Selecione os filtros para visualizar o resumo.
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" id="btn-cancel-pdf" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btn-confirm-generate-pdf" class="btn-primary">Gerar PDF</button>
+            </div>
+        </div>
+    </div>
     
 
     <!-- TELA 0: Login / Cadastro -->
@@ -1655,7 +1792,10 @@
     <div id="screen-5" class="screen">
         <div class="bi-top-bar">
             <div class="nav-back" id="back-from-s5" style="margin-bottom: 0;">← Voltar à Home</div>
-            <button type="button" id="btn-refresh-bi" class="btn-bi-clear">↻ Atualizar Dados</button>
+            <div class="bi-top-actions">
+                <button type="button" id="btn-open-pdf-modal" class="btn-bi-pdf">Gerar PDF</button>
+                <button type="button" id="btn-refresh-bi" class="btn-bi-clear">↻ Atualizar Dados</button>
+            </div>
         </div>
 
         <h2 class="screen-title" style="margin-bottom: 16px;">Dashboard BI — Performance & MME</h2>
@@ -7168,6 +7308,1190 @@
                 modalInfoProntidao.classList.remove('open');
             }
         });
+        /* =========================================================================
+           EXPORTAÇÃO PDF — RELATÓRIO TÁTICO INTERCALADO (G7 GERAL + POR EXERCÍCIO)
+           ========================================================================= */
+        const btnOpenPdfModal = document.getElementById('btn-open-pdf-modal');
+        const modalExportPdf = document.getElementById('modal-export-pdf');
+        const btnClosePdfModal = document.getElementById('btn-close-pdf-modal');
+        const btnCancelPdf = document.getElementById('btn-cancel-pdf');
+        const btnConfirmGeneratePdf = document.getElementById('btn-confirm-generate-pdf');
+
+        const pdfDateStart = document.getElementById('pdf-date-start');
+        const pdfDateEnd = document.getElementById('pdf-date-end');
+        const pdfSelectRotina = document.getElementById('pdf-select-rotina');
+        const pdfSessionsContainer = document.getElementById('pdf-sessions-container');
+        const btnPdfSessionsAll = document.getElementById('btn-pdf-sessions-all');
+        const btnPdfSessionsNone = document.getElementById('btn-pdf-sessions-none');
+        const pdfPreviewSummary = document.getElementById('pdf-preview-summary');
+
+        // Normaliza caracteres fora da tabela Latin-1 da fonte Helvetica padrão do jsPDF
+        function limparTextoPDF(texto) {
+            return String(texto || '')
+                .replace(/Δ/g, 'Delta')
+                .replace(/→/g, '->')
+                .replace(/≤/g, '<=')
+                .replace(/≥/g, '>=')
+                .replace(/[−–—]/g, '-')
+                .replace(/…/g, '...');
+        }
+
+        function obterSessoesMarcadasPdf() {
+            return Array.from(pdfSessionsContainer.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => cb.value);
+        }
+
+        function obterRegistrosBasePdf(incluirFiltroSessao = true) {
+            const pStart = pdfDateStart.value;
+            const pEnd = pdfDateEnd.value;
+            const pRotina = pdfSelectRotina.value || 'TODAS';
+            const sessoesSet = incluirFiltroSessao ? new Set(obterSessoesMarcadasPdf()) : null;
+
+            return rawTreinosExecutados.filter(docItem => {
+                if (!docItem.dataExecucao || !docItem.exercicio || !Array.isArray(docItem.series)) return false;
+                if (!docItem.series.some(isSerieValidaE1RM)) return false;
+
+                if (pRotina !== 'TODAS') {
+                    if ((docItem.nomeRotina || '').trim().toUpperCase() !== pRotina) return false;
+                }
+                if (pStart && docItem.dataExecucao < pStart) return false;
+                if (pEnd && docItem.dataExecucao > pEnd) return false;
+
+                if (incluirFiltroSessao) {
+                    const rot = (docItem.nomeRotina || '').trim().toUpperCase();
+                    const treino = (docItem.nomeTreino || 'SEM SESSÃO').trim().toUpperCase();
+                    const chave = `${rot}||${treino}`;
+                    if (!sessoesSet.has(chave)) return false;
+                }
+                return true;
+            });
+        }
+
+        function atualizarResumoModalPdf() {
+            const registros = obterRegistrosBasePdf(true);
+            const exerciciosUnicos = new Set(registros.map(r => normalizarTexto(r.exercicio)));
+            const sessoesMarcadas = obterSessoesMarcadasPdf().length;
+
+            if (sessoesMarcadas === 0) {
+                pdfPreviewSummary.textContent = 'Selecione ao menos uma sessão para gerar o PDF.';
+                btnConfirmGeneratePdf.disabled = true;
+                return;
+            }
+            if (exerciciosUnicos.size === 0) {
+                pdfPreviewSummary.textContent = 'Nenhum exercício válido encontrado para esse período e sessão.';
+                btnConfirmGeneratePdf.disabled = true;
+                return;
+            }
+
+            pdfPreviewSummary.textContent = `${exerciciosUnicos.size} exercício(s) encontrado(s) em ${sessoesMarcadas} sessão(ões) selecionada(s).`;
+            btnConfirmGeneratePdf.disabled = false;
+        }
+
+        function popularSessoesModalPdf(manterSelecaoAnterior = false) {
+            const selecionadasAntes = manterSelecaoAnterior ? new Set(obterSessoesMarcadasPdf()) : null;
+            const registrosSemSessao = obterRegistrosBasePdf(false);
+            const rotinaSelecionada = pdfSelectRotina.value || 'TODAS';
+
+            const mapaSessoes = new Map();
+            registrosSemSessao.forEach(item => {
+                const rot = (item.nomeRotina || '').trim().toUpperCase();
+                const treino = (item.nomeTreino || 'SEM SESSÃO').trim().toUpperCase();
+                const chave = `${rot}||${treino}`;
+                if (!mapaSessoes.has(chave)) {
+                    mapaSessoes.set(chave, {
+                        chave,
+                        rotina: rot,
+                        treino,
+                        label: rotinaSelecionada === 'TODAS' ? `${rot} • ${treino}` : treino
+                    });
+                }
+            });
+
+            const listaOrdenada = Array.from(mapaSessoes.values()).sort((a, b) =>
+                a.label.localeCompare(b.label, 'pt-BR')
+            );
+
+            pdfSessionsContainer.innerHTML = '';
+
+            if (listaOrdenada.length === 0) {
+                pdfSessionsContainer.innerHTML = '<span style="font-size:0.82rem; color:var(--text-secondary);">Nenhuma sessão com dados neste período.</span>';
+                atualizarResumoModalPdf();
+                return;
+            }
+
+            listaOrdenada.forEach(sess => {
+                const marcado = selecionadasAntes ? selecionadasAntes.has(sess.chave) : true;
+                const labelEl = document.createElement('label');
+                labelEl.className = `pdf-session-chip${marcado ? ' selected' : ''}`;
+
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.value = sess.chave;
+                cb.checked = marcado;
+                cb.dataset.label = sess.label;
+
+                cb.addEventListener('change', () => {
+                    labelEl.classList.toggle('selected', cb.checked);
+                    atualizarResumoModalPdf();
+                });
+
+                const span = document.createElement('span');
+                span.textContent = sess.label;
+
+                labelEl.appendChild(cb);
+                labelEl.appendChild(span);
+                pdfSessionsContainer.appendChild(labelEl);
+            });
+
+            atualizarResumoModalPdf();
+        }
+
+        function abrirModalExportPdf() {
+            if (!rawTreinosExecutados || rawTreinosExecutados.length === 0) {
+                showToast('Nenhum dado carregado no Dashboard para exportar.');
+                return;
+            }
+
+            // Herda datas e rotina atuais do Filtro Global como ponto de partida
+            pdfDateStart.value = biGlobalStart.value || '';
+            pdfDateEnd.value = biGlobalEnd.value || '';
+
+            const rotinasSet = new Set();
+            rawTreinosExecutados.forEach(item => {
+                if (item.nomeRotina) rotinasSet.add(item.nomeRotina.trim().toUpperCase());
+            });
+            const listaRotinas = Array.from(rotinasSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+            pdfSelectRotina.innerHTML = '<option value="TODAS">Todas as Rotinas</option>';
+            listaRotinas.forEach(rot => {
+                const opt = document.createElement('option');
+                opt.value = rot;
+                opt.textContent = rot;
+                pdfSelectRotina.appendChild(opt);
+            });
+
+            const globalRot = biGlobalRotina.value || 'TODAS';
+            pdfSelectRotina.value = Array.from(pdfSelectRotina.options).some(o => o.value === globalRot)
+                ? globalRot
+                : 'TODAS';
+
+            popularSessoesModalPdf(false);
+            modalExportPdf.classList.add('open');
+        }
+
+        function fecharModalExportPdf() {
+            modalExportPdf.classList.remove('open');
+        }
+
+        btnOpenPdfModal.addEventListener('click', abrirModalExportPdf);
+        btnClosePdfModal.addEventListener('click', fecharModalExportPdf);
+        btnCancelPdf.addEventListener('click', fecharModalExportPdf);
+        modalExportPdf.addEventListener('click', (e) => {
+            if (e.target === modalExportPdf) fecharModalExportPdf();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalExportPdf.classList.contains('open')) {
+                fecharModalExportPdf();
+            }
+        });
+
+        pdfSelectRotina.addEventListener('change', () => popularSessoesModalPdf(false));
+        pdfDateStart.addEventListener('change', () => popularSessoesModalPdf(true));
+        pdfDateEnd.addEventListener('change', () => popularSessoesModalPdf(true));
+
+        btnPdfSessionsAll.addEventListener('click', () => {
+            pdfSessionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+                cb.closest('.pdf-session-chip')?.classList.add('selected');
+            });
+            atualizarResumoModalPdf();
+        });
+
+        btnPdfSessionsNone.addEventListener('click', () => {
+            pdfSessionsContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+                cb.closest('.pdf-session-chip')?.classList.remove('selected');
+            });
+            atualizarResumoModalPdf();
+        });
+
+        /* --- Helpers de Cálculo Dedicados ao PDF (sem alterar os filtros da tela) --- */
+
+        // Plugin de fundo branco para gráficos exportados no PDF
+        const pdfChartWhiteBgPlugin = {
+            id: 'pdfChartWhiteBg',
+            beforeDraw(chart) {
+                const { ctx, width, height } = chart;
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.restore();
+            }
+        };
+
+        // Plugin de linhas 0% e -5% adaptado para fundo claro no PDF
+        const pdfProntidaoRefLinesPlugin = {
+            id: 'pdfProntidaoRefLines',
+            beforeDatasetsDraw(chart) {
+                const { ctx, chartArea, scales } = chart;
+                if (!chartArea || !scales?.y) return;
+
+                const yZero = scales.y.getPixelForValue(0);
+                const yLim = scales.y.getPixelForValue(-5);
+
+                ctx.save();
+                if (yZero >= chartArea.top && yZero <= chartArea.bottom) {
+                    ctx.beginPath();
+                    ctx.setLineDash([]);
+                    ctx.strokeStyle = 'rgba(55, 65, 81, 0.45)';
+                    ctx.lineWidth = 1;
+                    ctx.moveTo(chartArea.left, yZero);
+                    ctx.lineTo(chartArea.right, yZero);
+                    ctx.stroke();
+                }
+                if (yLim >= chartArea.top && yLim <= chartArea.bottom) {
+                    ctx.beginPath();
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeStyle = 'rgba(217, 119, 6, 0.75)';
+                    ctx.lineWidth = 1.2;
+                    ctx.moveTo(chartArea.left, yLim);
+                    ctx.lineTo(chartArea.right, yLim);
+                    ctx.stroke();
+
+                    ctx.setLineDash([]);
+                    ctx.font = '700 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                    ctx.fillStyle = '#b45309';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('-5%', chartArea.left + 4, yLim - 3);
+                }
+                ctx.restore();
+            }
+        };
+
+        // Plugin da faixa 8-14 adaptado para fundo claro no PDF (Gráfico 4)
+        const pdfFracMetaBandPlugin = {
+            id: 'pdfFracMetaBand',
+            beforeDatasetsDraw(chart) {
+                const { ctx, chartArea, scales } = chart;
+                if (!chartArea || !scales?.x) return;
+
+                const x8 = scales.x.getPixelForValue(8);
+                const x14 = scales.x.getPixelForValue(14);
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(13, 148, 136, 0.10)';
+                ctx.fillRect(x8, chartArea.top, x14 - x8, chartArea.bottom - chartArea.top);
+
+                ctx.strokeStyle = 'rgba(13, 148, 136, 0.55)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                [x8, x14].forEach(xPos => {
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, chartArea.top);
+                    ctx.lineTo(xPos, chartArea.bottom);
+                    ctx.stroke();
+                });
+
+                ctx.setLineDash([]);
+                ctx.font = '700 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.fillStyle = '#0f766e';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText('8', x8, chartArea.top - 4);
+                ctx.fillText('14', x14, chartArea.top - 4);
+                ctx.restore();
+            }
+        };
+
+        // Plugin de rótulo total na ponta das barras do Gráfico 4 no PDF
+        const pdfFracTotalsPlugin = {
+            id: 'pdfFracTotals',
+            afterDatasetsDraw(chart) {
+                const { ctx, scales } = chart;
+                const linhas = chart.data?.datasets?.[0]?._linhasPdfFrac || [];
+                if (!scales?.x || !scales?.y || linhas.length === 0) return;
+
+                ctx.save();
+                ctx.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+
+                linhas.forEach((linha, idx) => {
+                    let xEnd = scales.x.getPixelForValue(0);
+                    let yPos = scales.y.getPixelForValue(idx);
+                    chart.data.datasets.forEach((_, dsIdx) => {
+                        const barEl = chart.getDatasetMeta(dsIdx)?.data?.[idx];
+                        if (barEl && !Number.isNaN(barEl.x) && !Number.isNaN(barEl.y)) {
+                            xEnd = Math.max(xEnd, barEl.x);
+                            yPos = barEl.y;
+                        }
+                    });
+                    const corPdf = linha.total < 8 ? '#6b7280' : (linha.total <= 14 ? '#0f766e' : '#d97706');
+                    ctx.fillStyle = corPdf;
+                    ctx.fillText(`${formatarNumeroBR(linha.total, 1)}/sem`, xEnd + 8, yPos + 0.5);
+                });
+                ctx.restore();
+            }
+        };
+
+        // Renderiza qualquer configuração Chart.js em PNG de alta nitidez (offscreen)
+        function renderizarChartOffscreenBase64(widthPx, heightPx, chartConfig) {
+            const container = document.createElement('div');
+            container.style.cssText = `position:fixed;left:-99999px;top:0;width:${widthPx}px;height:${heightPx}px;visibility:hidden;pointer-events:none;`;
+            const canvas = document.createElement('canvas');
+            canvas.width = widthPx;
+            canvas.height = heightPx;
+            container.appendChild(canvas);
+            document.body.appendChild(container);
+
+            let instance = null;
+            try {
+                const plugins = [pdfChartWhiteBgPlugin, ...(chartConfig.plugins || [])];
+                instance = new Chart(canvas.getContext('2d'), {
+                    ...chartConfig,
+                    plugins,
+                    options: {
+                        ...chartConfig.options,
+                        responsive: false,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        devicePixelRatio: 2
+                    }
+                });
+                return instance.toBase64Image('image/png', 1.0);
+            } finally {
+                if (instance) instance.destroy();
+                container.remove();
+            }
+        }
+
+        // 1) Monta série de Prontidão (Gráfico 7) mantendo histórico completo da rotina para MM3 e streak
+        function montarSerieProntidaoPdf(eventosComDelta, exNormSetOuUnico, pStart, pEnd, modoIndividual) {
+            const filtrados = eventosComDelta.filter(ev => {
+                if (modoIndividual) return ev.exNorm === exNormSetOuUnico;
+                return exNormSetOuUnico.has(ev.exNorm);
+            });
+
+            const porData = new Map();
+            filtrados.forEach(ev => {
+                if (!porData.has(ev.dataIso)) porData.set(ev.dataIso, []);
+                porData.get(ev.dataIso).push(ev);
+            });
+
+            const datasOrdenadas = Array.from(porData.keys()).sort((a, b) => a.localeCompare(b));
+            let quedasConsecutivas = 0;
+
+            const serieCompleta = datasOrdenadas.map(dataIso => {
+                const lista = porData.get(dataIso);
+                const deltaMedio = lista.reduce((acc, i) => acc + i.deltaPct, 0) / lista.length;
+                quedasConsecutivas = deltaMedio < -5 ? quedasConsecutivas + 1 : 0;
+
+                let melhorEx = lista[0];
+                let piorEx = lista[0];
+                let qtdBaseFormacao = 0;
+                lista.forEach(i => {
+                    if (i.deltaPct > melhorEx.deltaPct) melhorEx = i;
+                    if (i.deltaPct < piorEx.deltaPct) piorEx = i;
+                    if (i.baseEmFormacao) qtdBaseFormacao += 1;
+                });
+
+                return {
+                    dataIso,
+                    dataCompleta: formatarDataCompleta(dataIso),
+                    deltaPct: Number(deltaMedio.toFixed(1)),
+                    quedasConsecutivas,
+                    estilo: obterEstiloProntidao(deltaMedio, quedasConsecutivas),
+                    detalheUnico: lista[0],
+                    qtdExercicios: lista.length,
+                    melhorEx,
+                    piorEx,
+                    qtdBaseFormacao
+                };
+            });
+
+            const visiveis = serieCompleta.filter(p => {
+                if (pStart && p.dataIso < pStart) return false;
+                if (pEnd && p.dataIso > pEnd) return false;
+                return true;
+            });
+
+            const anos = new Set(visiveis.map(p => p.dataIso.slice(0, 4)));
+            visiveis.forEach(p => {
+                p.labelX = formatarDataCurta(p.dataIso, anos.size > 1);
+            });
+            return visiveis;
+        }
+
+        function gerarImagemGrafico7Pdf(pontos, widthPx = 760, heightPx = 220) {
+            const labels = pontos.map(p => p.labelX);
+            const valores = pontos.map(p => p.deltaPct);
+            const cores = pontos.map(p => p.estilo.cor);
+
+            const maxVal = Math.max(...valores, 2);
+            const minVal = Math.min(...valores, -6);
+            const amp = Math.max(maxVal - minVal, 10);
+
+            return renderizarChartOffscreenBase64(widthPx, heightPx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Prontidão (Δ%)',
+                        data: valores,
+                        backgroundColor: cores,
+                        borderRadius: (ctx) => (ctx.raw >= 0
+                            ? { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }
+                            : { topLeft: 0, topRight: 0, bottomLeft: 4, bottomRight: 4 }),
+                        borderSkipped: false,
+                        maxBarThickness: 34,
+                        datalabels: {
+                            display: true,
+                            anchor: (ctx) => (ctx.dataset.data[ctx.dataIndex] >= 0 ? 'end' : 'start'),
+                            align: (ctx) => (ctx.dataset.data[ctx.dataIndex] >= 0 ? 'top' : 'bottom'),
+                            offset: 3,
+                            clamp: true,
+                            color: '#111827',
+                            font: { size: 10, weight: '700' },
+                            formatter: (val) => formatarDeltaPctProntidao(val)
+                        }
+                    }]
+                },
+                plugins: [ChartDataLabels, pdfProntidaoRefLinesPlugin],
+                options: {
+                    layout: { padding: { top: 20, right: 12, left: 12, bottom: 10 } },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            border: { color: '#d1d5db' },
+                            ticks: { color: '#374151', font: { size: 10, weight: '600' } }
+                        },
+                        y: {
+                            display: false,
+                            min: minVal - amp * 0.25,
+                            max: maxVal + amp * 0.25
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2) Calcula Drop-off (Gráfico 6) para um exercício nas sessões/período selecionados
+        function calcularDropOffExercicioPdf(exNorm, registrosSessaoPeriodo) {
+            const ordenados = registrosSessaoPeriodo
+                .filter(r => normalizarTexto(r.exercicio) === exNorm)
+                .sort((a, b) => {
+                    const cmp = (a.dataExecucao || '').localeCompare(b.dataExecucao || '');
+                    return cmp !== 0 ? cmp : (a.atualizadoEm || '').localeCompare(b.atualizadoEm || '');
+                });
+
+            const porSessao = new Map();
+            ordenados.forEach(docItem => {
+                const validas = docItem.series.filter(isSerieValidaE1RM);
+                if (validas.length === 0) return;
+                const rot = (docItem.nomeRotina || '').trim().toUpperCase();
+                const treino = (docItem.nomeTreino || '').trim().toUpperCase();
+                const chave = `${docItem.dataExecucao}||${rot}||${treino}`;
+                if (!porSessao.has(chave)) {
+                    porSessao.set(chave, {
+                        dataExecucao: docItem.dataExecucao,
+                        atualizadoEm: docItem.atualizadoEm || '',
+                        seriesValidas: []
+                    });
+                }
+                const entry = porSessao.get(chave);
+                entry.seriesValidas.push(...validas);
+                if (docItem.atualizadoEm && docItem.atualizadoEm > entry.atualizadoEm) {
+                    entry.atualizadoEm = docItem.atualizadoEm;
+                }
+            });
+
+            let somaDropOff = 0;
+            let qtdSessoes = 0;
+            let ultima = null;
+
+            porSessao.forEach(sess => {
+                if (sess.seriesValidas.length < 2) return;
+                const primeira = sess.seriesValidas[0];
+                const ultSerie = sess.seriesValidas[sess.seriesValidas.length - 1];
+                const vc1 = Number(primeira.kg) * Number(primeira.reps);
+                const vcUlt = Number(ultSerie.kg) * Number(ultSerie.reps);
+                if (vc1 <= 0) return;
+
+                const dropSessao = (1 - (vcUlt / vc1)) * 100;
+                somaDropOff += dropSessao;
+                qtdSessoes += 1;
+
+                const ehMaisRecente = !ultima ||
+                    sess.dataExecucao > ultima.dataExecucao ||
+                    (sess.dataExecucao === ultima.dataExecucao && sess.atualizadoEm >= ultima.atualizadoEm);
+
+                if (ehMaisRecente) {
+                    ultima = {
+                        dataExecucao: sess.dataExecucao,
+                        atualizadoEm: sess.atualizadoEm,
+                        dropOffRecente: dropSessao,
+                        pctRecente: Math.round(dropSessao),
+                        primeira: { kg: Number(primeira.kg), reps: Number(primeira.reps) },
+                        ultima: { kg: Number(ultSerie.kg), reps: Number(ultSerie.reps) }
+                    };
+                }
+            });
+
+            if (qtdSessoes === 0) return null;
+
+            const dropOffMedio = somaDropOff / qtdSessoes;
+            const pctMedio = Math.round(dropOffMedio);
+            return {
+                dropOffMedio,
+                pctMedio,
+                faixa: obterFaixaDropOff(pctMedio),
+                qtdSessoes,
+                ultima
+            };
+        }
+
+        // 3) Monta e1RM (Gráfico 1 — 1ª Série Válida + MM3) no período e rotina do PDF
+        function montarSerieE1RMPdf(exNorm, registrosRotinaPeriodo) {
+            const porData = new Map();
+            registrosRotinaPeriodo.forEach(docItem => {
+                if (normalizarTexto(docItem.exercicio) !== exNorm) return;
+                const validas = docItem.series.filter(isSerieValidaE1RM);
+                if (validas.length === 0) return;
+                if (!porData.has(docItem.dataExecucao)) porData.set(docItem.dataExecucao, []);
+                porData.get(docItem.dataExecucao).push(...validas);
+            });
+
+            const datas = Array.from(porData.keys()).sort((a, b) => a.localeCompare(b));
+            const anos = new Set(datas.map(d => d.slice(0, 4)));
+
+            const pontos = datas.map(dataIso => {
+                const validas = porData.get(dataIso);
+                const escolhida = validas.find(s => /^1[ªa]/.test(normalizarTexto(s.serie))) || validas[0];
+                const kg = Number(escolhida.kg);
+                const reps = Number(escolhida.reps);
+                return {
+                    dataIso,
+                    labelX: formatarDataCurta(dataIso, anos.size > 1),
+                    dataCurtaAno: formatarDataCurta(dataIso, true),
+                    e1rm: Number(calcularEpley(kg, reps).toFixed(1)),
+                    kg,
+                    reps
+                };
+            });
+
+            const mm3 = calcularMediaMovel3(pontos);
+            return { pontos, mm3 };
+        }
+
+        function gerarImagemGrafico1Pdf(pontos, mm3, widthPx = 760, heightPx = 210) {
+            return renderizarChartOffscreenBase64(widthPx, heightPx, {
+                type: 'line',
+                data: {
+                    labels: pontos.map(p => p.labelX),
+                    datasets: [
+                        {
+                            label: 'e1RM (kg)',
+                            data: pontos.map(p => p.e1rm),
+                            borderColor: '#7c3aed',
+                            backgroundColor: 'rgba(124, 58, 237, 0.12)',
+                            borderWidth: 2.4,
+                            tension: 0.12,
+                            fill: true,
+                            pointRadius: 4.5,
+                            pointBackgroundColor: '#7c3aed',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1.5,
+                            datalabels: {
+                                display: true,
+                                align: 'top',
+                                offset: 5,
+                                color: '#111827',
+                                font: { size: 10, weight: '700' },
+                                formatter: (val) => formatarNumeroBR(val, 1)
+                            }
+                        },
+                        {
+                            label: 'Tendência (MM 3)',
+                            data: mm3,
+                            borderColor: '#0d9488',
+                            borderWidth: 2,
+                            borderDash: [6, 4],
+                            tension: 0.25,
+                            fill: false,
+                            pointRadius: 0,
+                            spanGaps: false,
+                            datalabels: { display: false }
+                        }
+                    ]
+                },
+                plugins: [ChartDataLabels],
+                options: {
+                    layout: { padding: { top: 22, right: 16, left: 16, bottom: 4 } },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: { color: '#374151', usePointStyle: true, boxWidth: 8, font: { size: 10 } }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(0,0,0,0.06)' },
+                            ticks: { color: '#374151', font: { size: 10, weight: '600' } }
+                        },
+                        y: { display: false, grace: '18%' }
+                    }
+                }
+            });
+        }
+
+        // 4) Calcula Séries Válidas Fracionadas (Gráfico 4) sobre a rotina no período selecionado
+        function calcularMapaSeriesFracionadasPdf(registrosRotinaPeriodo, pStart, pEnd) {
+            const hojeMs = parseIsoParaUtcMs(obterHojeIsoLocal());
+            const datas = registrosRotinaPeriodo
+                .map(r => r.dataExecucao)
+                .filter(d => parseIsoParaUtcMs(d) !== null)
+                .sort((a, b) => a.localeCompare(b));
+
+            const minRegMs = datas.length > 0 ? parseIsoParaUtcMs(datas[0]) : null;
+            const maxRegMs = datas.length > 0 ? parseIsoParaUtcMs(datas[datas.length - 1]) : null;
+            const startMs = parseIsoParaUtcMs(pStart);
+            const endMs = parseIsoParaUtcMs(pEnd);
+
+            const inicioMs = startMs !== null ? startMs : minRegMs;
+            let fimMs = null;
+            if (endMs !== null) fimMs = Math.min(endMs, hojeMs);
+            else if (startMs !== null) fimMs = hojeMs;
+            else if (maxRegMs !== null) fimMs = Math.min(maxRegMs, hojeMs);
+
+            const dias = (inicioMs !== null && fimMs !== null)
+                ? Math.max(1, Math.floor((fimMs - inicioMs) / 86400000) + 1)
+                : 7;
+            const semanas = Math.max(1, dias / 7);
+
+            const mapa = new Map();
+            function somar(macro, tipo, qtd) {
+                if (!macro || qtd <= 0) return;
+                if (!mapa.has(macro)) {
+                    mapa.set(macro, { musculo: macro, diretas: 0, secundarias: 0, terciarias: 0 });
+                }
+                mapa.get(macro)[tipo] += qtd;
+            }
+
+            registrosRotinaPeriodo.forEach(docItem => {
+                const qtdValidas = docItem.series.filter(isSerieValidaE1RM).length;
+                if (qtdValidas === 0) return;
+                const mme = docItem.mme || criarEstruturaMmeFallback(docItem.musculo).mme;
+                if (!mme) return;
+
+                const usados = new Set();
+                function aplicar(raw, tipo, peso) {
+                    extrairMusculosMmeFrac(raw).forEach(m => {
+                        const macro = mapearMacrogrupoFrac(m);
+                        if (!macro) return;
+                        const chave = normalizarParaClassificacao(macro);
+                        if (usados.has(chave)) return;
+                        usados.add(chave);
+                        somar(macro, tipo, qtdValidas * peso);
+                    });
+                }
+
+                aplicar(mme.protagonista, 'diretas', PESOS_SERIES_FRAC.protagonista);
+                aplicar(mme.secundario, 'secundarias', PESOS_SERIES_FRAC.secundario);
+                aplicar(mme.terciario, 'terciarias', PESOS_SERIES_FRAC.terciario);
+            });
+
+            const resultado = new Map();
+            mapa.forEach((v, k) => {
+                const diretas = v.diretas / semanas;
+                const indiretas = (v.secundarias + v.terciarias) / semanas;
+                const total = diretas + indiretas;
+                resultado.set(k, {
+                    musculo: k,
+                    diretas,
+                    indiretas,
+                    total,
+                    status: obterStatusMetaFrac(total)
+                });
+            });
+
+            return { mapa: resultado, semanas };
+        }
+
+        function obterMacrogruposDoExercicioPdf(docItem) {
+            const mme = docItem.mme || criarEstruturaMmeFallback(docItem.musculo).mme;
+            const lista = [];
+            const vistos = new Set();
+
+            const adicionar = (raw, papel) => {
+                extrairMusculosMmeFrac(raw).forEach(m => {
+                    const macro = mapearMacrogrupoFrac(m);
+                    if (!macro) return;
+                    const chave = normalizarParaClassificacao(macro);
+                    if (vistos.has(chave)) return;
+                    vistos.add(chave);
+                    lista.push({ macro, papel });
+                });
+            };
+
+            if (mme) {
+                adicionar(mme.protagonista, 'Protagonista');
+                adicionar(mme.secundario, 'Secundário');
+                adicionar(mme.terciario, 'Terciário');
+            }
+            return lista;
+        }
+
+        function gerarImagemGrafico4Pdf(linhasFrac, widthPx = 760) {
+            const heightPx = Math.max(92, linhasFrac.length * 32 + 34);
+            const maxVal = Math.max(...linhasFrac.map(l => l.total), 0);
+            const xMax = Math.max(15.5, maxVal * 1.18);
+
+            const img = renderizarChartOffscreenBase64(widthPx, heightPx, {
+                type: 'bar',
+                data: {
+                    labels: linhasFrac.map(l => l.musculo),
+                    datasets: [
+                        {
+                            label: 'Diretas',
+                            data: linhasFrac.map(l => Number(l.diretas.toFixed(2))),
+                            _linhasPdfFrac: linhasFrac,
+                            backgroundColor: '#7c3aed',
+                            borderRadius: 3,
+                            barThickness: 15
+                        },
+                        {
+                            label: 'Indiretas',
+                            data: linhasFrac.map(l => Number(l.indiretas.toFixed(2))),
+                            backgroundColor: 'rgba(124, 58, 237, 0.28)',
+                            borderColor: 'rgba(124, 58, 237, 0.55)',
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            barThickness: 15
+                        }
+                    ]
+                },
+                plugins: [pdfFracMetaBandPlugin, pdfFracTotalsPlugin],
+                options: {
+                    indexAxis: 'y',
+                    layout: { padding: { top: 18, right: 72, left: 4, bottom: 4 } },
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { stacked: true, display: false, min: 0, max: xMax },
+                        y: {
+                            stacked: true,
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: { autoSkip: false, color: '#1f2937', font: { size: 11, weight: '600' } }
+                        }
+                    }
+                }
+            });
+            return { img, heightPx };
+        }
+
+        /* --- Orquestrador Principal: Montagem do PDF --- */
+        async function gerarRelatorioTaticoPDF() {
+            if (!window.jspdf || !window.jspdf.jsPDF) {
+                showToast('Biblioteca jsPDF não carregada. Verifique sua conexão.');
+                return;
+            }
+
+            const pStart = pdfDateStart.value;
+            const pEnd = pdfDateEnd.value;
+            const pRotina = pdfSelectRotina.value || 'TODAS';
+            const sessoesCheckboxes = Array.from(pdfSessionsContainer.querySelectorAll('input[type="checkbox"]:checked'));
+
+            if (sessoesCheckboxes.length === 0) {
+                showToast('Selecione ao menos uma sessão.');
+                return;
+            }
+
+            const registrosSessaoPeriodo = obterRegistrosBasePdf(true);
+            const registrosRotinaPeriodo = obterRegistrosBasePdf(false);
+
+            if (registrosSessaoPeriodo.length === 0) {
+                showToast('Nenhum exercício encontrado nos filtros selecionados.');
+                return;
+            }
+
+            btnConfirmGeneratePdf.disabled = true;
+            btnConfirmGeneratePdf.textContent = 'GERANDO PDF...';
+
+            try {
+                // Histórico completo da rotina (sem recorte de data) para MM3 fiel no Gráfico 7
+                const historicoRotinaCompleto = rawTreinosExecutados.filter(docItem => {
+                    if (!docItem.dataExecucao || !docItem.exercicio || !Array.isArray(docItem.series)) return false;
+                    if (!docItem.series.some(isSerieValidaE1RM)) return false;
+                    if (pRotina !== 'TODAS' && (docItem.nomeRotina || '').trim().toUpperCase() !== pRotina) return false;
+                    return true;
+                });
+                const eventosProntidaoTodos = calcularHistoricoDeltasPorExercicio(historicoRotinaCompleto);
+
+                // Mapa de séries fracionadas semanais da rotina no período (Gráfico 4)
+                const { mapa: mapaFracSemanal, semanas: semanasFrac } = calcularMapaSeriesFracionadasPdf(
+                    registrosRotinaPeriodo,
+                    pStart,
+                    pEnd
+                );
+
+                // Consolida lista única de exercícios presentes nas sessões selecionadas, mantendo a execução mais recente
+                const mapaExercicios = new Map();
+                const ordenadosPorDataDesc = [...registrosSessaoPeriodo].sort((a, b) => {
+                    const cmp = (b.dataExecucao || '').localeCompare(a.dataExecucao || '');
+                    return cmp !== 0 ? cmp : (b.atualizadoEm || '').localeCompare(a.atualizadoEm || '');
+                });
+
+                ordenadosPorDataDesc.forEach(docItem => {
+                    const exNorm = normalizarTexto(docItem.exercicio);
+                    if (!mapaExercicios.has(exNorm)) {
+                        mapaExercicios.set(exNorm, {
+                            exNorm,
+                            nome: docItem.exercicio.trim(),
+                            musculo: docItem.musculo,
+                            mme: docItem.mme,
+                            ultimoDoc: docItem
+                        });
+                    }
+                });
+
+                const listaExercicios = Array.from(mapaExercicios.values()).sort((a, b) => {
+                    const cmpMusc = (a.musculo || '').localeCompare(b.musculo || '', 'pt-BR');
+                    return cmpMusc !== 0 ? cmpMusc : a.nome.localeCompare(b.nome, 'pt-BR');
+                });
+                const setExNormSessoes = new Set(listaExercicios.map(e => e.exNorm));
+
+                // Inicia documento A4
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                const pageW = pdf.internal.pageSize.getWidth();
+                const pageH = pdf.internal.pageSize.getHeight();
+                const marginX = 12;
+                const contentW = pageW - marginX * 2;
+                const bottomLimit = pageH - 14;
+                let y = 14;
+
+                const periodoTexto = `${pStart ? formatarDataCompleta(pStart) : 'Início'} a ${pEnd ? formatarDataCompleta(pEnd) : 'Hoje'}`;
+                const sessoesTexto = sessoesCheckboxes.map(cb => cb.dataset.label || cb.value).join(', ');
+
+                function garantirEspaco(alturaMm) {
+                    if (y + alturaMm > bottomLimit) {
+                        pdf.addPage();
+                        y = 14;
+                    }
+                }
+
+                function escreverLinhas(texto, fontSize, colorRgb, isBold = false, indentMm = 0) {
+                    pdf.setFont('helvetica', isBold ? 'bold' : 'normal');
+                    pdf.setFontSize(fontSize);
+                    pdf.setTextColor(...colorRgb);
+                    const linhas = pdf.splitTextToSize(limparTextoPDF(texto), contentW - indentMm);
+                    const lineHeight = fontSize * 0.44;
+                    linhas.forEach(linha => {
+                        garantirEspaco(lineHeight + 1);
+                        pdf.text(linha, marginX + indentMm, y);
+                        y += lineHeight;
+                    });
+                }
+
+                // =========================================================
+                // PÁGINA 1: CABEÇALHO + GRÁFICO 7 GERAL (DADO OS FILTROS)
+                // =========================================================
+                pdf.setFillColor(24, 24, 32);
+                pdf.roundedRect(marginX, y, contentW, 25, 2.5, 2.5, 'F');
+                pdf.setTextColor(187, 134, 252);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setFontSize(13);
+                pdf.text(limparTextoPDF('RELATORIO TATICO DE PERFORMANCE — DASHBOARD BI'), marginX + 4, y + 7.5);
+
+                pdf.setTextColor(229, 231, 235);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(8.5);
+                pdf.text(limparTextoPDF(`Periodo: ${periodoTexto}   |   Rotina: ${pRotina}`), marginX + 4, y + 14);
+
+                const sessoesLinha = pdf.splitTextToSize(limparTextoPDF(`Sessoes: ${sessoesTexto}`), contentW - 8)[0];
+                pdf.text(sessoesLinha, marginX + 4, y + 19);
+
+                pdf.setTextColor(156, 163, 175);
+                pdf.setFontSize(7.5);
+                pdf.text(
+                    limparTextoPDF(`Perfil: ${usuarioEmail || 'Ativo'}   |   Gerado em: ${formatarDataCompleta(obterHojeIsoLocal())}`),
+                    marginX + 4,
+                    y + 23.2
+                );
+                y += 31;
+
+                // Seção: Gráfico 7 Geral
+                escreverLinhas('GRAFICO 7 GERAL — TERMOMETRO DE PRONTIDAO (MM 3)', 11, [109, 40, 217], true);
+                y += 1;
+
+                const pontosG7Geral = montarSerieProntidaoPdf(eventosProntidaoTodos, setExNormSessoes, pStart, pEnd, false);
+
+                if (pontosG7Geral.length > 0) {
+                    const ultG7 = pontosG7Geral[pontosG7Geral.length - 1];
+                    escreverLinhas(
+                        `Ultimo registro (${ultG7.dataCompleta}): ${formatarDeltaPctProntidao(ultG7.deltaPct)} — Status: ${ultG7.estilo.badgeTexto} | Exercicios avaliados no dia: ${ultG7.qtdExercicios}`,
+                        9,
+                        [31, 41, 55],
+                        true
+                    );
+                    if (ultG7.qtdExercicios > 1) {
+                        escreverLinhas(
+                            `Melhor desvio: ${ultG7.melhorEx.exercicio} (${formatarDeltaPctProntidao(ultG7.melhorEx.deltaPct)})   |   Pior desvio: ${ultG7.piorEx.exercicio} (${formatarDeltaPctProntidao(ultG7.piorEx.deltaPct)})`,
+                            8.5,
+                            [75, 85, 99]
+                        );
+                    }
+                    y += 2;
+
+                    const imgG7Geral = gerarImagemGrafico7Pdf(pontosG7Geral, 800, 250);
+                    const imgH = (250 / 800) * contentW;
+                    garantirEspaco(imgH + 4);
+                    pdf.setDrawColor(229, 231, 235);
+                    pdf.rect(marginX, y, contentW, imgH);
+                    pdf.addImage(imgG7Geral, 'PNG', marginX + 0.5, y + 0.5, contentW - 1, imgH - 1);
+                    y += imgH + 6;
+                } else {
+                    escreverLinhas(
+                        'Dados insuficientes para o Termometro Geral (sao necessarias pelo menos 2 sessoes validas de um mesmo exercicio no historico).',
+                        8.8,
+                        [107, 114, 128]
+                    );
+                    y += 4;
+                }
+
+                // Tópicos rápidos de resumo de todos os exercícios incluídos (opcionalmente útil como índice na Página 1)
+                escreverLinhas('RESUMO RAPIDO — ULTIMA EXECUCAO DOS EXERCICIOS FILTRADOS', 9.5, [15, 118, 110], true);
+                y += 1;
+                listaExercicios.forEach((exObj, idx) => {
+                    const docUlt = exObj.ultimoDoc;
+                    const validas = docUlt.series.filter(isSerieValidaE1RM);
+                    const textoSeries = validas.map(s => `${formatarValorCompacto(Number(s.kg))}kg - ${s.reps} Reps`).join(' & ');
+                    const prot = docUlt.mme?.protagonista || exObj.musculo;
+                    const dataShort = formatarDataCurta(docUlt.dataExecucao, true);
+                    escreverLinhas(
+                        `- ${idx + 1}. ${exObj.nome} (${prot}) - ${textoSeries} (${dataShort})`,
+                        8.3,
+                        [55, 65, 81],
+                        false,
+                        2
+                    );
+                });
+
+                // =========================================================
+                // PÁGINAS SEGUINTES: BLOCO INTERCALADO POR EXERCÍCIO
+                // Ordem: Carga x Reps -> Gráfico 7 -> Gráfico 6 -> Gráfico 1 -> Gráfico 4
+                // =========================================================
+                listaExercicios.forEach((exObj, idx) => {
+                    // Cada exercício inicia em página limpa para nunca quebrar um gráfico ao meio
+                    pdf.addPage();
+                    y = 14;
+
+                    const docUlt = exObj.ultimoDoc;
+                    const prot = docUlt.mme?.protagonista || exObj.musculo;
+
+                    // Banner do Exercício
+                    pdf.setFillColor(243, 235, 255);
+                    pdf.setDrawColor(124, 58, 237);
+                    pdf.roundedRect(marginX, y, contentW, 11, 2, 2, 'FD');
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(11);
+                    pdf.setTextColor(76, 29, 149);
+                    pdf.text(
+                        limparTextoPDF(`EXERCICIO ${idx + 1}: ${exObj.nome}  (${exObj.musculo} | ${prot})`),
+                        marginX + 3.5,
+                        y + 7
+                    );
+                    y += 15;
+
+                    // 1) CARGA x REPETIÇÃO (Último registro com data — formato tópico)
+                    const validasUlt = docUlt.series.filter(isSerieValidaE1RM);
+                    const seriesStr = validasUlt.map(s => `${formatarValorCompacto(Number(s.kg))}kg - ${s.reps} Reps`).join(' & ');
+                    const dataUltCurta = formatarDataCurta(docUlt.dataExecucao, true);
+
+                    escreverLinhas('CARGA x REPETICAO (ULTIMA EXECUCAO)', 9.2, [109, 40, 217], true);
+                    escreverLinhas(
+                        `- ${exObj.nome} (${prot}) - ${seriesStr} (${dataUltCurta})`,
+                        9.2,
+                        [17, 24, 39],
+                        true,
+                        2
+                    );
+                    y += 3;
+
+                    // 2) GRÁFICO 7 — PRONTIDÃO DO EXERCÍCIO (Δ% + Print)
+                    escreverLinhas('GRAFICO 7 — PRONTIDAO (MM 3)', 9.2, [109, 40, 217], true);
+                    const pontosG7Ex = montarSerieProntidaoPdf(eventosProntidaoTodos, exObj.exNorm, pStart, pEnd, true);
+
+                    if (pontosG7Ex.length > 0) {
+                        const ult = pontosG7Ex[pontosG7Ex.length - 1];
+                        const d = ult.detalheUnico;
+                        const obsBase = d.baseEmFormacao ? ` | Base em formacao: ${d.baseCount}/3 sessoes` : '';
+                        escreverLinhas(
+                            `- Ultima (${ult.dataCompleta}): ${formatarDeltaPctProntidao(ult.deltaPct)} (${ult.estilo.statusTooltip}) | e1RM Atual: ${formatarNumeroBR(d.e1rmAtual, 1)} kg vs. MM3: ${formatarNumeroBR(d.mm3, 1)} kg${obsBase}`,
+                            8.3,
+                            [55, 65, 81],
+                            false,
+                            2
+                        );
+                        y += 1.5;
+
+                        const imgG7Ex = gerarImagemGrafico7Pdf(pontosG7Ex, 760, 185);
+                        const hG7 = (185 / 760) * contentW;
+                        garantirEspaco(hG7 + 3);
+                        pdf.setDrawColor(229, 231, 235);
+                        pdf.rect(marginX, y, contentW, hG7);
+                        pdf.addImage(imgG7Ex, 'PNG', marginX + 0.5, y + 0.5, contentW - 1, hG7 - 1);
+                        y += hG7 + 4.5;
+                    } else {
+                        escreverLinhas(
+                            '- Sem historico suficiente para calcular MM3 deste exercicio (minimo 2 sessoes validas).',
+                            8.3,
+                            [107, 114, 128],
+                            false,
+                            2
+                        );
+                        y += 3;
+                    }
+
+                    // 3) GRÁFICO 6 — DROP-OFF DE FADIGA (Médio + Sessão Mais Recente)
+                    escreverLinhas('GRAFICO 6 — TAXA DE QUEDA INTRA-SESSAO (DROP-OFF)', 9.2, [109, 40, 217], true);
+                    const dropOff = calcularDropOffExercicioPdf(exObj.exNorm, registrosSessaoPeriodo);
+
+                    if (dropOff) {
+                        const u = dropOff.ultima;
+                        const plural = dropOff.qtdSessoes === 1 ? '1 sessao analisada' : `${dropOff.qtdSessoes} sessoes analisadas`;
+                        escreverLinhas(
+                            `- Drop-off Medio no periodo: ${dropOff.pctMedio}% (${dropOff.faixa.status}) | Base: ${plural}`,
+                            8.5,
+                            [17, 24, 39],
+                            true,
+                            2
+                        );
+                        escreverLinhas(
+                            `- Sessao mais recente (${formatarDataCompleta(u.dataExecucao)}): ${u.pctRecente}% — 1a serie: ${formatarValorCompacto(u.primeira.kg)} kg x ${u.primeira.reps} reps -> Ultima: ${formatarValorCompacto(u.ultima.kg)} kg x ${u.ultima.reps} reps`,
+                            8.3,
+                            [55, 65, 81],
+                            false,
+                            2
+                        );
+                        if (dropOff.dropOffMedio <= 0) {
+                            escreverLinhas('- Obs.: Ultima serie igual ou superior a 1a serie.', 8, [107, 114, 128], false, 2);
+                        }
+                        y += 3;
+                    } else {
+                        escreverLinhas(
+                            '- Sem sessoes elegiveis para Drop-off no periodo (exige minimo de 2 series validas na mesma sessao).',
+                            8.3,
+                            [107, 114, 128],
+                            false,
+                            2
+                        );
+                        y += 3;
+                    }
+
+                    // 4) GRÁFICO 1 — EVOLUÇÃO DE FORÇA (e1RM — 1ª Série Válida + MM3)
+                    escreverLinhas('GRAFICO 1 — EVOLUCAO DE FORCA (e1RM — 1a SERIE VALIDA)', 9.2, [109, 40, 217], true);
+                    const { pontos: pontosE1rm, mm3: mm3E1rm } = montarSerieE1RMPdf(exObj.exNorm, registrosRotinaPeriodo);
+
+                    if (pontosE1rm.length > 0) {
+                        const ultimosPontos = pontosE1rm.slice(-4);
+                        const resumoE1rm = ultimosPontos
+                            .map(p => `${p.dataCurtaAno}: ${formatarNumeroBR(p.e1rm, 1)} kg (${formatarValorCompacto(p.kg)}x${p.reps})`)
+                            .join('  |  ');
+                        const ultimoMM3 = mm3E1rm[mm3E1rm.length - 1];
+                        const textoMM3 = ultimoMM3 !== null && ultimoMM3 !== undefined
+                            ? ` | Tendencia MM3 atual: ${formatarNumeroBR(ultimoMM3, 1)} kg`
+                            : '';
+
+                        escreverLinhas(`- Ultimos pontos: ${resumoE1rm}${textoMM3}`, 8.3, [55, 65, 81], false, 2);
+                        y += 1.5;
+
+                        const imgG1 = gerarImagemGrafico1Pdf(pontosE1rm, mm3E1rm, 760, 195);
+                        const hG1 = (195 / 760) * contentW;
+                        garantirEspaco(hG1 + 3);
+                        pdf.setDrawColor(229, 231, 235);
+                        pdf.rect(marginX, y, contentW, hG1);
+                        pdf.addImage(imgG1, 'PNG', marginX + 0.5, y + 0.5, contentW - 1, hG1 - 1);
+                        y += hG1 + 4.5;
+                    } else {
+                        escreverLinhas('- Nenhum ponto de e1RM valido no periodo.', 8.3, [107, 114, 128], false, 2);
+                        y += 3;
+                    }
+
+                    // 5) GRÁFICO 4 — SÉRIES VÁLIDAS FRACIONADAS (Grupos acionados por este exercício)
+                    escreverLinhas(
+                        `GRAFICO 4 — VOLUME SEMANAL DOS GRUPOS DO EXERCICIO (META 8-14/SEM • ${formatarNumeroBR(semanasFrac, 1)} SEM.)`,
+                        9.2,
+                        [109, 40, 217],
+                        true
+                    );
+
+                    const macrosEx = obterMacrogruposDoExercicioPdf(docUlt);
+                    const linhasFracEx = macrosEx
+                        .map(item => {
+                            const info = mapaFracSemanal.get(item.macro);
+                            return info ? { ...info, papel: item.papel } : null;
+                        })
+                        .filter(Boolean);
+
+                    if (linhasFracEx.length > 0) {
+                        linhasFracEx.forEach(l => {
+                            escreverLinhas(
+                                `- ${l.musculo} (${l.papel}): ${formatarNumeroBR(l.total, 1)} series/sem (Diretas: ${formatarNumeroBR(l.diretas, 1)} | Indiretas: ${formatarNumeroBR(l.indiretas, 1)}) — ${l.status.label}`,
+                                8.3,
+                                [55, 65, 81],
+                                false,
+                                2
+                            );
+                        });
+                        y += 1.5;
+
+                        const { img: imgG4, heightPx: hPxG4 } = gerarImagemGrafico4Pdf(linhasFracEx, 760);
+                        const hG4 = (hPxG4 / 760) * contentW;
+                        garantirEspaco(hG4 + 2);
+                        pdf.setDrawColor(229, 231, 235);
+                        pdf.rect(marginX, y, contentW, hG4);
+                        pdf.addImage(imgG4, 'PNG', marginX + 0.5, y + 0.5, contentW - 1, hG4 - 1);
+                        y += hG4 + 2;
+                    } else {
+                        escreverLinhas('- Sem dados de volume semanal fracionado no periodo.', 8.3, [107, 114, 128], false, 2);
+                    }
+                });
+
+                // Rodapé com numeração de páginas
+                const totalPaginas = pdf.getNumberOfPages();
+                for (let p = 1; p <= totalPaginas; p++) {
+                    pdf.setPage(p);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.setFontSize(7.5);
+                    pdf.setTextColor(156, 163, 175);
+                    pdf.text(
+                        limparTextoPDF(`Tracker de Treinos • Relatorio Tatico (${periodoTexto})`),
+                        marginX,
+                        pageH - 6
+                    );
+                    pdf.text(`Pagina ${p} de ${totalPaginas}`, pageW - marginX, pageH - 6, { align: 'right' });
+                }
+
+                const nomeArquivoRotina = pRotina.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+                const dataHojeArq = obterHojeIsoLocal();
+                pdf.save(`relatorio_tatico_${nomeArquivoRotina}_${dataHojeArq}.pdf`);
+
+                fecharModalExportPdf();
+                showToast('PDF tático gerado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao gerar PDF:', error);
+                showToast('Erro ao gerar o PDF. Veja o console para detalhes.');
+            } finally {
+                btnConfirmGeneratePdf.disabled = false;
+                btnConfirmGeneratePdf.textContent = 'Gerar PDF';
+            }
+        }
+
+        btnConfirmGeneratePdf.addEventListener('click', gerarRelatorioTaticoPDF);
     </script>
 </body>
 </html>
