@@ -2982,6 +2982,7 @@
                 <div id="sono-factors-grid" class="sono-factors-grid"></div>
             </div>
         </section>
+    </div>
     <!-- TELA 6: Seleção de Rotina para Alterar -->
     <div id="screen-6" class="screen">
         <div class="nav-back" id="back-from-s6">← Voltar à Home</div>
@@ -9415,8 +9416,18 @@
             };
         }
 
+        function sonoLimparDigitosOCR(str) {
+            return String(str || '')
+                .replace(/([0-9])\s*[sS]\b/g, '$15')
+                .replace(/\b[sS]\s*([0-9%])/g, '5$1')
+                .replace(/([0-9])[oO]/g, '$10')
+                .replace(/[oO]([0-9])/g, '0$1')
+                .replace(/[lI]([0-9%])/g, '1$1');
+        }
+
         function sonoParseCardFator(texto, tipo) {
             const str = String(texto || '');
+            const strNum = sonoLimparDigitosOCR(str);
             const norm = normalizarTexto(str);
 
             let status = 'Bom';
@@ -9427,19 +9438,18 @@
 
             let valor = 0;
             if (tipo === 'horas') {
-                const m = str.match(/(\d{1,2})\s*h/i) || str.match(/\b(\d{1,2})\b/);
+                const m = strNum.match(/(\d{1,2})\s*h/i) || strNum.match(/(\d{1,2})/);
                 valor = m ? Number(m[1]) : 0;
             } else if (tipo === 'pct') {
-                const m = str.match(/(\d{1,3})\s*%/) || str.match(/\b(\d{1,3})\b/);
+                const m = strNum.match(/(\d{1,3})\s*%/) || strNum.match(/(\d{1,3})/);
                 valor = m ? Math.min(100, Number(m[1])) : 0;
             } else {
-                const m = str.match(/(\d{1,2})\s*vez/i) || str.match(/\b(\d{1,2})\b/);
+                const m = strNum.match(/(\d{1,2})\s*vez/i) || strNum.match(/(\d{1,2})/);
                 valor = m ? Number(m[1]) : 0;
             }
 
             return { valor, status };
         }
-
         /* --- Pré-processamento de imagem em Canvas (recorte proporcional + inversão de alto contraste) --- */
         function sonoCarregarImagem(file) {
             return new Promise((resolve, reject) => {
@@ -9457,15 +9467,16 @@
             });
         }
 
-        function sonoRecortarETratar(img, bbox) {
+        function sonoRecortarETratar(img, bbox, targetH = 90) {
             const [x0, y0, x1, y1] = bbox;
             const sx = (x0 / SONO_BASE_W) * img.naturalWidth;
             const sy = (y0 / SONO_BASE_H) * img.naturalHeight;
             const sw = ((x1 - x0) / SONO_BASE_W) * img.naturalWidth;
             const sh = ((y1 - y0) / SONO_BASE_H) * img.naturalHeight;
 
-            const scale = 2.5;
-            const pad = 18;
+            // Escala adaptativa: evita distorcer fontes gigantes (como Nota e Tempo Total)
+            const scale = Math.max(0.55, Math.min(2.2, targetH / Math.max(1, sh)));
+            const pad = 22;
             const cw = Math.max(10, Math.round(sw * scale));
             const ch = Math.max(10, Math.round(sh * scale));
 
@@ -9474,20 +9485,39 @@
             canvas.height = ch + pad * 2;
             const ctx = canvas.getContext('2d');
 
-            ctx.fillStyle = '#000000';
+            // Detecta automaticamente se o recorte veio de tema escuro ou claro
+            ctx.drawImage(img, sx, sy, sw, sh, pad, pad, cw, ch);
+            const rawProbe = ctx.getImageData(pad, pad, cw, ch).data;
+            let lumSum = 0;
+            let lumCount = 0;
+            for (let i = 0; i < rawProbe.length; i += 16) {
+                lumSum += 0.299 * rawProbe[i] + 0.587 * rawProbe[i + 1] + 0.114 * rawProbe[i + 2];
+                lumCount++;
+            }
+            const ehTemaEscuro = (lumSum / Math.max(1, lumCount)) < 128;
+
+            // Preenche a borda de respiro com a mesma cor do fundo detectado antes de normalizar
+            ctx.fillStyle = ehTemaEscuro ? '#000000' : '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(img, sx, sy, sw, sh, pad, pad, cw, ch);
 
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imgData.data;
 
-            // Inverte tema escuro -> papel branco com texto escuro, eliminando fundo das pílulas
             for (let i = 0; i < data.length; i += 4) {
                 const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                const inv = Math.max(0, Math.min(255, Math.round(255 - ((lum - 68) * (255 / 118)))));
-                data[i] = inv;
-                data[i + 1] = inv;
-                data[i + 2] = inv;
+                let val;
+                if (ehTemaEscuro) {
+                    val = 255 - ((lum - 70) * (255 / 120));
+                } else {
+                    val = (lum - 85) * (255 / 125);
+                }
+                const c = Math.max(0, Math.min(255, Math.round(val)));
+                data[i] = c;
+                data[i + 1] = c;
+                data[i + 2] = c;
                 data[i + 3] = 255;
             }
             ctx.putImageData(imgData, 0, 0);
