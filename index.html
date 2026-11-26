@@ -1307,6 +1307,74 @@
         #bi-prontidao-canvas-wrap {
             height: 310px;
         }
+        /* Tooltip HTML customizado do Gráfico 7 (com destaque por cor da nota do sono) */
+        .bi-prontidao-tooltip {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 40;
+            pointer-events: none;
+            opacity: 0;
+            width: max-content;
+            max-width: min(310px, calc(100% - 12px));
+            background: #121212;
+            border: 1px solid var(--accent-color);
+            border-radius: 10px;
+            padding: 10px 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.78);
+            color: var(--text-primary);
+            font-size: 0.78rem;
+            line-height: 1.45;
+            transition: opacity 0.12s ease;
+        }
+        .bi-p-tt-title {
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 6px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .bi-p-tt-row {
+            margin-bottom: 3px;
+            color: var(--text-primary);
+        }
+        .bi-p-tt-muted {
+            color: var(--text-secondary);
+        }
+        .bi-p-tt-sono-box {
+            margin: 8px 0;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            border-left-width: 3px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .bi-p-tt-sono-top {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+        .bi-p-tt-nota-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .bi-p-tt-diag-title {
+            font-weight: 700;
+            font-size: 0.78rem;
+        }
+        .bi-p-tt-diag-acao {
+            font-size: 0.74rem;
+            color: var(--text-secondary);
+        }
         /* =========================================================
            TELA 5: BOTÃO E MODAL DE EXPORTAÇÃO PDF (RELATÓRIO TÁTICO)
            ========================================================= */
