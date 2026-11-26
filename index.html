@@ -2222,6 +2222,7 @@
                     <li><strong>−5% a +1% (Azul suave):</strong> força estável / pronto.</li>
                     <li><strong>&lt; −5% isolado (Âmbar):</strong> queda pontual — observar recuperação.</li>
                     <li><strong>&lt; −5% em 2+ sessões seguidas (Vermelho):</strong> alerta de fadiga / recuperação insuficiente.</li>
+                    <li><strong>Cruzamento com Sono (noite anterior + Méd. 3d):</strong> no tooltip (destacado pela cor da nota: azul excelente, verde boa, amarelo razoável e âmbar insuficiente) e no selo de status, diferencia <em>Fadiga aguda por sono</em> (&lt; −5% com sono &lt; 6h30 ou Nota &lt; 60), <em>Fadiga real de treino/SNC</em> (&lt; −5% com sono ≥ 7h e Nota ≥ 75), <em>Resiliência aguda</em> (força estável/alta sob sono curto) e <em>Sinal verde pleno</em> (&gt; +1% com sono bom).</li>
                 </ul>
             </div>
         </div>
@@ -4871,15 +4872,67 @@
             atualizarGraficoProntidao();
         }
 
+        let mapaSonoPorDataG7 = new Map();
+
+        function extrairDuracaoMinSonoG7(reg) {
+            const total = Number(reg?.tempoTotalMin);
+            if (Number.isFinite(total) && total > 0) return Math.round(total);
+            const real = Number(reg?.tempoRealMin);
+            if (Number.isFinite(real) && real > 0) return Math.round(real);
+            return null;
+        }
+
+        function extrairNotaSonoG7(reg) {
+            if (reg?.nota === null || reg?.nota === undefined || reg?.nota === '') return null;
+            const n = Number(reg.nota);
+            return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+        }
+
+        function indexarRegistrosSonoG7(listaRegistros = []) {
+            mapaSonoPorDataG7 = new Map();
+            listaRegistros.forEach(reg => {
+                const dataIso = reg?.dataRegistro || reg?.data || '';
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(dataIso)) return;
+
+                const duracaoMin = extrairDuracaoMinSonoG7(reg);
+                const nota = extrairNotaSonoG7(reg);
+                const atualizadoEm = reg?.atualizadoEm || reg?.criadoEm || '';
+
+                const existente = mapaSonoPorDataG7.get(dataIso);
+                const substituir = !existente ||
+                    (existente.nota === null && nota !== null) ||
+                    (atualizadoEm >= (existente.atualizadoEm || ''));
+
+                if (substituir) {
+                    mapaSonoPorDataG7.set(dataIso, {
+                        dataRegistro: dataIso,
+                        duracaoMin,
+                        nota,
+                        notaStatus: reg?.notaStatus || reg?.statusNota || null,
+                        isManual: reg?.isManual === true || reg?.origem === 'manual' || reg?.modo === 'manual' || nota === null,
+                        atualizadoEm
+                    });
+                }
+            });
+        }
+
         async function carregarDadosDashboardBI() {
             try {
                 showToast("Carregando dados do Dashboard...");
-                
-                const q = query(collection(db, "treinos_executados"), where("usuario", "==", usuarioAtivo));
-                const snap = await getDocs(q);
-                rawTreinosExecutados = [];
 
-               snap.forEach(docSnap => {
+                const qTreinos = query(collection(db, "treinos_executados"), where("usuario", "==", usuarioAtivo));
+                const qSono = query(collection(db, "registros_sono"), where("usuario", "==", usuarioAtivo));
+
+                const [snapTreinos, snapSono] = await Promise.all([
+                    getDocs(qTreinos),
+                    getDocs(qSono).catch(err => {
+                        console.warn("Aviso ao buscar registros_sono para o G7:", err);
+                        return null;
+                    })
+                ]);
+
+                rawTreinosExecutados = [];
+                snapTreinos.forEach(docSnap => {
                     const data = docSnap.data();
                     const meta = obterMetadadosExercicio(data.exercicio);
                     const musculoNormalizado = classificarGrupoMuscularExercicio(data.exercicio, data.musculo);
@@ -4891,6 +4944,12 @@
                         mme: mmeResolvido
                     });
                 });
+
+                const listaSonoG7 = [];
+                if (snapSono) {
+                    snapSono.forEach(docSnap => listaSonoG7.push({ id: docSnap.id, ...docSnap.data() }));
+                }
+                indexarRegistrosSonoG7(listaSonoG7);
 
                 popularSelectsDoDashboard();
                 aplicarFiltrosGlobaisBI();
@@ -7750,16 +7809,330 @@
             };
         }
 
+        const TEMAS_NOTA_SONO_G7 = {
+            excelente: {
+                labelPadrao: 'Excelente',
+                cor: '#4fc3f7',
+                bg: 'rgba(79, 195, 247, 0.14)',
+                border: 'rgba(79, 195, 247, 0.45)'
+            },
+            boa: {
+                labelPadrao: 'Boa',
+                cor: '#81c784',
+                bg: 'rgba(76, 175, 80, 0.14)',
+                border: 'rgba(76, 175, 80, 0.45)'
+            },
+            razoavel: {
+                labelPadrao: 'Razoável',
+                cor: '#ffd54f',
+                bg: 'rgba(255, 213, 79, 0.14)',
+                border: 'rgba(255, 213, 79, 0.45)'
+            },
+            insuficiente: {
+                labelPadrao: 'Insuficiente',
+                cor: '#ffb74d',
+                bg: 'rgba(255, 152, 0, 0.15)',
+                border: 'rgba(255, 152, 0, 0.45)'
+            },
+            neutro: {
+                labelPadrao: 'Sem registro',
+                cor: '#a0a0a0',
+                bg: 'rgba(160, 160, 160, 0.08)',
+                border: 'rgba(160, 160, 160, 0.28)'
+            }
+        };
+
+        function escapeHtmlG7(texto) {
+            return String(texto ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function formatarMinutosSonoG7(totalMin) {
+            if (!Number.isFinite(totalMin) || totalMin <= 0) return '--';
+            const h = Math.floor(totalMin / 60);
+            const m = Math.round(totalMin % 60);
+            return `${h}h ${String(m).padStart(2, '0')}min`;
+        }
+
+        function obterCorDuracaoSonoG7(min) {
+            if (!Number.isFinite(min) || min <= 0) return TEMAS_NOTA_SONO_G7.neutro.cor;
+            if (min >= 420) return TEMAS_NOTA_SONO_G7.boa.cor;
+            if (min >= 390) return TEMAS_NOTA_SONO_G7.razoavel.cor;
+            return TEMAS_NOTA_SONO_G7.insuficiente.cor;
+        }
+
+        function obterTemaNotaSonoG7(nota, statusSalvo = null, duracaoFallbackMin = null) {
+            if (nota !== null && nota !== undefined) {
+                let chave = 'insuficiente';
+                if (nota >= 85) chave = 'excelente';
+                else if (nota >= 75) chave = 'boa';
+                else if (nota >= 60) chave = 'razoavel';
+
+                const base = TEMAS_NOTA_SONO_G7[chave];
+                return { ...base, label: statusSalvo || base.labelPadrao };
+            }
+
+            if (Number.isFinite(duracaoFallbackMin) && duracaoFallbackMin > 0) {
+                if (duracaoFallbackMin >= 420) return { ...TEMAS_NOTA_SONO_G7.boa, label: 'Manual' };
+                if (duracaoFallbackMin >= 390) return { ...TEMAS_NOTA_SONO_G7.razoavel, label: 'Manual' };
+                return { ...TEMAS_NOTA_SONO_G7.insuficiente, label: 'Manual' };
+            }
+
+            return { ...TEMAS_NOTA_SONO_G7.neutro, label: 'Sem registro' };
+        }
+
+        function subtrairDiasIsoG7(dataIso, dias) {
+            const ms = parseIsoParaUtcMs(dataIso);
+            if (ms === null) return null;
+            const dt = new Date(ms - dias * 86400000);
+            const ano = dt.getUTCFullYear();
+            const mes = String(dt.getUTCMonth() + 1).padStart(2, '0');
+            const dia = String(dt.getUTCDate()).padStart(2, '0');
+            return `${ano}-${mes}-${dia}`;
+        }
+
+        function obterContextoSonoParaDataG7(dataIso) {
+            const noiteAtual = mapaSonoPorDataG7.get(dataIso) || null;
+
+            const noites3d = [];
+            for (let offset = 0; offset < 3; offset++) {
+                const diaChave = subtrairDiasIsoG7(dataIso, offset);
+                const reg = diaChave ? mapaSonoPorDataG7.get(diaChave) : null;
+                if (reg && reg.duracaoMin !== null) {
+                    noites3d.push(reg);
+                }
+            }
+
+            const media3dMin = noites3d.length > 0
+                ? Math.round(noites3d.reduce((acc, r) => acc + r.duracaoMin, 0) / noites3d.length)
+                : null;
+
+            const duracaoMin = noiteAtual?.duracaoMin ?? null;
+            const nota = noiteAtual?.nota ?? null;
+            const isManual = noiteAtual ? noiteAtual.isManual : false;
+            const temaCor = obterTemaNotaSonoG7(nota, noiteAtual?.notaStatus, duracaoMin ?? media3dMin);
+
+            const noiteRuim = (duracaoMin !== null && duracaoMin < 390) || (nota !== null && nota < 60);
+            const deficitAcumulado3d = media3dMin !== null && media3dMin < 390;
+
+            let classificacao = 'sem_dados';
+            if (duracaoMin !== null || media3dMin !== null) {
+                if (noiteRuim || deficitAcumulado3d) {
+                    classificacao = 'ruim';
+                } else if (duracaoMin !== null && duracaoMin >= 420 && (nota === null || nota >= 75)) {
+                    classificacao = 'bom';
+                } else {
+                    classificacao = 'moderado';
+                }
+            }
+
+            let resumoTexto = 'Sem registro na data';
+            if (duracaoMin !== null) {
+                resumoTexto = formatarMinutosSonoG7(duracaoMin);
+                if (nota !== null) resumoTexto += ` • Nota ${nota} (${temaCor.label})`;
+                else if (isManual) resumoTexto += ' (Manual)';
+            }
+            if (media3dMin !== null) {
+                resumoTexto += ` | Méd. 3d: ${formatarMinutosSonoG7(media3dMin)}`;
+            }
+
+            return {
+                temDados: classificacao !== 'sem_dados',
+                classificacao,
+                duracaoMin,
+                nota,
+                isManual,
+                media3dMin,
+                corMedia3d: obterCorDuracaoSonoG7(media3dMin),
+                temaCor,
+                resumoTexto: `Sono: ${resumoTexto}`
+            };
+        }
+
+        function avaliarDiagnosticoProntidaoSono(deltaPct, quedasConsecutivas, estiloBase, ctxSono) {
+            if (!ctxSono || !ctxSono.temDados) return null;
+
+            if (deltaPct < -5 && ctxSono.classificacao === 'ruim') {
+                return {
+                    titulo: 'Fadiga aguda por sono',
+                    acao: 'Segure a carga ou use RIR mais conservador hoje; não precisa alterar a ficha.',
+                    badgeTexto: quedasConsecutivas >= 2
+                        ? 'Alerta • Déficit de sono (2+ quedas)'
+                        : 'Atenção • Queda por sono curto',
+                    badgeClasse: quedasConsecutivas >= 2 ? 'status-alerta' : 'status-atencao'
+                };
+            }
+
+            if (deltaPct < -5 && ctxSono.classificacao === 'bom') {
+                return {
+                    titulo: 'Fadiga real de treino / SNC',
+                    acao: 'Alerta autêntico: volume ou proximidade da falha acima do limite recuperável.',
+                    badgeTexto: quedasConsecutivas >= 2
+                        ? 'Alerta • Fadiga real de treino'
+                        : 'Atenção • Fadiga real / SNC',
+                    badgeClasse: quedasConsecutivas >= 2 ? 'status-alerta' : 'status-atencao'
+                };
+            }
+
+            if (deltaPct >= -5 && ctxSono.classificacao === 'ruim') {
+                return {
+                    titulo: 'Resiliência aguda',
+                    acao: 'Desempenho sustentado sob sono curto — risco tendíneo/sistêmico elevado; evite séries extras.',
+                    badgeTexto: 'Pronto • Resiliência (sono curto)',
+                    badgeClasse: estiloBase.badgeClasse
+                };
+            }
+
+            if (deltaPct > 1 && ctxSono.classificacao === 'bom') {
+                return {
+                    titulo: 'Sinal verde pleno',
+                    acao: 'Liberado para Dupla Progressão ou teste de aumento de carga.',
+                    badgeTexto: 'Pronto • Sinal verde pleno',
+                    badgeClasse: 'status-pronto-alta'
+                };
+            }
+
+            if (deltaPct >= -5 && ctxSono.classificacao === 'bom') {
+                return {
+                    titulo: 'Recuperação sólida (força estável)',
+                    acao: 'Sono em dia — manter a progressão planejada.',
+                    badgeTexto: 'Pronto • Sono bom',
+                    badgeClasse: estiloBase.badgeClasse
+                };
+            }
+
+            return {
+                titulo: deltaPct < -5 ? 'Queda sob sono moderado' : 'Sono moderado',
+                acao: deltaPct < -5
+                    ? 'Observar sono e recuperação antes de ajustar o volume da ficha.'
+                    : 'Seguir a sessão planejada monitorando o RIR.',
+                badgeTexto: deltaPct < -5
+                    ? (quedasConsecutivas >= 2 ? 'Alerta • Sono moderado' : 'Atenção • Sono moderado')
+                    : estiloBase.badgeTexto,
+                badgeClasse: estiloBase.badgeClasse
+            };
+        }
+
         function atualizarBadgeStatusProntidao(ultimoPonto) {
             statusPillProntidao.className = 'bi-status-pill';
+            statusPillProntidao.removeAttribute('title');
             if (!ultimoPonto) {
                 statusPillProntidao.textContent = 'Sem dados';
                 return;
             }
-            statusPillProntidao.textContent = ultimoPonto.estilo.badgeTexto;
-            statusPillProntidao.classList.add(ultimoPonto.estilo.badgeClasse);
+            const diag = ultimoPonto.diagnosticoSono;
+            statusPillProntidao.textContent = diag ? diag.badgeTexto : ultimoPonto.estilo.badgeTexto;
+            statusPillProntidao.classList.add(diag ? diag.badgeClasse : ultimoPonto.estilo.badgeClasse);
+            if (diag) {
+                statusPillProntidao.title = `${ultimoPonto.sono.resumoTexto} — ${diag.titulo}: ${diag.acao}`;
+            }
         }
 
+        function esconderTooltipExternoProntidao() {
+            const el = canvasWrapProntidao.querySelector('.bi-prontidao-tooltip');
+            if (el) el.style.opacity = '0';
+        }
+
+        function renderizarTooltipExternoProntidao(context, pontos) {
+            const { chart, tooltip } = context;
+
+            let tooltipEl = canvasWrapProntidao.querySelector('.bi-prontidao-tooltip');
+            if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.className = 'bi-prontidao-tooltip';
+                canvasWrapProntidao.appendChild(tooltipEl);
+            }
+
+            if (tooltip.opacity === 0 || !tooltip.dataPoints?.length) {
+                tooltipEl.style.opacity = '0';
+                return;
+            }
+
+            const idx = tooltip.dataPoints[0].dataIndex;
+            const p = pontos[idx];
+            if (!p) {
+                tooltipEl.style.opacity = '0';
+                return;
+            }
+
+            let html = `<div class="bi-p-tt-title">Sessão: ${escapeHtmlG7(p.dataCompleta)}</div>`;
+            html += `<div class="bi-p-tt-row">Prontidão: <strong style="color:${p.estilo.cor};">${escapeHtmlG7(formatarDeltaPctProntidao(p.deltaPct))}</strong></div>`;
+            html += `<div class="bi-p-tt-row bi-p-tt-muted">Status: ${escapeHtmlG7(p.estilo.statusTooltip)}</div>`;
+
+            const s = p.sono;
+            const tc = s?.temaCor || TEMAS_NOTA_SONO_G7.neutro;
+
+            html += `<div class="bi-p-tt-sono-box" style="background:${tc.bg}; border-color:${tc.border}; border-left-color:${tc.cor};">`;
+            html += `<div class="bi-p-tt-sono-top">`;
+
+            if (s && s.duracaoMin !== null) {
+                html += `<span>Sono: <strong style="color:${tc.cor};">${escapeHtmlG7(formatarMinutosSonoG7(s.duracaoMin))}</strong></span>`;
+                if (s.nota !== null) {
+                    html += `<span class="bi-p-tt-nota-pill" style="color:${tc.cor}; background:${tc.bg}; border-color:${tc.border};">Nota ${s.nota} (${escapeHtmlG7(tc.label)})</span>`;
+                } else if (s.isManual) {
+                    html += `<span class="bi-p-tt-nota-pill" style="color:${tc.cor}; background:${tc.bg}; border-color:${tc.border};">Manual</span>`;
+                }
+            } else {
+                html += `<span class="bi-p-tt-muted">Sono: Sem registro na data</span>`;
+            }
+
+            if (s && s.media3dMin !== null) {
+                html += `<span class="bi-p-tt-muted">• Méd. 3d: <strong style="color:${s.corMedia3d};">${escapeHtmlG7(formatarMinutosSonoG7(s.media3dMin))}</strong></span>`;
+            }
+            html += `</div>`;
+
+            if (p.diagnosticoSono) {
+                html += `<div class="bi-p-tt-diag-title" style="color:${tc.cor};">${escapeHtmlG7(p.diagnosticoSono.titulo)}</div>`;
+                html += `<div class="bi-p-tt-diag-acao">${escapeHtmlG7(p.diagnosticoSono.acao)}</div>`;
+            }
+            html += `</div>`;
+
+            if (p.modoIndividual) {
+                const d = p.detalheUnico;
+                html += `<div class="bi-p-tt-row">e1RM: <strong>${formatarNumeroBR(d.e1rmAtual, 1)} kg</strong> <span class="bi-p-tt-muted">vs. MM3: ${formatarNumeroBR(d.mm3, 1)} kg</span></div>`;
+                html += `<div class="bi-p-tt-row bi-p-tt-muted">1ª Série Válida: ${formatarValorCompacto(d.kg)} kg × ${d.reps} reps</div>`;
+                if (d.baseEmFormacao) {
+                    html += `<div class="bi-p-tt-row bi-p-tt-muted">Base em formação: ${d.baseCount}/3 sessões</div>`;
+                }
+            } else {
+                html += `<div class="bi-p-tt-row bi-p-tt-muted">Exercícios considerados: ${p.qtdExercicios}</div>`;
+                if (p.qtdExercicios === 1) {
+                    const d = p.detalheUnico;
+                    html += `<div class="bi-p-tt-row">${escapeHtmlG7(d.exercicio)} (${escapeHtmlG7(formatarDeltaPctProntidao(d.deltaPct))})</div>`;
+                    if (d.baseEmFormacao) {
+                        html += `<div class="bi-p-tt-row bi-p-tt-muted">Base em formação: ${d.baseCount}/3 sessões</div>`;
+                    }
+                } else {
+                    html += `<div class="bi-p-tt-row">Melhor: ${escapeHtmlG7(p.melhorEx.exercicio)} (${escapeHtmlG7(formatarDeltaPctProntidao(p.melhorEx.deltaPct))})</div>`;
+                    html += `<div class="bi-p-tt-row">Pior: ${escapeHtmlG7(p.piorEx.exercicio)} (${escapeHtmlG7(formatarDeltaPctProntidao(p.piorEx.deltaPct))})</div>`;
+                    if (p.qtdBaseFormacao > 0) {
+                        html += `<div class="bi-p-tt-row bi-p-tt-muted">Base em formação: ${p.qtdBaseFormacao} de ${p.qtdExercicios} exercício(s)</div>`;
+                    }
+                }
+            }
+
+            tooltipEl.innerHTML = html;
+            tooltipEl.style.opacity = '1';
+
+            const ttWidth = tooltipEl.offsetWidth;
+            const ttHeight = tooltipEl.offsetHeight;
+            const chartW = chart.width;
+            const chartH = chart.height;
+
+            let left = tooltip.caretX - ttWidth / 2;
+            left = Math.max(6, Math.min(left, chartW - ttWidth - 6));
+
+            let top = tooltip.caretY - ttHeight - 12;
+            if (top < 4) {
+                top = Math.min(tooltip.caretY + 12, Math.max(4, chartH - ttHeight - 4));
+            }
+
+            tooltipEl.style.left = `${left}px`;
+            tooltipEl.style.top = `${top}px`;
+        }
         // Busca o histórico completo (sem recorte de data) respeitando apenas o filtro global de Rotina,
         // para que o cálculo da MM3 tenha acesso às 3 sessões anteriores antes do recorte visual de data.
         function obterHistoricoCompletoProntidao() {
@@ -7947,6 +8320,8 @@
                 }
 
                 const estilo = obterEstiloProntidao(deltaMedio, quedasConsecutivas);
+                const sono = obterContextoSonoParaDataG7(dataIso);
+                const diagnosticoSono = avaliarDiagnosticoProntidaoSono(deltaMedio, quedasConsecutivas, estilo, sono);
 
                 let melhorEx = lista[0];
                 let piorEx = lista[0];
@@ -7964,6 +8339,8 @@
                     deltaPct: Number(deltaMedio.toFixed(1)),
                     quedasConsecutivas,
                     estilo,
+                    sono,
+                    diagnosticoSono,
                     modoIndividual,
                     detalheUnico: lista[0],
                     qtdExercicios: lista.length,
@@ -7971,7 +8348,6 @@
                     piorEx,
                     qtdBaseFormacao
                 };
-            });
 
             // Aplica o recorte visual do filtro global de data SOMENTE após o cálculo de MM3 e streak
             const gStart = biGlobalStart.value;
@@ -8045,9 +8421,11 @@
                 chartProntidaoInstance.destroy();
                 chartProntidaoInstance = null;
             }
+            esconderTooltipExternoProntidao();
 
             if (pontos.length === 0) {
                 atualizarBadgeStatusProntidao(null);
+                esconderTooltipExternoProntidao();
                 canvasWrapProntidao.style.display = 'none';
                 emptyStateProntidao.classList.add('visible');
                 return;
@@ -8123,52 +8501,8 @@
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            backgroundColor: '#121212',
-                            borderColor: '#bb86fc',
-                            borderWidth: 1,
-                            titleColor: '#bb86fc',
-                            bodyColor: '#e0e0e0',
-                            padding: 12,
-                            displayColors: false,
-                            callbacks: {
-                                title: (items) => {
-                                    const idx = items[0]?.dataIndex;
-                                    return idx !== undefined ? `Sessão: ${pontos[idx].dataCompleta}` : '';
-                                },
-                                label: (ctx) => {
-                                    const p = pontos[ctx.dataIndex];
-                                    const linhas = [
-                                        `Variação de Prontidão: ${formatarDeltaPctProntidao(p.deltaPct)}`,
-                                        `Status: ${p.estilo.statusTooltip}`
-                                    ];
-
-                                    if (p.modoIndividual) {
-                                        const d = p.detalheUnico;
-                                        linhas.push(`e1RM Atual: ${formatarNumeroBR(d.e1rmAtual, 1)} kg vs. MM3: ${formatarNumeroBR(d.mm3, 1)} kg`);
-                                        linhas.push(`1ª Série Válida: ${formatarValorCompacto(d.kg)} kg × ${d.reps} reps`);
-                                        if (d.baseEmFormacao) {
-                                            linhas.push(`Base em formação: ${d.baseCount}/3 sessões`);
-                                        }
-                                    } else {
-                                        linhas.push(`Exercícios considerados: ${p.qtdExercicios}`);
-                                        if (p.qtdExercicios === 1) {
-                                            const d = p.detalheUnico;
-                                            linhas.push(`Exercício: ${d.exercicio} (${formatarDeltaPctProntidao(d.deltaPct)})`);
-                                            if (d.baseEmFormacao) {
-                                                linhas.push(`Base em formação: ${d.baseCount}/3 sessões`);
-                                            }
-                                        } else {
-                                            linhas.push(`Melhor desvio: ${p.melhorEx.exercicio} (${formatarDeltaPctProntidao(p.melhorEx.deltaPct)})`);
-                                            linhas.push(`Pior desvio: ${p.piorEx.exercicio} (${formatarDeltaPctProntidao(p.piorEx.deltaPct)})`);
-                                            if (p.qtdBaseFormacao > 0) {
-                                                linhas.push(`Base em formação: ${p.qtdBaseFormacao} de ${p.qtdExercicios} exercício(s)`);
-                                            }
-                                        }
-                                    }
-
-                                    return linhas;
-                                }
-                            }
+                            enabled: false,
+                            external: (context) => renderizarTooltipExternoProntidao(context, pontos)
                         }
                     },
                     scales: {
