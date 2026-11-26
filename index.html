@@ -1400,6 +1400,8 @@
            ========================================================= */
         .sono-home-card {
             width: 100%;
+            max-width: 100%;
+            overflow: hidden;
             background: var(--surface-color);
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
@@ -1412,7 +1414,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
         }
         .sono-home-title {
             font-size: 0.9rem;
@@ -1427,11 +1430,15 @@
         }
         .sono-upload-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 10px;
+            width: 100%;
         }
         .sono-upload-box {
             position: relative;
+            min-width: 0;
+            width: 100%;
+            overflow: hidden;
             background: var(--bg-color);
             border: 1.5px dashed var(--border-color);
             border-radius: 10px;
@@ -1467,10 +1474,12 @@
             color: var(--text-secondary);
         }
         .sono-upload-status {
+            display: block;
+            width: 100%;
+            max-width: 100%;
             font-size: 0.72rem;
             font-weight: 600;
             color: var(--secondary-accent);
-            max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -2899,71 +2908,80 @@
                 <canvas id="chart-prontidao"></canvas>
             </div>
         </section>
-        <!-- 8. Sono & Recuperação (Samsung Health) -->
-    <section id="card-grafico-8-sono" class="bi-card full-width" style="margin-top: 20px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 18px; display: flex; flex-direction: column; gap: 14px;">
-        <div class="bi-card-header">
-            <div class="bi-card-title-row">
-                <h4 class="bi-card-title">8. Sono & Recuperação</h4>
+        <!-- Gráfico 8: Sono & Recuperação (Samsung Health) -->
+        <section class="bi-chart-card" id="card-grafico-8-sono">
+            <div class="bi-chart-header">
+                <div class="bi-chart-title-wrap">
+                    <h3>8. Sono & Recuperação</h3>
+                    <p>Barras: Tempo de Sono (Meta 7h–9h) • Linha: Nota Diária (0–100) • Clique em um dia para abrir o Raio-X</p>
+                </div>
             </div>
-            <p class="bi-card-subtitle">Barras: Tempo de Sono (Meta 7h–9h) | Linha: Nota Diária (0–100) • Clique em um dia para abrir o Raio-X</p>
-        </div>
 
-        <div class="bi-local-filter">
-            <span class="filter-tag">Noite no Raio-X:</span>
-            <select id="f8-night-select">
-                <option value="">Sem registros de sono no período</option>
-            </select>
-        </div>
-
-        <div class="bi-kpi-banner">
-            <div class="bi-kpi-box">
-                <span class="bi-kpi-label">Média de Sono</span>
-                <span class="bi-kpi-value accent" id="kpi-sono-media-horas">--</span>
-            </div>
-            <div class="bi-kpi-box">
-                <span class="bi-kpi-label">Nota Média</span>
-                <span class="bi-kpi-value" id="kpi-sono-media-nota">--</span>
-            </div>
-            <div class="bi-kpi-box">
-                <span class="bi-kpi-label">Profundo + REM</span>
-                <span class="bi-kpi-value" id="kpi-sono-media-restaurador">--</span>
-            </div>
-        </div>
-
-        <div class="bi-chart-canvas-wrapper chart-wrapper tall-wrapper" style="position: relative; width: 100%; height: 320px;">
-            <canvas id="chart-8-sono"></canvas>
-            <div id="empty-chart-8" class="chart-empty-overlay">
-                Nenhum registro de sono salvo para o período selecionado. Envie SH_1 e SH_2 na Home para começar.
-            </div>
-        </div>
-
-        <!-- Raio-X da Noite Selecionada -->
-        <div id="sono-xray-container" class="sono-xray-box" style="display: none;">
-            <div class="sono-xray-header">
-                <div>
-                    <div id="sono-xray-date" style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:4px;">--</div>
-                    <div class="sono-xray-score-block">
-                        <span id="sono-xray-score" class="sono-xray-score-num">--</span>
-                        <span id="sono-xray-status" class="sono-xray-score-pill">--</span>
+            <!-- KPIs rápidos no padrão do Gráfico 3 -->
+            <div class="bi-kpi-row">
+                <div class="bi-kpi-box">
+                    <span class="bi-kpi-label">Média de Sono</span>
+                    <div class="bi-kpi-value-wrap">
+                        <span class="bi-kpi-value" id="kpi-sono-media-horas" style="color: var(--secondary-accent);">--</span>
                     </div>
                 </div>
-                <div class="sono-xray-meta">
-                    <span>Horário: <strong id="sono-xray-horario">--</strong></span>
-                    <span>Tempo Total: <strong id="sono-xray-total">--</strong></span>
-                    <span>Tempo Real: <strong id="sono-xray-real">--</strong></span>
+                <div class="bi-kpi-box">
+                    <span class="bi-kpi-label">Nota Média</span>
+                    <div class="bi-kpi-value-wrap">
+                        <span class="bi-kpi-value" id="kpi-sono-media-nota">--</span>
+                    </div>
+                </div>
+                <div class="bi-kpi-box">
+                    <span class="bi-kpi-label">Profundo + REM</span>
+                    <div class="bi-kpi-value-wrap">
+                        <span class="bi-kpi-value" id="kpi-sono-media-restaurador">--</span>
+                    </div>
                 </div>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <div id="sono-phases-bar" class="sono-phases-bar"></div>
-                <div id="sono-phases-legend" class="sono-phases-legend"></div>
+            <!-- Filtro local no padrão dos Gráficos 1–7 -->
+            <div class="bi-chart-controls">
+                <div class="bi-filter-item">
+                    <label for="f8-night-select">Noite no Raio-X:</label>
+                    <select id="f8-night-select">
+                        <option value="">Sem registros de sono no período</option>
+                    </select>
+                </div>
             </div>
 
-            <div id="sono-factors-grid" class="sono-factors-grid"></div>
-        </div>
-    </section>
-    </div>
+            <div id="empty-chart-8" class="bi-chart-empty">
+                Nenhum registro de sono salvo para o período selecionado. Envie SH_1 e SH_2 na Home para começar.
+            </div>
 
+            <div class="bi-chart-canvas-wrapper" id="bi-sono-canvas-wrap" style="height: 310px;">
+                <canvas id="chart-8-sono"></canvas>
+            </div>
+
+            <!-- Raio-X da Noite Selecionada -->
+            <div id="sono-xray-container" class="sono-xray-box" style="display: none;">
+                <div class="sono-xray-header">
+                    <div>
+                        <div id="sono-xray-date" style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:4px;">--</div>
+                        <div class="sono-xray-score-block">
+                            <span id="sono-xray-score" class="sono-xray-score-num">--</span>
+                            <span id="sono-xray-status" class="sono-xray-score-pill">--</span>
+                        </div>
+                    </div>
+                    <div class="sono-xray-meta">
+                        <span>Horário: <strong id="sono-xray-horario">--</strong></span>
+                        <span>Tempo Total: <strong id="sono-xray-total">--</strong></span>
+                        <span>Tempo Real: <strong id="sono-xray-real">--</strong></span>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div id="sono-phases-bar" class="sono-phases-bar"></div>
+                    <div id="sono-phases-legend" class="sono-phases-legend"></div>
+                </div>
+
+                <div id="sono-factors-grid" class="sono-factors-grid"></div>
+            </div>
+        </section>
     <!-- TELA 6: Seleção de Rotina para Alterar -->
     <div id="screen-6" class="screen">
         <div class="nav-back" id="back-from-s6">← Voltar à Home</div>
@@ -2983,7 +3001,7 @@
     <!-- INTEGRAÇÃO COM FIREBASE E AUTH -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, updateDoc, doc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, updateDoc, setDoc, doc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -9258,25 +9276,25 @@
         const SONO_BASE_W = 1080;
         const SONO_BASE_H = 2271;
 
-        const SONO_ZONES = {
+       const SONO_ZONES = {
             SH_1: [
-                { key: 'data',        bbox: [48,  358, 360, 426], psm: 7 },
-                { key: 'tempoTotal',  bbox: [63,  542, 460, 650], psm: 7 },
-                { key: 'acordado',    bbox: [244, 667, 620, 721], psm: 7 },
-                { key: 'rem',         bbox: [173, 724, 620, 775], psm: 7 },
-                { key: 'leve',        bbox: [173, 786, 620, 837], psm: 7 },
-                { key: 'profundo',    bbox: [236, 843, 620, 889], psm: 7 }
+                { key: 'data',        bbox: [44,  358, 360, 426], psm: 7, targetH: 90 },
+                { key: 'tempoTotal',  bbox: [36,  540, 460, 654], psm: 7, targetH: 90 },
+                { key: 'acordado',    bbox: [244, 667, 620, 721], psm: 7, targetH: 85 },
+                { key: 'rem',         bbox: [173, 724, 620, 775], psm: 7, targetH: 85 },
+                { key: 'leve',        bbox: [173, 786, 620, 837], psm: 7, targetH: 85 },
+                { key: 'profundo',    bbox: [236, 843, 620, 889], psm: 7, targetH: 85 }
             ],
             SH_2: [
-                { key: 'data',              bbox: [315, 216,  753, 315],  psm: 7 },
-                { key: 'nota',              bbox: [0,   380,  247, 537],  psm: 7, whitelist: '0123456789' },
-                { key: 'horario',           bbox: [37,  622,  284, 687],  psm: 7, whitelist: '0123456789:- ' },
-                { key: 'tempoReal',         bbox: [20,  687,  253, 758],  psm: 7 },
-                { key: 'cardTempoSono',     bbox: [77,  1033, 509, 1280], psm: 6 },
-                { key: 'cardRecupFisica',   bbox: [568, 1036, 983, 1292], psm: 6 },
-                { key: 'cardDescanso',      bbox: [82,  1360, 514, 1618], psm: 6 },
-                { key: 'cardRecupMental',   bbox: [568, 1365, 986, 1621], psm: 6 },
-                { key: 'cardCiclos',        bbox: [80,  1692, 512, 1956], psm: 6 }
+                { key: 'data',              bbox: [315, 216,  753, 315],  psm: 7, targetH: 90 },
+                { key: 'nota',              bbox: [40,  380,  242, 537],  psm: 7, targetH: 90, whitelist: '0123456789' },
+                { key: 'horario',           bbox: [37,  622,  284, 687],  psm: 7, targetH: 85, whitelist: '0123456789:- ' },
+                { key: 'tempoReal',         bbox: [20,  687,  253, 758],  psm: 7, targetH: 85 },
+                { key: 'cardTempoSono',     bbox: [91,  1047, 495, 1266], psm: 6, targetH: 260 },
+                { key: 'cardRecupFisica',   bbox: [582, 1050, 969, 1278], psm: 6, targetH: 260 },
+                { key: 'cardDescanso',      bbox: [96,  1374, 500, 1604], psm: 6, targetH: 260 },
+                { key: 'cardRecupMental',   bbox: [582, 1379, 972, 1607], psm: 6, targetH: 260 },
+                { key: 'cardCiclos',        bbox: [94,  1706, 498, 1942], psm: 6, targetH: 260 }
             ]
         };
 
@@ -9588,7 +9606,7 @@
                             tessedit_char_whitelist: z.whitelist || ''
                         });
 
-                        const recorte = sonoRecortarETratar(img, z.bbox);
+                        const recorte = sonoRecortarETratar(img, z.bbox, z.targetH || 90);
                         const { data } = await worker.recognize(recorte);
                         destino[z.key] = (data?.text || '').trim();
                     }
@@ -10091,6 +10109,7 @@
                 .sort((a, b) => a.dataRegistro.localeCompare(b.dataRegistro));
 
             const emptyEl = document.getElementById('empty-chart-8');
+            const canvasWrap8 = document.getElementById('bi-sono-canvas-wrap');
             const kpiHoras = document.getElementById('kpi-sono-media-horas');
             const kpiNota = document.getElementById('kpi-sono-media-nota');
             const kpiRest = document.getElementById('kpi-sono-media-restaurador');
@@ -10101,6 +10120,7 @@
             }
 
             if (sonoFiltradosAtuais.length === 0) {
+                if (canvasWrap8) canvasWrap8.style.display = 'none';
                 if (emptyEl) emptyEl.classList.add('visible');
                 kpiHoras.textContent = '--';
                 kpiNota.textContent = '--';
@@ -10112,6 +10132,7 @@
             }
 
             if (emptyEl) emptyEl.classList.remove('visible');
+            if (canvasWrap8) canvasWrap8.style.display = 'block';
 
             // KPIs do período
             const n = sonoFiltradosAtuais.length;
