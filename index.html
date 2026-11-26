@@ -2319,7 +2319,41 @@
             <div id="sono-info-modal-static" class="sono-info-static"></div>
         </div>
     </div>
-    
+    <!-- Modal: Registro Simples de Sono (Sem Relógio) -->
+    <div id="modal-sono-manual" class="modal-overlay">
+        <div class="modal-card" style="max-width: 420px;">
+            <div class="sono-modal-header">
+                <h3>Sono Manual (Sem Relógio)</h3>
+                <button type="button" id="btn-close-sono-manual" class="sono-modal-close" title="Fechar">✕</button>
+            </div>
+
+            <div class="sono-field">
+                <label for="sono-manual-data">Data (manhã em que acordou)</label>
+                <input type="date" id="sono-manual-data">
+            </div>
+
+            <div class="sono-form-grid-2">
+                <div class="sono-field">
+                    <label for="sono-manual-inicio">Hora Início</label>
+                    <input type="time" id="sono-manual-inicio">
+                </div>
+                <div class="sono-field">
+                    <label for="sono-manual-fim">Hora Fim</label>
+                    <input type="time" id="sono-manual-fim">
+                </div>
+            </div>
+
+            <div class="sono-manual-preview">
+                <span>Tempo total calculado:</span>
+                <strong id="sono-manual-preview-val">--</strong>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" id="btn-cancel-sono-manual" class="btn-secondary">Cancelar</button>
+                <button type="button" id="btn-save-sono-manual" class="btn-primary" disabled>Salvar Horário</button>
+            </div>
+        </div>
+    </div>
 
     <!-- TELA 0: Login / Cadastro -->
     <div id="screen-0" class="screen active">
@@ -2377,6 +2411,9 @@
 
             <button type="button" id="btn-extrair-sono" class="sono-extract-btn" disabled>
                 EXTRAIR DADOS DO SONO
+            </button>
+            <button type="button" id="btn-abrir-sono-manual" class="sono-manual-trigger">
+                + Registrar só horário (sem relógio)
             </button>
 
             <div id="sono-progress-wrap" class="sono-progress-wrap">
@@ -10038,6 +10075,112 @@
             }
         }
 
+        /* --- Modal Manual Simples (Sem Relógio: apenas início e fim) --- */
+        const btnAbrirSonoManual = document.getElementById('btn-abrir-sono-manual');
+        const modalSonoManual = document.getElementById('modal-sono-manual');
+        const btnCloseSonoManual = document.getElementById('btn-close-sono-manual');
+        const btnCancelSonoManual = document.getElementById('btn-cancel-sono-manual');
+        const btnSaveSonoManual = document.getElementById('btn-save-sono-manual');
+        const inputSonoManualData = document.getElementById('sono-manual-data');
+        const inputSonoManualInicio = document.getElementById('sono-manual-inicio');
+        const inputSonoManualFim = document.getElementById('sono-manual-fim');
+        const previewSonoManualVal = document.getElementById('sono-manual-preview-val');
+
+        function sonoAtualizarPreviewManual() {
+            const diffMin = sonoDiferencaHorarioMin(inputSonoManualInicio.value, inputSonoManualFim.value);
+            if (diffMin !== null && diffMin > 0 && inputSonoManualData.value) {
+                previewSonoManualVal.textContent = sonoFormatarMinutos(diffMin);
+                btnSaveSonoManual.disabled = false;
+            } else {
+                previewSonoManualVal.textContent = '--';
+                btnSaveSonoManual.disabled = true;
+            }
+        }
+
+        function sonoAbrirModalManual() {
+            inputSonoManualData.value = sonoHojeIso();
+            inputSonoManualInicio.value = '';
+            inputSonoManualFim.value = '';
+            sonoAtualizarPreviewManual();
+            modalSonoManual.classList.add('open');
+        }
+
+        function sonoFecharModalManual() {
+            modalSonoManual.classList.remove('open');
+        }
+
+        btnAbrirSonoManual?.addEventListener('click', sonoAbrirModalManual);
+        btnCloseSonoManual?.addEventListener('click', sonoFecharModalManual);
+        btnCancelSonoManual?.addEventListener('click', sonoFecharModalManual);
+        modalSonoManual?.addEventListener('click', (e) => {
+            if (e.target === modalSonoManual) sonoFecharModalManual();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalSonoManual?.classList.contains('open')) {
+                sonoFecharModalManual();
+            }
+        });
+
+        [inputSonoManualData, inputSonoManualInicio, inputSonoManualFim].forEach(el => {
+            el?.addEventListener('input', sonoAtualizarPreviewManual);
+            el?.addEventListener('change', sonoAtualizarPreviewManual);
+        });
+
+        btnSaveSonoManual?.addEventListener('click', async () => {
+            if (!usuarioAtivo) {
+                showToast('Faça login antes de salvar.');
+                return;
+            }
+            const dataRegistro = inputSonoManualData.value;
+            const horaInicio = inputSonoManualInicio.value;
+            const horaFim = inputSonoManualFim.value;
+            const tempoTotalMin = sonoDiferencaHorarioMin(horaInicio, horaFim);
+
+            if (!dataRegistro || tempoTotalMin === null || tempoTotalMin <= 0) {
+                showToast('Preencha data, hora inicial e hora final.');
+                return;
+            }
+
+            const payload = {
+                usuario: usuarioAtivo,
+                dataRegistro,
+                somenteHorario: true,
+                nota: null,
+                statusNota: 'Sem relógio',
+                horaInicio,
+                horaFim,
+                tempoTotalMin,
+                tempoRealMin: null,
+                fases: null,
+                fatores: null,
+                atualizadoEm: new Date().toISOString()
+            };
+
+            btnSaveSonoManual.disabled = true;
+            btnSaveSonoManual.textContent = 'SALVANDO...';
+            try {
+                const docId = `${usuarioAtivo}_${dataRegistro}`;
+                await setDoc(doc(db, 'registros_sono', docId), payload);
+
+                const idx = rawRegistrosSono.findIndex(r => r.dataRegistro === dataRegistro);
+                if (idx >= 0) rawRegistrosSono[idx] = { id: docId, ...payload };
+                else rawRegistrosSono.push({ id: docId, ...payload });
+
+                sonoFecharModalManual();
+                showToast(`Sono manual (${sonoFormatarMinutos(tempoTotalMin)}) salvo!`);
+            } catch (err) {
+                console.error('Erro ao salvar sono manual:', err);
+                showToast('Erro ao salvar no Firestore.');
+            } finally {
+                btnSaveSonoManual.disabled = false;
+                btnSaveSonoManual.textContent = 'Salvar Horário';
+            }
+        });
+
+        function sonoEhRegistroCompleto(reg) {
+            return Boolean(reg && !reg.somenteHorario && reg.nota !== null && reg.nota !== undefined);
+        }
+
         function sonoRenderizarRaioX(dataIso) {
             const reg = sonoFiltradosAtuais.find(r => r.dataRegistro === dataIso);
             if (!reg) {
@@ -10046,21 +10189,59 @@
             }
             sonoXrayContainer.style.display = 'flex';
 
-            const classNota = sonoClassificarNota(reg.nota);
+            const completo = sonoEhRegistroCompleto(reg);
             document.getElementById('sono-xray-date').textContent = `Raio-X da noite — ${sonoFormatarDataBR(reg.dataRegistro)}`;
 
             const scoreEl = document.getElementById('sono-xray-score');
-            scoreEl.textContent = reg.nota;
-            scoreEl.style.color = classNota.cor;
-
             const statusEl = document.getElementById('sono-xray-status');
-            statusEl.textContent = classNota.label;
-            statusEl.style.backgroundColor = classNota.cor;
+
+            if (completo) {
+                const classNota = sonoClassificarNota(reg.nota);
+                scoreEl.textContent = reg.nota;
+                scoreEl.style.color = classNota.cor;
+                statusEl.textContent = classNota.label;
+                statusEl.style.backgroundColor = classNota.cor;
+                statusEl.style.color = '#000000';
+            } else {
+                scoreEl.textContent = '--';
+                scoreEl.style.color = 'var(--text-secondary)';
+                statusEl.textContent = 'Sem relógio';
+                statusEl.style.backgroundColor = '#333333';
+                statusEl.style.color = '#e0e0e0';
+            }
 
             document.getElementById('sono-xray-horario').textContent =
                 (reg.horaInicio && reg.horaFim) ? `${reg.horaInicio} – ${reg.horaFim}` : '--';
             document.getElementById('sono-xray-total').textContent = sonoFormatarMinutos(reg.tempoTotalMin);
-            document.getElementById('sono-xray-real').textContent = sonoFormatarMinutos(reg.tempoRealMin);
+            document.getElementById('sono-xray-real').textContent =
+                (completo && reg.tempoRealMin !== null && reg.tempoRealMin !== undefined)
+                    ? sonoFormatarMinutos(reg.tempoRealMin)
+                    : '--';
+
+            const barEl = document.getElementById('sono-phases-bar');
+            const legEl = document.getElementById('sono-phases-legend');
+            const gridEl = document.getElementById('sono-factors-grid');
+            const phasesBlock = barEl.parentElement;
+
+            let manualNoteEl = document.getElementById('sono-xray-manual-note');
+            if (!manualNoteEl) {
+                manualNoteEl = document.createElement('div');
+                manualNoteEl.id = 'sono-xray-manual-note';
+                manualNoteEl.className = 'sono-xray-manual-note';
+                manualNoteEl.textContent = 'Registro manual (relógio descarregado): apenas horário de início, fim e tempo total foram salvos para esta noite.';
+                sonoXrayContainer.appendChild(manualNoteEl);
+            }
+
+            if (!completo) {
+                phasesBlock.style.display = 'none';
+                gridEl.style.display = 'none';
+                manualNoteEl.style.display = 'block';
+                return;
+            }
+
+            phasesBlock.style.display = 'flex';
+            gridEl.style.display = 'grid';
+            manualNoteEl.style.display = 'none';
 
             // Barra e legenda das 4 fases
             const fasesMeta = [
@@ -10069,8 +10250,6 @@
                 { key: 'leve',     label: 'Leve',     cor: '#7c6eff' },
                 { key: 'profundo', label: 'Profundo', cor: '#4a3aff' }
             ];
-            const barEl = document.getElementById('sono-phases-bar');
-            const legEl = document.getElementById('sono-phases-legend');
             barEl.innerHTML = '';
             legEl.innerHTML = '';
 
@@ -10103,7 +10282,6 @@
                 { key: 'recuperacaoMental', titulo: 'Recuperação mental',  sufixo: '%' },
                 { key: 'ciclosSono',        titulo: 'Ciclos do sono',      sufixo: ' vezes' }
             ];
-            const gridEl = document.getElementById('sono-factors-grid');
             gridEl.innerHTML = '';
 
             fatoresMeta.forEach(fm => {
@@ -10150,8 +10328,8 @@
             }
 
             if (sonoFiltradosAtuais.length === 0) {
-                if (canvasWrap8) canvasWrap8.style.display = 'none';
                 if (emptyEl) emptyEl.classList.add('visible');
+                if (canvasWrap8) canvasWrap8.style.display = 'none';
                 kpiHoras.textContent = '--';
                 kpiNota.textContent = '--';
                 kpiNota.style.color = 'var(--text-primary)';
@@ -10164,20 +10342,28 @@
             if (emptyEl) emptyEl.classList.remove('visible');
             if (canvasWrap8) canvasWrap8.style.display = 'block';
 
-            // KPIs do período
-            const n = sonoFiltradosAtuais.length;
-            const mediaMin = sonoFiltradosAtuais.reduce((acc, r) => acc + (Number(r.tempoTotalMin) || 0), 0) / n;
-            const mediaNota = Math.round(sonoFiltradosAtuais.reduce((acc, r) => acc + (Number(r.nota) || 0), 0) / n);
-            const mediaRestMin = sonoFiltradosAtuais.reduce((acc, r) =>
-                acc + (Number(r.fases?.profundo?.minutos) || 0) + (Number(r.fases?.rem?.minutos) || 0), 0) / n;
-            const mediaRestPct = Math.round(sonoFiltradosAtuais.reduce((acc, r) =>
-                acc + (Number(r.fases?.profundo?.pct) || 0) + (Number(r.fases?.rem?.pct) || 0), 0) / n);
-
-            const classMedia = sonoClassificarNota(mediaNota);
+            // KPIs: horas consideram todas as noites; nota e fases consideram apenas noites com relógio
+            const nTodos = sonoFiltradosAtuais.length;
+            const mediaMin = sonoFiltradosAtuais.reduce((acc, r) => acc + (Number(r.tempoTotalMin) || 0), 0) / nTodos;
             kpiHoras.textContent = sonoFormatarMinutos(mediaMin);
-            kpiNota.textContent = `${mediaNota} • ${classMedia.label}`;
-            kpiNota.style.color = classMedia.cor;
-            kpiRest.textContent = `${mediaRestPct}% (${sonoFormatarMinutos(mediaRestMin)})`;
+
+            const comRelogio = sonoFiltradosAtuais.filter(sonoEhRegistroCompleto);
+            if (comRelogio.length > 0) {
+                const mediaNota = Math.round(comRelogio.reduce((acc, r) => acc + (Number(r.nota) || 0), 0) / comRelogio.length);
+                const mediaRestMin = comRelogio.reduce((acc, r) =>
+                    acc + (Number(r.fases?.profundo?.minutos) || 0) + (Number(r.fases?.rem?.minutos) || 0), 0) / comRelogio.length;
+                const mediaRestPct = Math.round(comRelogio.reduce((acc, r) =>
+                    acc + (Number(r.fases?.profundo?.pct) || 0) + (Number(r.fases?.rem?.pct) || 0), 0) / comRelogio.length);
+
+                const classMedia = sonoClassificarNota(mediaNota);
+                kpiNota.textContent = `${mediaNota} • ${classMedia.label}`;
+                kpiNota.style.color = classMedia.cor;
+                kpiRest.textContent = `${mediaRestPct}% (${sonoFormatarMinutos(mediaRestMin)})`;
+            } else {
+                kpiNota.textContent = '--';
+                kpiNota.style.color = 'var(--text-primary)';
+                kpiRest.textContent = '--';
+            }
 
             // Popula seletor de noite (mais recente primeiro)
             const selecaoAnterior = f8NightSelect.value;
@@ -10185,7 +10371,9 @@
             [...sonoFiltradosAtuais].reverse().forEach(r => {
                 const opt = document.createElement('option');
                 opt.value = r.dataRegistro;
-                opt.textContent = `${sonoFormatarDataBR(r.dataRegistro)} — Nota ${r.nota} (${sonoFormatarMinutos(r.tempoTotalMin)})`;
+                opt.textContent = sonoEhRegistroCompleto(r)
+                    ? `${sonoFormatarDataBR(r.dataRegistro)} — Nota ${r.nota} (${sonoFormatarMinutos(r.tempoTotalMin)})`
+                    : `${sonoFormatarDataBR(r.dataRegistro)} — Sem relógio (${sonoFormatarMinutos(r.tempoTotalMin)})`;
                 f8NightSelect.appendChild(opt);
             });
             const noiteSelecionada = sonoFiltradosAtuais.some(r => r.dataRegistro === selecaoAnterior)
@@ -10194,11 +10382,11 @@
             f8NightSelect.value = noiteSelecionada;
             sonoRenderizarRaioX(noiteSelecionada);
 
-            // Monta Gráfico 8 (Barras: Horas + Linha: Nota com pontos coloridos)
+            // Monta Gráfico 8 (Barras: todas as noites | Linha: apenas noites com nota, cruzando lacunas)
             const labels = sonoFiltradosAtuais.map(r => sonoFormatarDataCurta(r.dataRegistro));
             const horasData = sonoFiltradosAtuais.map(r => Number(((r.tempoTotalMin || 0) / 60).toFixed(2)));
-            const notasData = sonoFiltradosAtuais.map(r => Number(r.nota) || 0);
-            const coresPontos = notasData.map(v => sonoClassificarNota(v).cor);
+            const notasData = sonoFiltradosAtuais.map(r => sonoEhRegistroCompleto(r) ? Number(r.nota) : null);
+            const coresPontos = notasData.map(v => v !== null ? sonoClassificarNota(v).cor : 'transparent');
             const maxH = Math.max(10, Math.ceil(Math.max(...horasData) + 1));
 
             const ctx = document.getElementById('chart-8-sono').getContext('2d');
@@ -10215,6 +10403,7 @@
                             borderColor: '#e0e0e0',
                             borderWidth: 2,
                             tension: 0.22,
+                            spanGaps: true,
                             pointRadius: 6,
                             pointHoverRadius: 8,
                             pointBackgroundColor: coresPontos,
@@ -10222,7 +10411,11 @@
                             pointBorderWidth: 1.5,
                             order: 1,
                             datalabels: {
-                                display: (c) => sonoFiltradosAtuais.length <= 14 || c.dataIndex === sonoFiltradosAtuais.length - 1,
+                                display: (c) => {
+                                    const v = notasData[c.dataIndex];
+                                    if (v === null || v === undefined) return false;
+                                    return sonoFiltradosAtuais.length <= 14 || c.dataIndex === sonoFiltradosAtuais.length - 1;
+                                },
                                 color: (c) => coresPontos[c.dataIndex],
                                 backgroundColor: 'rgba(18, 18, 18, 0.85)',
                                 borderRadius: 4,
@@ -10231,7 +10424,7 @@
                                 align: 'top',
                                 offset: 5,
                                 font: { weight: 'bold', size: 11 },
-                                formatter: (val) => `${val}`
+                                formatter: (val) => (val !== null && val !== undefined) ? `${val}` : ''
                             }
                         },
                         {
@@ -10239,8 +10432,12 @@
                             label: 'Tempo de Sono (h)',
                             data: horasData,
                             yAxisID: 'yHoras',
-                            backgroundColor: 'rgba(187, 134, 252, 0.55)',
-                            borderColor: '#bb86fc',
+                            backgroundColor: sonoFiltradosAtuais.map(r =>
+                                sonoEhRegistroCompleto(r) ? 'rgba(187, 134, 252, 0.55)' : 'rgba(160, 160, 160, 0.35)'
+                            ),
+                            borderColor: sonoFiltradosAtuais.map(r =>
+                                sonoEhRegistroCompleto(r) ? '#bb86fc' : '#a0a0a0'
+                            ),
                             borderWidth: 1,
                             borderRadius: 6,
                             maxBarThickness: 38,
@@ -10288,8 +10485,12 @@
                                     const r = sonoFiltradosAtuais[ctxItem.dataIndex];
                                     if (!r) return '';
                                     if (ctxItem.dataset.yAxisID === 'yNota') {
+                                        if (!sonoEhRegistroCompleto(r)) return ' Nota: Sem relógio (registro manual)';
                                         const c = sonoClassificarNota(r.nota);
                                         return ` Nota: ${r.nota} (${c.label})`;
+                                    }
+                                    if (!sonoEhRegistroCompleto(r)) {
+                                        return ` Tempo de sono: ${sonoFormatarMinutos(r.tempoTotalMin)} (Sem relógio)`;
                                     }
                                     return ` Tempo de sono: ${sonoFormatarMinutos(r.tempoTotalMin)} (Real: ${sonoFormatarMinutos(r.tempoRealMin)})`;
                                 }
@@ -10334,6 +10535,51 @@
         document.getElementById('btn-reset-global-filter')?.addEventListener('click', () => {
             setTimeout(renderizarGrafico8Sono, 0);
         });
+        /* ---- ALTERNATIVA MANUAL DE SONO (SEM RELÓGIO) ---- */
+        .sono-manual-trigger {
+            width: 100%;
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px dashed var(--border-color);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s, background-color 0.2s;
+        }
+        .sono-manual-trigger:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            background: rgba(187, 134, 252, 0.06);
+        }
+        .sono-manual-preview {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--secondary-accent);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.86rem;
+            color: var(--text-secondary);
+        }
+        .sono-manual-preview strong {
+            font-size: 1.05rem;
+            color: var(--secondary-accent);
+        }
+        .sono-xray-manual-note {
+            background: var(--surface-color);
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
     </script>
 </body>
 </html>
