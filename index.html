@@ -2030,6 +2030,102 @@
             color: var(--text-secondary);
             text-align: center;
         }
+        /* ---- BLOCO DE CORRELAÇÃO PESSOAL (SEU CORPO EM NÚMEROS) ---- */
+        .sono-corr-box {
+            background: var(--bg-color);
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-top: 6px;
+        }
+        .sono-corr-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .sono-corr-title-wrap h4 {
+            font-size: 0.9rem;
+            color: var(--secondary-accent);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+        }
+        .sono-corr-title-wrap p {
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+            margin-top: 3px;
+        }
+        .sono-corr-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
+        .sono-corr-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .sono-corr-card-title {
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .sono-corr-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .sono-corr-col {
+            background: var(--bg-color);
+            border: 1px solid #282828;
+            border-radius: 8px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .sono-corr-col-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+        .sono-corr-col-val {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .sono-corr-col-sub {
+            font-size: 0.71rem;
+            color: var(--text-secondary);
+        }
+        .sono-corr-diff {
+            font-size: 0.74rem;
+            color: var(--text-secondary);
+            padding-top: 6px;
+            border-top: 1px dashed var(--border-color);
+        }
+        .sono-corr-diff strong {
+            color: var(--text-primary);
+        }
+        .sono-corr-footer {
+            font-size: 0.74rem;
+            color: var(--text-secondary);
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -3162,6 +3258,22 @@
                 </div>
 
                 <div id="sono-factors-grid" class="sono-factors-grid"></div>
+            </div>
+            <!-- Bloco de Correlação Pessoal ("Seu Corpo em Números") -->
+            <div id="sono-corr-box" class="sono-corr-box">
+                <div class="sono-corr-header">
+                    <div class="sono-corr-title-wrap">
+                        <h4>Seu Corpo em Números (Sono × Treino)</h4>
+                        <p id="sono-corr-subtitle">Comparativo automático dos dias com treino + registro de sono</p>
+                    </div>
+                    <div class="bi-segmented-toggle" id="sono-corr-corte-toggle">
+                        <button type="button" class="bi-seg-btn active" data-corte="420">Corte 7h</button>
+                        <button type="button" class="bi-seg-btn" data-corte="390">6h30</button>
+                        <button type="button" class="bi-seg-btn" data-corte="360">6h</button>
+                    </div>
+                </div>
+                <div id="sono-corr-grid" class="sono-corr-grid"></div>
+                <div id="sono-corr-footer" class="sono-corr-footer"></div>
             </div>
         </section>
     </div>
@@ -4901,6 +5013,7 @@
             atualizarGraficoSimetria();
             atualizarGraficoDropOff();
             atualizarGraficoProntidao();
+            atualizarCorrelacaoPessoalSono();
         }
 
         let mapaSonoPorDataG7 = new Map();
@@ -8724,6 +8837,243 @@
                 modalInfoProntidao.classList.remove('open');
             }
         });
+        /* =========================================================================
+           CORRELAÇÃO PESSOAL: "SEU CORPO EM NÚMEROS" (SONO × TREINO)
+           ========================================================================= */
+        const sonoCorrSubtitleEl = document.getElementById('sono-corr-subtitle');
+        const sonoCorrGridEl = document.getElementById('sono-corr-grid');
+        const sonoCorrFooterEl = document.getElementById('sono-corr-footer');
+        const sonoCorrToggleEl = document.getElementById('sono-corr-corte-toggle');
+
+        let corteCorrelacaoSonoMin = 420; // 420 = 7h | 390 = 6h30 | 360 = 6h
+
+        function formatarLabelCorteSono(min) {
+            const h = Math.floor(min / 60);
+            const m = min % 60;
+            return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
+        }
+
+        function atualizarCorrelacaoPessoalSono() {
+            if (!sonoCorrGridEl || !sonoCorrSubtitleEl || !sonoCorrFooterEl) return;
+
+            const corteLabel = formatarLabelCorteSono(corteCorrelacaoSonoMin);
+            const gStart = biGlobalStart.value || '';
+            const gEnd = biGlobalEnd.value || '';
+
+            const diasTreinoTotais = new Set();
+            const diasBom = new Set();
+            const diasCurto = new Set();
+
+            function classificarDiaPorSono(dataIso) {
+                const reg = mapaSonoPorDataG7.get(dataIso);
+                if (!reg || reg.duracaoMin === null) return null;
+                return reg.duracaoMin >= corteCorrelacaoSonoMin ? 'bom' : 'curto';
+            }
+
+            // 1) Qualidade por série (VC/Série e e1RM médio da 1ª série)
+            const qual = {
+                bom: { somaVC: 0, qtdSeries: 0, somaE1RM: 0, qtdEx: 0 },
+                curto: { somaVC: 0, qtdSeries: 0, somaE1RM: 0, qtdEx: 0 }
+            };
+
+            const registrosOrdenados = [...dadosDashboardFiltrados]
+                .filter(d => d.dataExecucao && d.exercicio && Array.isArray(d.series))
+                .sort((a, b) => {
+                    const cmp = (a.dataExecucao || '').localeCompare(b.dataExecucao || '');
+                    return cmp !== 0 ? cmp : (a.atualizadoEm || '').localeCompare(b.atualizadoEm || '');
+                });
+
+            // 2) Drop-off intra-sessão (G6)
+            const sessoesDropOff = new Map();
+
+            registrosOrdenados.forEach(docItem => {
+                const validas = docItem.series.filter(isSerieValidaE1RM);
+                if (validas.length === 0) return;
+
+                const dataIso = docItem.dataExecucao;
+                diasTreinoTotais.add(dataIso);
+
+                const bucket = classificarDiaPorSono(dataIso);
+                if (!bucket) return;
+
+                if (bucket === 'bom') diasBom.add(dataIso);
+                else diasCurto.add(dataIso);
+
+                // Acumula VC/Série
+                validas.forEach(s => {
+                    qual[bucket].somaVC += Number(s.kg) * Number(s.reps);
+                    qual[bucket].qtdSeries += 1;
+                });
+
+                // Acumula e1RM da 1ª série válida
+                const primeira = validas.find(s => /^1[ªa]/.test(normalizarTexto(s.serie))) || validas[0];
+                if (primeira) {
+                    qual[bucket].somaE1RM += calcularEpley(Number(primeira.kg), Number(primeira.reps));
+                    qual[bucket].qtdEx += 1;
+                }
+
+                // Agrupa para Drop-off
+                const rotNorm = (docItem.nomeRotina || '').trim().toUpperCase();
+                const treinoNorm = (docItem.nomeTreino || '').trim().toUpperCase();
+                const exNorm = normalizarTexto(docItem.exercicio);
+                const chave = `${dataIso}||${rotNorm}||${treinoNorm}||${exNorm}`;
+
+                if (!sessoesDropOff.has(chave)) {
+                    sessoesDropOff.set(chave, { bucket, seriesValidas: [] });
+                }
+                sessoesDropOff.get(chave).seriesValidas.push(...validas);
+            });
+
+            const dropOff = {
+                bom: { soma: 0, qtd: 0 },
+                curto: { soma: 0, qtd: 0 }
+            };
+
+            sessoesDropOff.forEach(sess => {
+                if (sess.seriesValidas.length < 2) return;
+                const prim = sess.seriesValidas[0];
+                const ult = sess.seriesValidas[sess.seriesValidas.length - 1];
+                const vc1 = Number(prim.kg) * Number(prim.reps);
+                const vcUlt = Number(ult.kg) * Number(ult.reps);
+                if (vc1 <= 0) return;
+
+                dropOff[sess.bucket].soma += (1 - vcUlt / vc1) * 100;
+                dropOff[sess.bucket].qtd += 1;
+            });
+
+            // 3) Prontidão média (G7 — MM3 sobre histórico completo da rotina)
+            const eventosDelta = calcularHistoricoDeltasPorExercicio(obterHistoricoCompletoProntidao())
+                .filter(ev => {
+                    if (gStart && ev.dataIso < gStart) return false;
+                    if (gEnd && ev.dataIso > gEnd) return false;
+                    return true;
+                });
+
+            const prontPorData = new Map();
+            eventosDelta.forEach(ev => {
+                if (!prontPorData.has(ev.dataIso)) prontPorData.set(ev.dataIso, []);
+                prontPorData.get(ev.dataIso).push(ev.deltaPct);
+            });
+
+            const pront = {
+                bom: { soma: 0, qtd: 0 },
+                curto: { soma: 0, qtd: 0 }
+            };
+
+            prontPorData.forEach((deltas, dataIso) => {
+                const bucket = classificarDiaPorSono(dataIso);
+                if (!bucket) return;
+                const mediaDia = deltas.reduce((acc, v) => acc + v, 0) / deltas.length;
+                pront[bucket].soma += mediaDia;
+                pront[bucket].qtd += 1;
+            });
+
+            const totalCruzados = diasBom.size + diasCurto.size;
+
+            if (totalCruzados === 0) {
+                sonoCorrSubtitleEl.textContent = `Sem dias em comum entre treinos e registros de sono no filtro atual`;
+                sonoCorrGridEl.innerHTML = `<div class="sono-xray-manual-note" style="grid-column: 1 / -1;">Registre noites de sono nos dias de treino para liberar a comparação automática (≥ ${corteLabel} vs. &lt; ${corteLabel}).</div>`;
+                sonoCorrFooterEl.textContent = '';
+                return;
+            }
+
+            sonoCorrSubtitleEl.textContent = `Dias bem dormidos (≥ ${corteLabel}: ${diasBom.size}) vs. Sono curto (< ${corteLabel}: ${diasCurto.size})`;
+
+            // Helpers de formatação dos 3 cartões
+            const prontBom = pront.bom.qtd > 0 ? pront.bom.soma / pront.bom.qtd : null;
+            const prontCurto = pront.curto.qtd > 0 ? pront.curto.soma / pront.curto.qtd : null;
+            const corPront = (v) => v === null ? 'var(--text-secondary)' : (v > 1 ? '#10b981' : (v >= -5 ? '#60a5fa' : '#f59e0b'));
+
+            const dropBom = dropOff.bom.qtd > 0 ? dropOff.bom.soma / dropOff.bom.qtd : null;
+            const dropCurto = dropOff.curto.qtd > 0 ? dropOff.curto.soma / dropOff.curto.qtd : null;
+            const corDrop = (v) => v === null ? 'var(--text-secondary)' : obterFaixaDropOff(Math.round(v)).cor;
+
+            const vcBom = qual.bom.qtdSeries > 0 ? qual.bom.somaVC / qual.bom.qtdSeries : null;
+            const vcCurto = qual.curto.qtdSeries > 0 ? qual.curto.somaVC / qual.curto.qtdSeries : null;
+            const e1rmBom = qual.bom.qtdEx > 0 ? qual.bom.somaE1RM / qual.bom.qtdEx : null;
+            const e1rmCurto = qual.curto.qtdEx > 0 ? qual.curto.somaE1RM / qual.curto.qtdEx : null;
+
+            const diffProntHtml = (prontBom !== null && prontCurto !== null)
+                ? `Diferença: <strong>${formatarDeltaPctProntidao(prontBom - prontCurto).replace('%', ' p.p.')}</strong> nos dias ≥ ${corteLabel}`
+                : `Aguardando dados nos dois grupos para comparar (teste outro corte acima).`;
+
+            const diffDropHtml = (dropBom !== null && dropCurto !== null)
+                ? `Diferença: <strong>${Math.round(dropBom - dropCurto) > 0 ? '+' : ''}${Math.round(dropBom - dropCurto)} p.p.</strong> nos dias ≥ ${corteLabel}`
+                : `Aguardando sessões com 2+ séries válidas nos dois grupos.`;
+
+            let diffQualHtml = `Aguardando séries válidas nos dois grupos.`;
+            if (vcBom !== null && vcCurto !== null && vcCurto > 0) {
+                const deltaVcPct = ((vcBom - vcCurto) / vcCurto) * 100;
+                const sinal = deltaVcPct > 0 ? '+' : '';
+                diffQualHtml = `VC/Série: <strong>${sinal}${formatarNumeroBR(deltaVcPct, 1)}%</strong> nos dias ≥ ${corteLabel}`;
+            }
+
+            sonoCorrGridEl.innerHTML = `
+                <div class="sono-corr-card">
+                    <div class="sono-corr-card-title">1. Prontidão Média (G7)</div>
+                    <div class="sono-corr-split">
+                        <div class="sono-corr-col">
+                            <span class="sono-corr-col-label">Sono ≥ ${corteLabel}</span>
+                            <span class="sono-corr-col-val" style="color:${corPront(prontBom)};">${prontBom !== null ? formatarDeltaPctProntidao(prontBom) : '--'}</span>
+                            <span class="sono-corr-col-sub">${pront.bom.qtd} ${pront.bom.qtd === 1 ? 'dia' : 'dias'}</span>
+                        </div>
+                        <div class="sono-corr-col">
+                            <span class="sono-corr-col-label">Sono &lt; ${corteLabel}</span>
+                            <span class="sono-corr-col-val" style="color:${corPront(prontCurto)};">${prontCurto !== null ? formatarDeltaPctProntidao(prontCurto) : '--'}</span>
+                            <span class="sono-corr-col-sub">${pront.curto.qtd} ${pront.curto.qtd === 1 ? 'dia' : 'dias'}</span>
+                        </div>
+                    </div>
+                    <div class="sono-corr-diff">${diffProntHtml}</div>
+                </div>
+
+                <div class="sono-corr-card">
+                    <div class="sono-corr-card-title">2. Drop-off Médio (G6)</div>
+                    <div class="sono-corr-split">
+                        <div class="sono-corr-col">
+                            <span class="sono-corr-col-label">Sono ≥ ${corteLabel}</span>
+                            <span class="sono-corr-col-val" style="color:${corDrop(dropBom)};">${dropBom !== null ? `${Math.round(dropBom)}%` : '--'}</span>
+                            <span class="sono-corr-col-sub">${dropOff.bom.qtd} ${dropOff.bom.qtd === 1 ? 'exerc.' : 'exercs.'}</span>
+                        </div>
+                        <div class="sono-corr-col">
+                            <span class="sono-corr-col-label">Sono &lt; ${corteLabel}</span>
+                            <span class="sono-corr-col-val" style="color:${corDrop(dropCurto)};">${dropCurto !== null ? `${Math.round(dropCurto)}%` : '--'}</span>
+                            <span class="sono-corr-col-sub">${dropOff.curto.qtd} ${dropOff.curto.qtd === 1 ? 'exerc.' : 'exercs.'}</span>
+                        </div>
+                    </div>
+                    <div class="sono-corr-diff">${diffDropHtml}</div>
+                </div>
+
+                <div class="sono-corr-card">
+                    <div class="sono-corr-card-title">3. Qualidade por Série</div>
+                    <div class="sono-corr-split">
+                        <div class="sono-corr-col">
+                            <span class="sono-corr-col-label">Sono ≥ ${corteLabel}</span>
+                            <span class="sono-corr-col-val" style="color:var(--accent-color);">${vcBom !== null ? `${Math.round(vcBom)} kg` : '--'}</span>
+                            <span class="sono-corr-col-sub">${e1rmBom !== null ? `e1RM méd: ${formatarNumeroBR(e1rmBom, 1)} kg` : '0 séries'}</span>
+                        </div>
+                        <div class="sono-corr-col">
+                            <span class="sono-corr-col-label">Sono &lt; ${corteLabel}</span>
+                            <span class="sono-corr-col-val" style="color:var(--secondary-accent);">${vcCurto !== null ? `${Math.round(vcCurto)} kg` : '--'}</span>
+                            <span class="sono-corr-col-sub">${e1rmCurto !== null ? `e1RM méd: ${formatarNumeroBR(e1rmCurto, 1)} kg` : '0 séries'}</span>
+                        </div>
+                    </div>
+                    <div class="sono-corr-diff">${diffQualHtml}</div>
+                </div>
+            `;
+
+            sonoCorrFooterEl.textContent = `Base cruzada: ${totalCruzados} de ${diasTreinoTotais.size} dia(s) de treino no período possuem registro de sono.`;
+        }
+
+        if (sonoCorrToggleEl) {
+            sonoCorrToggleEl.querySelectorAll('.bi-seg-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    sonoCorrToggleEl.querySelectorAll('.bi-seg-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    corteCorrelacaoSonoMin = Number(btn.dataset.corte) || 420;
+                    atualizarCorrelacaoPessoalSono();
+                });
+            });
+        }
         /* =========================================================================
            EXPORTAÇÃO PDF — RELATÓRIO TÁTICO INTERCALADO (G7 GERAL + POR EXERCÍCIO)
            ========================================================================= */
